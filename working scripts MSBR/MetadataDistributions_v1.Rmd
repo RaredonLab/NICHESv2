@@ -1,0 +1,211 @@
+---
+title: "MetadataDistributions_v1"
+author: "MSBR"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.width = 10,fig.height = 8,warning = FALSE,message = FALSE)
+```
+
+#### Introduction
+
+It is common in both single-cell and NICHES connectomic data analysis to want to inquire about how certain metadat slots are distributed against other metadata categorizations. I.e.
+
+"How are different experimental conditions distributed across cell type clusters?"
+
+or
+
+"How are different cell types distributed across different experimental conditions?"
+
+or
+
+
+"How are different cell types distributed across different CellToCell signaling archetypes?"
+
+These questions are easy to answer from the source object metadata. However, if these quanitifications are done without bootstrapping, then the answers to the above questions yield single values upon which no statistical analysis can be done. This is terrible! We have so much data! We should leverage it!
+
+This vignette details the development of a generalizable function to analyze metadata category distributions and to be able to calcualte statistical significance(s), if desired.
+
+There are four major tasks in play:
+
+1. We must subsample the input data thoughtfully and intelligently to minimize artifact
+2. Perform requested calculations
+3. We must store the data in a format that allows easy and flexible ggplotting
+4. We must create beautiful and flexible ggplots that can be customized by the user
+
+For ease of engineering, let's bundle each of these tasks into their own dedicated function which we can daisy-chain together later.
+
+#### 1. Create a well-organized list of downsampled objects for bootstrapping
+
+First, let's load some demo data. We want something that has multiple conditions or samples and multiple cell types so that we can play these different metadata categorizations against one another. Let's use:
+
+```{r}
+require(Seurat)
+require(SeuratData)
+require(cowplot)
+require(ggplot2)
+#InstallData('ifnb')
+data("ifnb")
+?ifnb
+```
+
+First, let's inspect the metadata to make sure that this dataset suits our needs:
+
+```{r}
+table(ifnb$seurat_annotations,ifnb$stim)
+```
+
+Perfect.
+
+Take a look at the UMAP, for fun?
+
+```{r}
+ifnb <- ScaleData(ifnb)
+ifnb <- FindVariableFeatures(ifnb)
+ifnb <- RunPCA(ifnb,npcs = 50)
+ifnb <- RunUMAP(ifnb,dims=1:30)
+p1 <- DimPlot(ifnb, group.by = 'seurat_annotations')
+p2 <- DimPlot(ifnb, group.by = 'stim')
+plot_grid(p1,p2)
+```
+
+```{r}
+MetadataDist <- function(object,
+                         metadata.1,
+                         metadata.2,
+                         chunks = 10){
+  
+  ### TASK 1: Break into bootstrapped samples (without replacement, so no measurement is used more than once)
+  # First, let's break the object into the number of chunks
+  num.cells.per.chunk <- ceiling(ncol(object)/chunks)
+  message(paste('Breaking input object into',chunks,'chunks of approximately',num.cells.per.chunk,'cells each...'))
+  # Create a new metadata slot that divvies the input into bootstrapped samples
+  bootstrap <- c()
+  for(i in 1:chunks){
+    bootstrap <- c(bootstrap, rep(paste('Sample',i,sep = "_"),num.cells.per.chunk))
+  }
+  # remove remaining one cell at the end
+  bootstrap <- bootstrap[1:length(bootstrap)-1]
+  # check that the length is right
+  length(bootstrap) == ncol(object)
+  #table(bootstrap)
+  # randomize the order completely
+  bootstrap <- sample(bootstrap)
+  # add to object to use for subsetting
+  object$bootstrap <- bootstrap
+  split <- SplitObject(object,split.by = 'bootstrap')
+  
+  ### TASK 2-3: perform requested calculations and store nicely
+  dist.data <- data.frame()
+  for(i in 1:length(split)){
+    
+    # create metadata distribution table
+    temp <- table(split[[i]]@meta.data[[metadata.1]],split[[i]]@meta.data[[metadata.2]])
+    
+    # normalize so that all values of metadata.2 for a given metadata.1 add up to 1
+    for(j in 1:nrow(temp)){
+      temp[j,] <- temp[j,]/rowSums(temp)[j]
+    }
+    # rowSums(temp) # should all equal 1
+    # convert to data frame
+    temp <- as.data.frame(temp)
+    # add sample ID
+    temp$bootstrap <- names(split[i])
+    # concatenate
+    dist.data <- rbind(dist.data,temp)  
+  }
+  
+  #View(dist.data)
+  
+# Provide function outputs
+return(dist.data)
+}
+```
+
+Now let's test it by making some plots. First, let's do stim vs. cell type:
+
+```{r}
+dist.data <- MetadataDist(object = ifnb,
+             metadata.1 = 'stim',
+             metadata.2 = 'seurat_annotations',
+             chunks = 10)
+
+  ### TASK 4: make pretty ggplots
+  # see https://rpkgs.datanovia.com/ggpubr/reference/geom_pwc.html for stats code
+  require(ggplot2)
+  require(ggpubr)
+  colors.use <- c('#93B7BE','#F19A3E','#3D3B8E','#E072A4',"#B22222","grey","#A034F0",'yellow','#8B786D','green','violet','red','blue','#00BFB2')
+output.plot.1 <-  ggplot(data = dist.data,
+           aes(x = Var2,y=Freq*100,fill=Var1,color=Var1))+
+      geom_violin()+
+      geom_point(position = position_jitterdodge(dodge.width = 0.9,jitter.width=0.25),size=0.1,color='black')+
+      theme_classic()+
+      ggtitle('Condition Distribution over Cell Type')+
+      ylab('Percentage of Condition')+
+      xlab('Cell Type')+
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+            plot.title = element_text(face = "bold",hjust = 0.5))+
+      geom_pwc(
+        aes(group = Var1), 
+        remove.bracket = F,
+        tip.length = 0,
+        method = "t_test",
+        label = "{p.adj.signif}",
+        y.position = c(37,24,10),
+        #label = "{p.adj.format}{p.adj.signif}",
+        p.adjust.method = "bonferroni", 
+        p.adjust.by = "panel",
+        hide.ns = TRUE)+
+      guides(fill=guide_legend(title="Condition"))+
+      guides(color=guide_legend(title="Condition"))+
+      scale_fill_manual(values = colors.use)+
+      scale_color_manual(values = colors.use)
+output.plot.1
+```
+
+And if we reverse the ordering, and remake the plot to look good:
+
+```{r}
+dist.data <- MetadataDist(object = ifnb,
+             metadata.1 = 'seurat_annotations',
+             metadata.2 = 'stim',
+             chunks = 10)
+
+  ### TASK 4: make pretty ggplots
+  # see https://rpkgs.datanovia.com/ggpubr/reference/geom_pwc.html for stats code
+  require(ggplot2)
+  require(ggpubr)
+  colors.use <- c('#93B7BE','#F19A3E','#3D3B8E','#E072A4',"#B22222","grey","#A034F0",'yellow','#8B786D','green','violet','red','blue','#00BFB2')
+output.plot.2 <-  ggplot(data = dist.data,
+           aes(x = Var1,y=Freq*100,fill=Var2,color=Var2))+
+      geom_violin()+
+      geom_point(position = position_jitterdodge(dodge.width = 0.9,jitter.width=0.25),size=0.1,color='black')+
+      theme_classic()+
+      ggtitle('Cell Type Distribution over Condition')+
+      ylab('Percentage of Cell Type')+
+      xlab('Cell Type')+
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+            plot.title = element_text(face = "bold",hjust = 0.5))+
+      geom_pwc(
+        aes(group = Var2), 
+        remove.bracket = F,
+        tip.length = 0,
+        method = "t_test",
+        label = "{p.adj.signif}",
+        y.position = 80,
+        #label = "{p.adj.format}{p.adj.signif}",
+        p.adjust.method = "bonferroni", 
+        p.adjust.by = "panel",
+        hide.ns = T)+
+      guides(fill=guide_legend(title="Condition"))+
+      guides(color=guide_legend(title="Condition"))+
+      scale_fill_manual(values = colors.use)+
+      scale_color_manual(values = colors.use)
+output.plot.2
+```
+
+Thoughts?
+
+
