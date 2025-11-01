@@ -5,6 +5,7 @@ require(pkgdown)
 # Document
 setwd("~/GitHub/NICHESv2-msbr")
 document()
+check()
 
 # Check installation from local
 setwd("~/GitHub")
