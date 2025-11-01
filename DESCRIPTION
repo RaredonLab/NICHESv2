@@ -13,6 +13,7 @@ Depends:
     R (>= 4.0)
 biocViews:
 Imports:
+    ComplexHeatmap,
     OmnipathR,
     dplyr,
     ggrepel,
@@ -34,7 +35,8 @@ Imports:
     rlang,
     utils,
     stringr,
-    tidyr
+    tidyr,
+    tidyverse
 Suggests:
   knitr,
   rmarkdown

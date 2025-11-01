@@ -58,7 +58,7 @@ RunCellToNeighborhood <- function(node.object,
   
   # Make SCC matrix
   scc <- lig.data*rec.data
-  rownames(scc) <- paste(rownames(lig.data),rownames(rec.data),sep = '—')
+  rownames(scc) <- paste(rownames(lig.data),rownames(rec.data),sep = '|')
 
   # Condense by column name
   colnames(scc) <- colnames(lig.data) # Make colnames equal to sending cell
@@ -69,7 +69,7 @@ RunCellToNeighborhood <- function(node.object,
   
   # Label columns properly
   barcodes <- colnames(scc)
-  colnames(scc) <- paste(barcodes,'Neighborhood',sep = '—')
+  colnames(scc) <- paste(barcodes,'Neighborhood',sep = '|')
 
   # Use this matrix to create a Seurat object:
   demo <- Seurat::CreateSeuratObject(counts = as.matrix(scc),assay = 'CellToNeighborhood')
@@ -84,7 +84,7 @@ RunCellToNeighborhood <- function(node.object,
   # bug fix: add the Neighborhood - prefix
 
   sending_type.meta <- data.frame(Seurat::Idents(node.object)[barcodes])
-  rownames(sending_type.meta) <- paste(rownames(sending_type.meta),"Neighborhood",sep = '—')
+  rownames(sending_type.meta) <- paste(rownames(sending_type.meta),"Neighborhood",sep = '|')
 
   
   demo <- Seurat::AddMetaData(demo,metadata = sending_type.meta,col.name = c("SendingCell","SendingType"))
@@ -109,7 +109,7 @@ RunCellToNeighborhood <- function(node.object,
     #colnames(receiving.metadata) <- paste(colnames(receiving.metadata),'Receiving',sep='.')
     # Compile
     meta.data.to.add.also <- sending.metadata
-    rownames(meta.data.to.add.also) <- paste(sending.barcodes,'Neighborhood',sep='—')
+    rownames(meta.data.to.add.also) <- paste(sending.barcodes,'Neighborhood',sep='|')
     # Add additional metadata
     demo <- Seurat::AddMetaData(demo,metadata = as.data.frame(meta.data.to.add.also))
   }

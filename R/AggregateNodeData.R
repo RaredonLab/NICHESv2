@@ -1,3 +1,9 @@
+#' This is a helper function for CircuitPlot
+#'
+#' @param node.object A transcriptomic object
+#' @param group.by The grouping variable to use to aggregate columns
+#' @return A dataframe with aggregated node data
+
 AggregateNodeData <- function(node.object,
                               group.by,
                               global.node.list){

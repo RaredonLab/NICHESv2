@@ -2,7 +2,7 @@
 % Please edit documentation in R/CircuitPlot.R
 \name{CircuitPlot}
 \alias{CircuitPlot}
-\title{CircuitPlot}
+\title{This is a plotting function built to study feature topology within cellular systems.}
 \usage{
 CircuitPlot(
   transcr.obj,
@@ -32,7 +32,7 @@ CircuitPlot(
 
 \item{connect.obj}{A connectomic object, ideally paired with / derived from the transcriptomic object.}
 
-\item{feature}{A connectomic feature (signaling mechanism), with and 'em dash' ("—") as separator}
+\item{feature}{A connectomic feature (signaling mechanism), with and 'em dash' ("|") as separator}
 
 \item{plot.function}{The base function to use. Currently only option is 'ggCircuit', which is a custom sub-function in NICHESMethods, based on trigonometry + ggplot2. May also be able to build an iGraph-based version in the future.}
 
@@ -70,5 +70,5 @@ CircuitPlot(
 A circuit plot (ggplot object if plot.function == 'ggCircuit')
 }
 \description{
-CircuitPlot
+This is a plotting function built to study feature topology within cellular systems.
 }

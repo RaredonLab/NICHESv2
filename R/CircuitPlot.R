@@ -1,8 +1,8 @@
-#' CircuitPlot
+#' This is a plotting function built to study feature topology within cellular systems.
 #'
 #' @param transcr.obj A transcriptomic object
 #' @param connect.obj A connectomic object, ideally paired with / derived from the transcriptomic object.
-#' @param feature A connectomic feature (signaling mechanism), with and 'em dash' ("—") as separator
+#' @param feature A connectomic feature (signaling mechanism), with and 'em dash' ("|") as separator
 #' @param plot.function The base function to use. Currently only option is 'ggCircuit', which is a custom sub-function in NICHESMethods, based on trigonometry + ggplot2. May also be able to build an iGraph-based version in the future.
 #' @param group.by Character string. Name of the grouping variable to use. Must be in the metadata of the transcriptomic object.
 #' @param graph.angle The orientation angle of the whole CircuitPlot graph, rotational.
@@ -42,8 +42,8 @@ CircuitPlot <- function(transcr.obj,
                         unity.normalize = F,
                         ...) {
   # Define Objects
-  ligand <- strsplit(feature, split = "—")[[1]][1]
-  receptor <- strsplit(feature, split = "—")[[1]][2]
+  ligand <- strsplit(feature, split = "|")[[1]][1]
+  receptor <- strsplit(feature, split = "|")[[1]][2]
   node.object <- DefineNodeObject(transcr.obj = transcr.obj,
                                   feature = ligand)
   edge.object <- DefineEdgeObject(connect.obj = connect.obj,

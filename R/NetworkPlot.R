@@ -23,8 +23,8 @@ NetworkPlot <- function(transcriptome.object, # scRNAseq object containing all p
                                ){
   #### SETUP ####
   # Break mechanism of interest into ligand and receptor
-  ligand <- strsplit(mechanism.of.interest,split='—')[[1]][[1]]
-  receptor <- strsplit(mechanism.of.interest,split='—')[[1]][[2]]
+  ligand <- strsplit(mechanism.of.interest,split='|')[[1]][[1]]
+  receptor <- strsplit(mechanism.of.interest,split='|')[[1]][[2]]
 
   # Check if transcriptome.object contains the desired embedding
   if(reduction %in% names(transcriptome.object@reductions)){
@@ -92,7 +92,7 @@ NetworkPlot <- function(transcriptome.object, # scRNAseq object containing all p
     # Convert rownames to row identifiers
     connectivity$edge.ident <- rownames(connectivity)
     # Split the barcodes into sending vs. receiving:
-    split.barcodes <- stringr::str_split_fixed(connectivity$edge.ident,"—",2)
+    split.barcodes <- stringr::str_split_fixed(connectivity$edge.ident,"|",2)
     connectivity$SendingBarcode <- split.barcodes[,1]
     connectivity$ReceivingBarcode <- split.barcodes[,2]
     # Metadata

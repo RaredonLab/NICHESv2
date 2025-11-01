@@ -1,4 +1,4 @@
-#' AggregateEdgeData
+#' This is a helper function for CircuitPlot
 #'
 #' @param edge.object A connectomic object
 #' @param group.by The grouping variable to use to aggregate columns
@@ -10,7 +10,7 @@ AggregateEdgeData <- function(edge.object,
   if(!(group.by %in% colnames(edge.object))){
     stop('group.by is not in column names of edge.object')
   }else{}
-  edge.aggregate <- aggregate(x = edge.object,
+  edge.aggregate <- stats::aggregate(x = edge.object,
                               by = list(edge.label = edge.object[[group.by]]),
                               FUN = mean,drop = F)
   # CHECK What is up with this separator being an EN-dash and not an EM-dash?? Why??
