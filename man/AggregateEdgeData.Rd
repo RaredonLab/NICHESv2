@@ -2,7 +2,7 @@
 % Please edit documentation in R/AggregateEdgeData.R
 \name{AggregateEdgeData}
 \alias{AggregateEdgeData}
-\title{AggregateEdgeData}
+\title{This is a helper function for CircuitPlot}
 \usage{
 AggregateEdgeData(edge.object, group.by)
 }
@@ -15,5 +15,5 @@ AggregateEdgeData(edge.object, group.by)
 A dataframe with aggregated edge data
 }
 \description{
-AggregateEdgeData
+This is a helper function for CircuitPlot
 }

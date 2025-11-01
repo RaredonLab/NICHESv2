@@ -104,8 +104,8 @@ RunCellToCell <- function(node.object,
     # Combine into partial SCC matrix  
     scc.data[[i]] <- lig.data[[i]]*rec.data[[i]]
     
-    rownames(scc.data[[i]]) <- paste(rownames(lig.data[[i]]),rownames(rec.data[[i]]),sep = '—')
-    colnames(scc.data[[i]]) <- paste(colnames(lig.data[[i]]),colnames(rec.data[[i]]),sep = '—')
+    rownames(scc.data[[i]]) <- paste(rownames(lig.data[[i]]),rownames(rec.data[[i]]),sep = '|')
+    colnames(scc.data[[i]]) <- paste(colnames(lig.data[[i]]),colnames(rec.data[[i]]),sep = '|')
     
 
     sending.cell.idents[[i]] <- as.character(Seurat::Idents(node.object)[colnames(lig.data[[i]])])
@@ -135,7 +135,7 @@ RunCellToCell <- function(node.object,
   rownames(meta.data.to.add) <- colnames(scc)
   meta.data.to.add$VectorType <- paste(meta.data.to.add$SendingType,
                                        meta.data.to.add$ReceivingType,
-                                       sep = '—')
+                                       sep = '|')
   #Add ident metadata
   demo <- Seurat::AddMetaData(demo,metadata = meta.data.to.add)
   
@@ -158,7 +158,7 @@ RunCellToCell <- function(node.object,
   colnames(receiving.metadata) <- paste(colnames(receiving.metadata),'Receiving',sep='.')
   # Compile
   meta.data.to.add.also <- cbind(sending.metadata,receiving.metadata,joint.metadata)
-  rownames(meta.data.to.add.also) <- paste(sending.barcodes,receiving.barcodes,sep='—')
+  rownames(meta.data.to.add.also) <- paste(sending.barcodes,receiving.barcodes,sep='|')
   # Add additional metadata 
   ### COMMENT 2024-02-03 MSBR: Is this compatible with Seurat v5?###
   demo <- Seurat::AddMetaData(demo,metadata = as.data.frame(meta.data.to.add.also))

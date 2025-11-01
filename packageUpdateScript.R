@@ -12,12 +12,13 @@ setwd("~/GitHub")
 install('NICHESv2-msbr')
 
 # Update website
-setwd("~/Documents/GitHub/NICHES")
-pkgdown::build_site()
-pkgdown::build_article(name = "07 Spatiotemporal NICHES",lazy = T)
+setwd("~/GitHub/NICHESv2-msbr")
+pkgdown::build_site(lazy = T)
 
-# Install from release ?
-install_github('msraredon/NICHES', 
-               ref = 'v1.2.0',
-               auth_token = 'f7ea5d8790fe721ac0c9d5ef115d04068b19ed6d',
-               force = T)
+# pkgdown::build_article(name = "07 Spatiotemporal NICHES",lazy = T)
+
+# Install from release
+# install_github('RaredonLab/NICHESv2',
+#                ref = 'v2.0.0',
+#                auth_token = 'f7ea5d8790fe721ac0c9d5ef115d04068b19ed6d',
+#                force = T)
