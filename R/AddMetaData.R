@@ -1,12 +1,5 @@
-library(Seurat)
-library(ggplot2)
-library(dplyr)
-
-# setwd('/Volumes/T7/Pneum/Xenium/Clean_Objects')
-# 
-# load("/Volumes/T7/Pneum/Xenium/PPLR.annotated_Type.5_SEE_08-20-2025.Robj")
-# 
-# PPLR.CTC <- readRDS("/Volumes/T7/Pneum/Xenium/NICHES_test/PNX0_F1_Ad.CTC.byRad.normalized.rds")
+#' @param CTC.obj description
+#' 
 
 AddMetaData <- function(CTC.obj,
                         annotated.obj,
@@ -63,6 +56,19 @@ AddMetaData <- function(CTC.obj,
   return(receiving.joined)
   
 }
+
+
+library(Seurat)
+library(ggplot2)
+library(dplyr)
+
+# setwd('/Volumes/T7/Pneum/Xenium/Clean_Objects')
+# 
+# load("/Volumes/T7/Pneum/Xenium/PPLR.annotated_Type.5_SEE_08-20-2025.Robj")
+# 
+# PPLR.CTC <- readRDS("/Volumes/T7/Pneum/Xenium/NICHES_test/PNX0_F1_Ad.CTC.byRad.normalized.rds")
+
+
 
 # An example on how to use the function.
 # col.name <- 'Type.5'
