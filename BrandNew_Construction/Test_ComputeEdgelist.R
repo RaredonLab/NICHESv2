@@ -3,9 +3,10 @@ library(ggplot2)
 library(dplyr)
 library(spNNGP)
 
-# setwd('/Volumes/T7/Pneum/Xenium/Test_Composition')
-# 
-# load("/Volumes/T7/Pneum/Xenium/PPLR.annotated_Type.5_SEE_08-20-2025.Robj")
+
+load("/Volumes/T7/Pneum/Xenium/PPLR.annotated_Type.5_SEE_08-20-2025.Robj")
+
+load("/Volumes/T7/Sophie/data/systems.combined_02-04-2025.Robj")
 
 sub <- subset(PPLR.annotated, subset = TMA == 'PNX3_F1_Sp')
 
