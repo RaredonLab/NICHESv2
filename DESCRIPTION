@@ -39,5 +39,6 @@ Imports:
     tidyverse
 Suggests:
   knitr,
-  rmarkdown
+  rmarkdown,
+  testthat (>= 3.0.0)
 URL: https://msraredon.github.io/NICHES/
