@@ -61,6 +61,8 @@ suppressPackageStartupMessages({
 #'   \item{\code{to}}{Target cell name (character).}
 #'   \item{\code{weight}}{Euclidean distance (numeric). Self-loops (autocrine
 #'     edges) carry \code{weight = 0}.}
+#'   \item{\code{x_from}, \code{y_from}}{Spatial coordinates of the sending cell.}
+#'   \item{\code{x_to},   \code{y_to}  }{Spatial coordinates of the receiving cell.}
 #' }
 #' Keyed on \code{(from, to)} for O(log n) downstream lookups. Carries
 #' metadata attributes: \code{mode}, \code{param}, \code{n_cells},
@@ -124,6 +126,10 @@ createEdgelistSpatial <- function(coord,
   n_cells    <- nrow(coord)
   xy         <- as.matrix(coord[, 1:2, drop = FALSE])  # n x 2 numeric matrix
   colnames(xy) <- NULL                                  # clean for kd-tree calls
+
+  # Coordinate lookup vectors (named by cell) — used to attach x/y to edges
+  x_coords <- setNames(xy[, 1], cell_names)
+  y_coords <- setNames(xy[, 2], cell_names)
 
   if (n_cells < 2)
     stop("[createEdgelistSpatial] 'coord' must contain at least 2 cells.")
@@ -302,8 +308,17 @@ createEdgelistSpatial <- function(coord,
     warning("[createEdgelistSpatial] No inter-cell edges found. ",
             "Consider increasing 'k' or 'rad'. Only autocrine edges are present.")
 
-  # Canonical column ordering: from | to | weight
-  setcolorder(edge_dt, c("from", "to", "weight"))
+  # ── Attach sending and receiving cell coordinates ───────────────────────────
+  # Looked up from the named vectors built at the top of the function.
+  # These travel with the edge list so downstream functions (computeCellToCellSpatial,
+  # plotting) never need to re-join the original coord data.frame.
+  edge_dt[, x_from := x_coords[from]]
+  edge_dt[, y_from := y_coords[from]]
+  edge_dt[, x_to   := x_coords[to]]
+  edge_dt[, y_to   := y_coords[to]]
+
+  # Canonical column ordering: from | to | weight | x_from | y_from | x_to | y_to
+  setcolorder(edge_dt, c("from", "to", "weight", "x_from", "y_from", "x_to", "y_to"))
 
   # Key on (from, to) → O(log n) lookup of all edges from a given cell
   setkeyv(edge_dt, c("from", "to"))

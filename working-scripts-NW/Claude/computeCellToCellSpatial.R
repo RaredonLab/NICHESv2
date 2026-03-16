@@ -88,8 +88,9 @@ suppressPackageStartupMessages({
 #'   }
 #'   \item{\code{$cell_meta}}{
 #'     \code{data.table} with one row per unique cell appearing in any edge.
-#'     Initially contains only the \code{cell} column. Add metadata columns
-#'     (cell type, sample, cluster, etc.) via a keyed join:
+#'     Contains \code{cell} plus \code{x} and \code{y} if the edge list was
+#'     produced by \code{createEdgelistSpatial()} (which embeds coordinates
+#'     automatically). Add further metadata columns via a keyed join:
 #'     \code{obj$cell_meta[your_meta, on = "cell"]}.
 #'   }
 #'   \item{\code{$lr_meta}}{
@@ -301,10 +302,23 @@ computeCellToCellSpatial <- function(count.mtx,
   # SECTION 5 ── Build cell_meta and lr_meta slots
   # ════════════════════════════════════════════════════════════════════════════
 
-  # cell_meta: one row per unique cell appearing in any edge
-  # Initially just the cell identifier — user enriches this later
+  # cell_meta: one row per unique cell appearing in any edge.
+  # If edge.list carries x_from/y_from/x_to/y_to columns (as produced by
+  # createEdgelistSpatial), extract x/y here so plotting functions need
+  # nothing beyond the ctc object itself.
   all_cells <- unique(c(sending_cells, receiv_cells))
   cell_meta <- data.table(cell = all_cells)
+
+  has_coords <- all(c("x_from", "y_from", "x_to", "y_to") %in% colnames(edge.list))
+  if (has_coords) {
+    # Build a cell → (x, y) lookup from both the from-side and to-side columns,
+    # then deduplicate (both sides carry the same coordinate for a given cell).
+    coords_from <- unique(edge.list[, .(cell = from, x = x_from, y = y_from)])
+    coords_to   <- unique(edge.list[, .(cell = to,   x = x_to,   y = y_to)])
+    coord_lookup <- unique(rbindlist(list(coords_from, coords_to)), by = "cell")
+    cell_meta <- coord_lookup[cell_meta, on = "cell"]   # left join: all cells kept
+  }
+
   setkeyv(cell_meta, "cell")
 
   # lr_meta: one row per valid LR pair, carrying all columns from LRM.list
