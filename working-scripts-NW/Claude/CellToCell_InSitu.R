@@ -52,88 +52,89 @@ if (!exists("CellToCell_InSitu_Single_LRM", mode = "function")) {
 #' }
 #'
 #' @param ctc          An \code{EdgeLRResult} object from
-#'   \code{computeCellToCellSpatial()}.
-#' @param LRM.list     \code{NULL} (plot all) or a \code{data.frame} with
-#'   columns \code{ligand} and \code{receptor} (plot selected pairs only).
+#'   \code{compute_CellToCell_Spatial()}.
+#' @param LRM.list     \code{NULL} (plot all) or a \code{character} vector of
+#'   LR pair strings in \code{"Ligand.Receptor"} format (e.g.
+#'   \code{c("MIF.CD74", "VEGFA.FLT1")}). When supplied, only these pairs
+#'   are plotted and saved to a \code{"selected_LRMs"} subfolder.
 #' @param folder       Output directory name. Created if it does not exist.
 #'   Set to \code{NULL} to save directly in the working directory.
-#' @param bg_color     Background edge color. Default \code{"grey50"}.
-#' @param bg_linewidth Background edge line width. Default \code{0.1}.
-#' @param bg_alpha     Background edge alpha. Default \code{0.2}.
-#' @param sig_linewidth Signal edge line width. Default \code{0.4}.
-#' @param sig_alpha    Signal edge alpha. Default \code{0.8}.
-#' @param viridis_option Viridis palette option. Default \code{"C"}.
+#' @param bg.color     Background edge color. Default \code{"grey50"}.
+#' @param bg.linewidth Background edge line width. Default \code{0.1}.
+#' @param bg.alpha     Background edge alpha. Default \code{0.2}.
+#' @param sig.linewidth Signal edge line width. Default \code{0.4}.
+#' @param sig.alpha    Signal edge alpha. Default \code{0.8}.
+#' @param viridis.option Viridis palette option. Default \code{"C"}.
 #' @param width        Plot width in inches. Default \code{7}.
 #' @param height       Plot height in inches. Default \code{6}.
 #' @param dpi          Plot resolution. Default \code{150}.
-#' @param n_cores      Number of cores for parallel saving. Default \code{1}.
+#' @param n.cores      Number of cores for parallel saving. Default \code{1}.
 #'   Fork-based on Unix/macOS; falls back to serial on Windows.
 #'
 #' @return Invisibly returns a data.frame summarising each pair:
-#'   \code{ligand}, \code{receptor}, \code{status} ("saved" or "skipped"),
-#'   \code{path}.
+#'   \code{LR}, \code{status} ("saved" or "skipped"), \code{path}.
 # ==============================================================================
 
 CellToCell_InSitu <- function(ctc,
-                               LRM.list      = NULL,
-                               folder        = NULL,
-                               bg_color      = "grey50",
-                               bg_linewidth  = 0.1,
-                               bg_alpha      = 0.2,
-                               sig_linewidth = 0.4,
-                               sig_alpha     = 0.8,
-                               viridis_option = "C",
-                               width         = 7,
-                               height        = 6,
-                               dpi           = 150,
-                               n_cores       = 1L) {
+                               LRM.list       = NULL,
+                               folder         = NULL,
+                               bg.color       = "grey50",
+                               bg.linewidth   = 0.1,
+                               bg.alpha       = 0.2,
+                               sig.linewidth  = 0.4,
+                               sig.alpha      = 0.8,
+                               viridis.option = "C",
+                               width          = 7,
+                               height         = 6,
+                               dpi            = 150,
+                               n.cores        = 1L) {
 
   if (!inherits(ctc, "EdgeLRResult"))
     stop("[CellToCell_InSitu] 'ctc' must be an EdgeLRResult object.")
 
-  n_cores <- as.integer(n_cores)
+  n.cores <- as.integer(n.cores)
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 1 ── Resolve output directory and LR pair list
   # ════════════════════════════════════════════════════════════════════════════
 
-  selected_mode <- !is.null(LRM.list)
+  selected.mode <- !is.null(LRM.list)
 
   # Determine output directory
-  if (selected_mode) {
+  if (selected.mode) {
     # Selected LRMs → always go into "selected_LRMs" subfolder
-    out_dir <- if (!is.null(folder)) file.path(folder, "selected_LRMs")
+    out.dir <- if (!is.null(folder)) file.path(folder, "selected_LRMs")
                else "selected_LRMs"
   } else {
     # All LRMs → use folder as-is, or working dir
-    out_dir <- if (!is.null(folder)) folder else "."
+    out.dir <- if (!is.null(folder)) folder else "."
   }
 
-  if (out_dir != ".") {
-    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-    message(sprintf("[CellToCell_InSitu] Output directory: %s", out_dir))
+  if (out.dir != ".") {
+    dir.create(out.dir, recursive = TRUE, showWarnings = FALSE)
+    message(sprintf("[CellToCell_InSitu] Output directory: %s", out.dir))
   } else {
     message("[CellToCell_InSitu] Saving to working directory.")
   }
 
   # Resolve which LR pairs to plot
-  if (selected_mode) {
+  # Resolve which LR pairs to plot
+  if (selected.mode) {
 
-    if (!is.data.frame(LRM.list) ||
-        !all(c("ligand", "receptor") %in% colnames(LRM.list)))
-      stop("[CellToCell_InSitu] 'LRM.list' must be a data.frame with columns ",
-           "'ligand' and 'receptor'.")
+    if (!is.character(LRM.list) || length(LRM.list) == 0)
+      stop("[CellToCell_InSitu] 'LRM.list' must be a non-empty character vector of ",
+           "'Ligand.Receptor' strings (e.g. c(\"MIF.CD74\", \"VEGFA.FLT1\")).")
 
-    pairs <- as.data.table(LRM.list)[, .(ligand, receptor)]
+    pairs <- data.table(LR = LRM.list)
 
   } else {
 
-    # All unique LR pairs that have at least one non-zero signal
-    pairs <- unique(ctc$signals[, .(ligand, receptor)])
+    # All unique LR pairs present in the edge table
+    pairs <- unique(ctc$edges[, .(LR)])
   }
 
-  n_pairs <- nrow(pairs)
-  message(sprintf("[CellToCell_InSitu] %d LR pair(s) to plot.", n_pairs))
+  n.pairs <- nrow(pairs)
+  message(sprintf("[CellToCell_InSitu] %d LR pair(s) to plot.", n.pairs))
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 2 ── Define per-pair plotting job
@@ -141,23 +142,21 @@ CellToCell_InSitu <- function(ctc,
 
   .plot_one <- function(i) {
 
-    lig <- pairs$ligand[i]
-    rec <- pairs$receptor[i]
-    fname <- sprintf("%s_%s.png", lig, rec)
-    fpath <- file.path(out_dir, fname)
+    lr    <- pairs$LR[i]
+    fname <- sprintf("%s.png", lr)
+    fpath <- file.path(out.dir, fname)
 
     result <- tryCatch({
 
       p <- CellToCell_InSitu_Single_LRM(
         ctc            = ctc,
-        ligand         = lig,
-        receptor       = rec,
-        bg_color       = bg_color,
-        bg_linewidth   = bg_linewidth,
-        bg_alpha       = bg_alpha,
-        sig_linewidth  = sig_linewidth,
-        sig_alpha      = sig_alpha,
-        viridis_option = viridis_option
+        LR             = lr,
+        bg.color       = bg.color,
+        bg.linewidth   = bg.linewidth,
+        bg.alpha       = bg.alpha,
+        sig.linewidth  = sig.linewidth,
+        sig.alpha      = sig.alpha,
+        viridis.option = viridis.option
       )
 
       ggsave(
@@ -169,11 +168,11 @@ CellToCell_InSitu <- function(ctc,
         bg       = "black"
       )
 
-      list(ligand = lig, receptor = rec, status = "saved", path = fpath)
+      list(LR = lr, status = "saved", path = fpath)
 
     }, error = function(e) {
-      message(sprintf("  [SKIP] %s_%s : %s", lig, rec, conditionMessage(e)))
-      list(ligand = lig, receptor = rec, status = "skipped", path = NA_character_)
+      message(sprintf("  [SKIP] %s : %s", lr, conditionMessage(e)))
+      list(LR = lr, status = "skipped", path = NA_character_)
     })
 
     result
@@ -183,38 +182,44 @@ CellToCell_InSitu <- function(ctc,
   # SECTION 3 ── Execute (parallel or serial)
   # ════════════════════════════════════════════════════════════════════════════
 
-  message(sprintf("[CellToCell_InSitu] Plotting with %d core(s) ...", n_cores))
+  message(sprintf("[CellToCell_InSitu] Plotting with %d core(s) ...", n.cores))
 
-  if (n_cores > 1L && .Platform$OS.type == "unix") {
-    # macOS: disable Objective-C fork safety check that crashes forked workers
-    # when GUI frameworks (e.g. ggplot2 font system) are loaded in the parent.
-    old_env <- Sys.getenv("OBJC_DISABLE_INITIALIZE_FORK_SAFETY")
-    Sys.setenv(OBJC_DISABLE_INITIALIZE_FORK_SAFETY = "YES")
-    on.exit(Sys.setenv(OBJC_DISABLE_INITIALIZE_FORK_SAFETY = old_env), add = TRUE)
+  # macOS + ggplot2 crash: fork() is unsafe after Obj-C frameworks initialize,
+  # which ggplot2 triggers for font rendering. Sys.setenv() cannot fix this
+  # at runtime — the env var must be set before R starts. Serial execution
+  # is the reliable solution on macOS; disk I/O dominates anyway for ggsave.
+  is.mac   <- Sys.info()[["sysname"]] == "Darwin"
+  use.fork <- n.cores > 1L && .Platform$OS.type == "unix" && !is.mac
 
-    job_results <- parallel::mclapply(
-      seq_len(n_pairs), .plot_one,
-      mc.cores = n_cores
+  if (n.cores > 1L && is.mac) {
+    message("  macOS detected: falling back to serial execution for ggsave safety.")
+    message("  (fork() + ggplot2 font rendering crashes on macOS at runtime.)")
+  }
+
+  if (use.fork) {
+    job.results <- parallel::mclapply(
+      seq_len(n.pairs), .plot_one,
+      mc.cores = n.cores
     )
   } else {
-    if (n_cores > 1L && .Platform$OS.type != "unix")
+    if (n.cores > 1L && !is.mac && .Platform$OS.type != "unix")
       message("  Fork parallelism unavailable on Windows — running serially.")
-    job_results <- lapply(seq_len(n_pairs), .plot_one)
+    job.results <- lapply(seq_len(n.pairs), .plot_one)
   }
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 4 ── Summarise and report
   # ════════════════════════════════════════════════════════════════════════════
 
-  summary_df <- rbindlist(lapply(job_results, as.data.table))
+  summary.df <- rbindlist(lapply(job.results, as.data.table))
 
-  n_saved   <- sum(summary_df$status == "saved")
-  n_skipped <- sum(summary_df$status == "skipped")
+  n.saved   <- sum(summary.df$status == "saved")
+  n.skipped <- sum(summary.df$status == "skipped")
 
   message(sprintf(
     "[CellToCell_InSitu] Done. Saved: %d | Skipped: %d | Directory: %s",
-    n_saved, n_skipped, normalizePath(out_dir, mustWork = FALSE)
+    n.saved, n.skipped, normalizePath(out.dir, mustWork = FALSE)
   ))
 
-  invisible(as.data.frame(summary_df))
+  invisible(as.data.frame(summary.df))
 }
