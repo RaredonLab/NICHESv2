@@ -6,7 +6,7 @@
 # FUNCTIONS:
 #   CellToCell_InSitu_Single_LRM()  — main plotting function
 #
-# DEPS: ggplot2, data.table
+# DEPS: ggplot2, data.table, scales
 # ==============================================================================
 
 
@@ -20,7 +20,7 @@
 #' \enumerate{
 #'   \item \strong{Background layer} — all spatial edges, grey, thin, low alpha.
 #'   \item \strong{Signal layer} — edges with non-zero score for the requested
-#'     LRM, coloured by score via \code{scale_color_viridis_c()}.
+#'     LRM, coloured and alpha-scaled by score via \code{scale_color_viridis_c()}.
 #' }
 #'
 #' Coordinates are read from \code{$cell.meta} (columns \code{x} and \code{y}).
@@ -31,11 +31,18 @@
 #'   \code{$cell.meta}.
 #' @param LRM            Character. LRM pair in \code{"ligand|receptor"} format,
 #'   matching a value in \code{$LRM.list} (e.g. \code{"MIF|CD74"}).
+#' @param value.col      Character. Which score column to use for colour and
+#'   alpha mapping. One of \code{"score"} (raw, default) or
+#'   \code{"score.norm"} (per-edge proportional normalisation).
+#' @param scale.upper    Numeric or \code{NULL}. Upper limit of the colour and
+#'   alpha scale. \code{NULL} (default) uses the 90th percentile of non-zero
+#'   values for this LRM. Values above the limit are squished to the top colour.
 #' @param bg.color       Background edge colour. Default \code{"grey40"}.
 #' @param bg.linewidth   Background edge line width. Default \code{0.05}.
 #' @param bg.alpha       Background edge alpha. Default \code{0.1}.
 #' @param sig.linewidth  Signal edge line width. Default \code{0.4}.
-#' @param sig.alpha      Signal edge alpha. Default \code{0.8}.
+#' @param sig.alpha      Maximum signal edge alpha (applied to the highest-value
+#'   edges). Lower-value edges scale down to near-zero alpha. Default \code{0.8}.
 #' @param viridis.option Viridis palette letter (\code{"A"}–\code{"H"}).
 #'   Default \code{"C"} (plasma).
 #' @param title          Plot title. Defaults to \code{"ligand|receptor Connectivity"}.
@@ -47,6 +54,8 @@
 #' @export
 CellToCell_InSitu_Single_LRM <- function(niches.obj,
                                           LRM,
+                                          value.col      = "score",
+                                          scale.upper    = NULL,
                                           bg.color       = "grey40",
                                           bg.linewidth   = 0.05,
                                           bg.alpha       = 0.1,
@@ -83,6 +92,14 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
     ))
   }
 
+  if (!value.col %in% c("score", "score.norm"))
+    stop("[CellToCell_InSitu_Single_LRM] 'value.col' must be \"score\" or \"score.norm\".")
+
+  if (!is.null(scale.upper) &&
+      (!is.numeric(scale.upper) || length(scale.upper) != 1L ||
+       !is.finite(scale.upper) || scale.upper <= 0))
+    stop("[CellToCell_InSitu_Single_LRM] 'scale.upper' must be a single positive finite number, or NULL.")
+
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 2 ── Build coordinate lookup table
   # ════════════════════════════════════════════════════════════════════════════
@@ -116,28 +133,47 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 4 ── Build signal edge table for this LRM
   #
-  # Filter $edge.data for the requested LRM, left-join onto all.edges so
-  # every edge appears; edges absent for this LRM get score = 0.
+  # Pull both score columns from $edge.data, left-join onto all.edges so every
+  # edge appears, fill NA (absent for this LRM) with 0, then derive .plot.val
+  # from the requested value.col.
+  #
+  # scale.upper is resolved here from non-zero .plot.val values if not supplied.
   # ════════════════════════════════════════════════════════════════════════════
 
-  lrm.val   <- LRM   # local capture for data.table scoping
-  lr.edges  <- niches.obj$edge.data[LRM == lrm.val, .(edge, score)]
+  lrm.val  <- LRM   # local capture for data.table scoping
+  lr.edges <- niches.obj$edge.data[LRM == lrm.val, .(edge, score, score.norm)]
 
   sig.edges <- lr.edges[all.edges, on = "edge"]
-  sig.edges[is.na(score), score := 0]
+  sig.edges[is.na(score),      score      := 0]
+  sig.edges[is.na(score.norm), score.norm := 0]
 
-  n.nonzero <- sum(sig.edges$score > 0)
+  # Derive the plotting value column
+  sig.edges[, .plot.val := get(value.col)]
+
+  n.nonzero <- sum(sig.edges$.plot.val > 0)
   message(sprintf(
     "  Non-zero signal edges: %d / %d  (%.1f%%)",
     n.nonzero, nrow(sig.edges), 100 * n.nonzero / nrow(sig.edges)
   ))
 
+  # Resolve upper scale limit from non-zero values only
+  nonzero.vals <- sig.edges$.plot.val[sig.edges$.plot.val > 0]
+  if (is.null(scale.upper)) {
+    scale.upper <- if (length(nonzero.vals) > 0L) {
+      as.numeric(quantile(nonzero.vals, 0.9))
+    } else {
+      1   # fallback: no signal at all for this LRM
+    }
+  }
+
+  message(sprintf("  Scale upper limit: %.4g  (value.col = '%s')", scale.upper, value.col))
+
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 5 ── Build plot
   # ════════════════════════════════════════════════════════════════════════════
 
-  plot.title <- if (!is.null(title)) title else
-    sprintf("%s Connectivity", LRM)
+  plot.title  <- if (!is.null(title)) title else sprintf("%s Connectivity", LRM)
+  legend.name <- if (value.col == "score") "Score" else "Score\n(norm)"
 
   p <- ggplot() +
 
@@ -151,25 +187,35 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
       lineend   = "round"
     ) +
 
-    # Layer 2: signal — non-zero edges coloured by score
+    # Layer 2: signal — non-zero edges coloured AND alpha-scaled by .plot.val
     geom_segment(
-      data      = sig.edges[score > 0],
+      data      = sig.edges[.plot.val > 0],
       aes(x = x.from, y = y.from, xend = x.to, yend = y.to,
-          color = score),
+          color = .plot.val,
+          alpha = .plot.val),
       linewidth = sig.linewidth,
-      alpha     = sig.alpha,
       lineend   = "round"
     ) +
 
     scale_color_viridis_c(
       option = viridis.option,
-      name   = "Score",
+      name   = legend.name,
+      limits = c(0, scale.upper),
+      oob    = scales::squish,
       guide  = guide_colorbar(
         barwidth       = 0.6,
         barheight      = 8,
         ticks          = FALSE,
         title.position = "top"
       )
+    ) +
+
+    # Alpha mirrors the colour scale; legend suppressed (redundant with colorbar)
+    scale_alpha_continuous(
+      range  = c(0.05, sig.alpha),
+      limits = c(0, scale.upper),
+      oob    = scales::squish,
+      guide  = "none"
     ) +
 
     labs(title = plot.title, x = "x.Sending", y = "y.Sending") +

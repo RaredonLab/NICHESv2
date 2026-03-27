@@ -1,7 +1,7 @@
 # ==============================================================================
 # FILE:    NICHESObject_class.R
 # PURPOSE: S3 class definition for NICHESObject — the central data structure
-#          of the NICHESv2 package. Defines the 13-slot specification and all
+#          of the NICHESv2 package. Defines the 14-slot specification and all
 #          S3 methods: print, summary, dim, length, [, and is_NICHESObject.
 #
 # DEPS: data.table
@@ -11,7 +11,7 @@
 # ==============================================================================
 # LOW-LEVEL CONSTRUCTOR (internal)
 #
-# Creates a validated NICHESObject from its 13 constituent slots. Called by
+# Creates a validated NICHESObject from its 14 constituent slots. Called by
 # create_NICHESObject() — end users should never call this directly.
 #
 # All slot-level validation lives here so that every NICHESObject, regardless
@@ -32,7 +32,8 @@
     gene.list,
     gene.meta,
     LRM.list,
-    LRM.meta
+    LRM.meta,
+    segmentation           = NULL
 ) {
 
   # ── Slot-type invariants ───────────────────────────────────────────────────
@@ -79,7 +80,8 @@
       gene.list              = gene.list,
       gene.meta              = gene.meta,
       LRM.list               = LRM.list,
-      LRM.meta               = LRM.meta
+      LRM.meta               = LRM.meta,
+      segmentation           = segmentation
     ),
     class = "NICHESObject"
   )
@@ -105,25 +107,40 @@ is_NICHESObject <- function(x) inherits(x, "NICHESObject")
 # ------------------------------------------------------------------------------
 #' @export
 print.NICHESObject <- function(x, ...) {
+  n.cells.nonempty <- uniqueN(x$cell.data$cell)
+  n.genes.valid    <- uniqueN(x$cell.data$gene)
+  n.edges.nonempty <- uniqueN(x$edge.data$edge)
+  n.lrms.valid     <- uniqueN(x$edge.data$LRM)
+
+  seg.status <- if (!is.null(x$segmentation)) {
+    sprintf("attached (%d cells)", nrow(x$segmentation))
+  } else {
+    "none"
+  }
+
   cat("── NICHESObject ────────────────────────────────────────────\n")
-  cat(sprintf("  Cells        : %d\n",   length(x$cell.list)))
-  cat(sprintf("  Genes        : %d\n",   length(x$gene.list)))
-  cat(sprintf("  Edges        : %d\n",   nrow(x$edge.list)))
-  cat(sprintf("  LRM pairs    : %d\n",   length(x$LRM.list)))
-  cat(sprintf("  Non-zero cell signals  : %d\n", nrow(x$cell.data)))
-  cat(sprintf("  Non-zero edge signals  : %d\n", nrow(x$edge.data)))
+  cat(sprintf("  Cells        : %d  (%d non-empty)\n",
+              length(x$cell.list), n.cells.nonempty))
+  cat(sprintf("  Genes        : %d  (%d valid)\n",
+              length(x$gene.list), n.genes.valid))
+  cat(sprintf("  Edges        : %d  (%d non-empty)\n",
+              nrow(x$edge.list), n.edges.nonempty))
+  cat(sprintf("  LRM pairs    : %d  (%d valid)\n",
+              length(x$LRM.list), n.lrms.valid))
+  cat(sprintf("  Segmentation : %s\n", seg.status))
   cat("\n  Slot summary:\n")
-  cat("    $cell.list   — character vector of cell barcodes\n")
-  cat("    $cell.data   — (cell, gene, score, score.norm) [sparse]\n")
-  cat("    $cell.meta   — per-cell metadata\n")
-  cat("    $edge.list   — (edge, SendingCell, ReceivingCell)\n")
-  cat("    $edge.data   — (edge, LRM, score, score.norm) [sparse]\n")
-  cat("    $edge.meta   — per-edge metadata with Sending/Receiving/Joint cols\n")
+  cat("    $cell.list     — character vector of cell barcodes\n")
+  cat("    $cell.data     — (cell, gene, score, score.norm) [sparse]\n")
+  cat("    $cell.meta     — per-cell metadata\n")
+  cat("    $edge.list     — (edge, SendingCell, ReceivingCell)\n")
+  cat("    $edge.data     — (edge, LRM, score, score.norm) [sparse]\n")
+  cat("    $edge.meta     — per-edge metadata with Sending/Receiving/Joint cols\n")
   cat("    $neighborhood.* — reserved (NULL)\n")
-  cat("    $gene.list   — character vector of gene names\n")
-  cat("    $gene.meta   — per-gene metadata\n")
-  cat("    $LRM.list    — character vector of 'ligand|receptor' pairs\n")
-  cat("    $LRM.meta    — per-LRM metadata\n")
+  cat("    $gene.list     — character vector of gene names\n")
+  cat("    $gene.meta     — per-gene metadata\n")
+  cat("    $LRM.list      — character vector of 'ligand|receptor' pairs\n")
+  cat("    $LRM.meta      — per-LRM metadata\n")
+  cat("    $segmentation  — sf object of cell polygons, or NULL\n")
   cat("────────────────────────────────────────────────────────────\n")
   invisible(x)
 }
@@ -172,6 +189,13 @@ summary.NICHESObject <- function(object, ...) {
   ))
   cat(sprintf("\n  Neighborhood slots populated: %d / 3\n", nb.filled))
 
+  # Segmentation
+  if (!is.null(object$segmentation)) {
+    cat(sprintf("\n  Segmentation: attached (%d cells)\n", nrow(object$segmentation)))
+  } else {
+    cat("\n  Segmentation: none\n")
+  }
+
   cat("────────────────────────────────────────────────────────────\n")
   invisible(object)
 }
@@ -204,7 +228,9 @@ length.NICHESObject <- function(x) length(x$cell.list)
 #'
 #' Filters all cell-indexed slots (\code{$cell.list}, \code{$cell.data},
 #' \code{$cell.meta}) and all edge-indexed slots to keep only edges where
-#' BOTH sending and receiving cells are in \code{i}.
+#' BOTH sending and receiving cells are in \code{i}. If \code{$segmentation}
+#' is populated, it is filtered to retain only rows whose \code{cell} is in
+#' the retained set.
 #'
 #' @param x   A NICHESObject.
 #' @param i   Character vector of cell barcodes to retain.
@@ -230,6 +256,13 @@ length.NICHESObject <- function(x) length(x$cell.list)
   new.edge.data <- x$edge.data[edge %in% keep.edges]
   new.edge.meta <- x$edge.meta[edge %in% keep.edges]
 
+  # Filter segmentation if present — keep only polygons for retained cells
+  new.segmentation <- if (!is.null(x$segmentation)) {
+    x$segmentation[x$segmentation$cell %in% keep.cells, ]
+  } else {
+    NULL
+  }
+
   .new_NICHESObject(
     cell.list              = new.cell.list,
     cell.data              = new.cell.data,
@@ -243,6 +276,7 @@ length.NICHESObject <- function(x) length(x$cell.list)
     gene.list              = x$gene.list,
     gene.meta              = x$gene.meta,
     LRM.list               = x$LRM.list,
-    LRM.meta               = x$LRM.meta
+    LRM.meta               = x$LRM.meta,
+    segmentation           = new.segmentation
   )
 }

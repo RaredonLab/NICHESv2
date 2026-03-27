@@ -7,6 +7,8 @@
 CellToCell_InSitu_Single_LRM(
   niches.obj,
   LRM,
+  value.col = "score",
+  scale.upper = NULL,
   bg.color = "grey40",
   bg.linewidth = 0.05,
   bg.alpha = 0.1,
@@ -23,6 +25,14 @@ CellToCell_InSitu_Single_LRM(
 \item{LRM}{Character. LRM pair in \code{"ligand|receptor"} format,
 matching a value in \code{$LRM.list} (e.g. \code{"MIF|CD74"}).}
 
+\item{value.col}{Character. Which score column to use for colour and
+alpha mapping. One of \code{"score"} (raw, default) or
+\code{"score.norm"} (per-edge proportional normalisation).}
+
+\item{scale.upper}{Numeric or \code{NULL}. Upper limit of the colour and
+alpha scale. \code{NULL} (default) uses the 90th percentile of non-zero
+values for this LRM. Values above the limit are squished to the top colour.}
+
 \item{bg.color}{Background edge colour. Default \code{"grey40"}.}
 
 \item{bg.linewidth}{Background edge line width. Default \code{0.05}.}
@@ -31,7 +41,8 @@ matching a value in \code{$LRM.list} (e.g. \code{"MIF|CD74"}).}
 
 \item{sig.linewidth}{Signal edge line width. Default \code{0.4}.}
 
-\item{sig.alpha}{Signal edge alpha. Default \code{0.8}.}
+\item{sig.alpha}{Maximum signal edge alpha (applied to the highest-value
+edges). Lower-value edges scale down to near-zero alpha. Default \code{0.8}.}
 
 \item{viridis.option}{Viridis palette letter (\code{"A"}–\code{"H"}).
 Default \code{"C"} (plasma).}
@@ -48,7 +59,7 @@ in a \code{NICHESObject}:
 \enumerate{
   \item \strong{Background layer} — all spatial edges, grey, thin, low alpha.
   \item \strong{Signal layer} — edges with non-zero score for the requested
-    LRM, coloured by score via \code{scale_color_viridis_c()}.
+    LRM, coloured and alpha-scaled by score via \code{scale_color_viridis_c()}.
 }
 
 Coordinates are read from \code{$cell.meta} (columns \code{x} and \code{y}).

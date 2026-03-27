@@ -113,6 +113,8 @@
 #' \code{\link{CellToCell_InSitu}}, \code{\link{load_LRM_database}}
 #'
 #' @keywords internal
+#' @import data.table
+#' @import ggplot2
 "_PACKAGE"
 
 

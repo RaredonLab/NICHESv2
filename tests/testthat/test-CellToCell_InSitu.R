@@ -46,6 +46,67 @@ test_that("CellToCell_InSitu_Single_LRM: errors on non-NICHESObject input", {
   )
 })
 
+# ------------------------------------------------------------------------------
+# value.col
+# ------------------------------------------------------------------------------
+
+test_that("CellToCell_InSitu_Single_LRM: value.col = 'score.norm' returns a ggplot", {
+  .setup_fixtures()
+  lrm <- niches.obj$LRM.list[1]
+  p   <- CellToCell_InSitu_Single_LRM(niches.obj, LRM = lrm, value.col = "score.norm")
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("CellToCell_InSitu_Single_LRM: errors on invalid value.col", {
+  .setup_fixtures()
+  lrm <- niches.obj$LRM.list[1]
+  expect_error(
+    CellToCell_InSitu_Single_LRM(niches.obj, LRM = lrm, value.col = "raw.count"),
+    regexp = "value.col"
+  )
+})
+
+# ------------------------------------------------------------------------------
+# scale.upper
+# ------------------------------------------------------------------------------
+
+test_that("CellToCell_InSitu_Single_LRM: user-supplied scale.upper returns a ggplot", {
+  .setup_fixtures()
+  lrm <- niches.obj$LRM.list[1]
+  p   <- CellToCell_InSitu_Single_LRM(niches.obj, LRM = lrm, scale.upper = 5)
+  expect_s3_class(p, "ggplot")
+})
+
+test_that("CellToCell_InSitu_Single_LRM: errors on non-positive scale.upper", {
+  .setup_fixtures()
+  lrm <- niches.obj$LRM.list[1]
+  expect_error(
+    CellToCell_InSitu_Single_LRM(niches.obj, LRM = lrm, scale.upper = -1),
+    regexp = "scale.upper"
+  )
+})
+
+test_that("CellToCell_InSitu_Single_LRM: errors on non-numeric scale.upper", {
+  .setup_fixtures()
+  lrm <- niches.obj$LRM.list[1]
+  expect_error(
+    CellToCell_InSitu_Single_LRM(niches.obj, LRM = lrm, scale.upper = "high"),
+    regexp = "scale.upper"
+  )
+})
+
+test_that("CellToCell_InSitu_Single_LRM: NULL scale.upper auto-computes from non-zero values", {
+  .setup_fixtures()
+  lrm <- niches.obj$LRM.list[1]
+  # NULL is the default; just verify it does not error and returns a ggplot
+  p   <- CellToCell_InSitu_Single_LRM(niches.obj, LRM = lrm, scale.upper = NULL)
+  expect_s3_class(p, "ggplot")
+})
+
+# ------------------------------------------------------------------------------
+# CellToCell_InSitu batch function
+# ------------------------------------------------------------------------------
+
 test_that("CellToCell_InSitu: saves PNGs and returns summary data.frame", {
   .setup_fixtures()
   tmp.dir <- withr::local_tempdir()
@@ -87,4 +148,32 @@ test_that("CellToCell_InSitu: NULL LRM.list plots all pairs", {
   tmp.dir <- withr::local_tempdir()
   result  <- CellToCell_InSitu(niches.obj, LRM.list = NULL, folder = tmp.dir, dpi = 72)
   expect_equal(nrow(result), n.lrm)
+})
+
+test_that("CellToCell_InSitu: value.col = 'score.norm' saves PNGs without error", {
+  .setup_fixtures()
+  tmp.dir <- withr::local_tempdir()
+  result  <- CellToCell_InSitu(
+    niches.obj = niches.obj,
+    LRM.list   = niches.obj$LRM.list[1],
+    folder     = tmp.dir,
+    value.col  = "score.norm",
+    dpi        = 72
+  )
+  expect_true(result$status[1] == "saved")
+  expect_true(file.exists(result$path[1]))
+})
+
+test_that("CellToCell_InSitu: user-supplied scale.upper saves PNGs without error", {
+  .setup_fixtures()
+  tmp.dir <- withr::local_tempdir()
+  result  <- CellToCell_InSitu(
+    niches.obj  = niches.obj,
+    LRM.list    = niches.obj$LRM.list[1],
+    folder      = tmp.dir,
+    scale.upper = 5,
+    dpi         = 72
+  )
+  expect_true(result$status[1] == "saved")
+  expect_true(file.exists(result$path[1]))
 })

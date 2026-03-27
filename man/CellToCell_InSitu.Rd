@@ -8,6 +8,8 @@ CellToCell_InSitu(
   niches.obj,
   LRM.list = NULL,
   folder = "niches_plots",
+  value.col = "score",
+  scale.upper = NULL,
   bg.color = "grey50",
   bg.linewidth = 0.1,
   bg.alpha = 0.2,
@@ -29,6 +31,14 @@ CellToCell_InSitu(
 \item{folder}{Output directory. Created if absent. Default
 \code{"niches_plots"}.}
 
+\item{value.col}{Character. Score column to map to colour and alpha.
+\code{"score"} (raw, default) or \code{"score.norm"}. Passed to
+\code{CellToCell_InSitu_Single_LRM()}.}
+
+\item{scale.upper}{Numeric or \code{NULL}. Upper colour-scale limit.
+\code{NULL} (default) auto-computes the 90th percentile of non-zero values
+per pair. Passed to \code{CellToCell_InSitu_Single_LRM()}.}
+
 \item{bg.color}{Background edge colour. Default \code{"grey50"}.}
 
 \item{bg.linewidth}{Background edge line width. Default \code{0.1}.}
@@ -37,7 +47,7 @@ CellToCell_InSitu(
 
 \item{sig.linewidth}{Signal edge line width. Default \code{0.4}.}
 
-\item{sig.alpha}{Signal edge alpha. Default \code{0.8}.}
+\item{sig.alpha}{Maximum signal edge alpha. Default \code{0.8}.}
 
 \item{viridis.option}{Viridis palette letter. Default \code{"C"}.}
 
