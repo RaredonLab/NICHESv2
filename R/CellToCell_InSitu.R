@@ -31,11 +31,17 @@
 #'   \code{"ligand|receptor"} strings to plot selectively.
 #' @param folder         Output directory. Created if absent. Default
 #'   \code{"niches_plots"}.
+#' @param value.col      Character. Score column to map to colour and alpha.
+#'   \code{"score"} (raw, default) or \code{"score.norm"}. Passed to
+#'   \code{CellToCell_InSitu_Single_LRM()}.
+#' @param scale.upper    Numeric or \code{NULL}. Upper colour-scale limit.
+#'   \code{NULL} (default) auto-computes the 90th percentile of non-zero values
+#'   per pair. Passed to \code{CellToCell_InSitu_Single_LRM()}.
 #' @param bg.color       Background edge colour. Default \code{"grey50"}.
 #' @param bg.linewidth   Background edge line width. Default \code{0.1}.
 #' @param bg.alpha       Background edge alpha. Default \code{0.2}.
 #' @param sig.linewidth  Signal edge line width. Default \code{0.4}.
-#' @param sig.alpha      Signal edge alpha. Default \code{0.8}.
+#' @param sig.alpha      Maximum signal edge alpha. Default \code{0.8}.
 #' @param viridis.option Viridis palette letter. Default \code{"C"}.
 #' @param width          Plot width in inches. Default \code{7}.
 #' @param height         Plot height in inches. Default \code{6}.
@@ -52,6 +58,8 @@
 CellToCell_InSitu <- function(niches.obj,
                                LRM.list       = NULL,
                                folder         = "niches_plots",
+                               value.col      = "score",
+                               scale.upper    = NULL,
                                bg.color       = "grey50",
                                bg.linewidth   = 0.1,
                                bg.alpha       = 0.2,
@@ -116,6 +124,8 @@ CellToCell_InSitu <- function(niches.obj,
       p <- CellToCell_InSitu_Single_LRM(
         niches.obj     = niches.obj,
         LRM            = lrm,
+        value.col      = value.col,
+        scale.upper    = scale.upper,
         bg.color       = bg.color,
         bg.linewidth   = bg.linewidth,
         bg.alpha       = bg.alpha,

@@ -25,5 +25,6 @@ Suggests:
     OmnipathR,
     testthat (>= 3.0.0),
     withr,
-    devtools
+    devtools,
+    sf
 Config/testthat/edition: 3

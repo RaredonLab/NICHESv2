@@ -16,5 +16,7 @@
 \description{
 Filters all cell-indexed slots (\code{$cell.list}, \code{$cell.data},
 \code{$cell.meta}) and all edge-indexed slots to keep only edges where
-BOTH sending and receiving cells are in \code{i}.
+BOTH sending and receiving cells are in \code{i}. If \code{$segmentation}
+is populated, it is filtered to retain only rows whose \code{cell} is in
+the retained set.
 }
