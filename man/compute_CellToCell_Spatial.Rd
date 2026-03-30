@@ -34,7 +34,8 @@ Default: \code{"receptor"}.}
 \code{"minimum"}. See Complex scoring section.}
 
 \item{n.cores}{CPU cores for parallel LRM-chunk processing. Default 1.
-Fork-based on Unix; serial on Windows.}
+Uses socket-based clusters (\code{parallel::makeCluster}) which work on
+all platforms (Windows, macOS, Linux).}
 }
 \value{
 An \code{EdgeLRResult} object with slots:

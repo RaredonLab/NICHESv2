@@ -37,8 +37,9 @@
 #'   (kNN mode). Positive integer.
 #' @param rad     \code{numeric} or \code{NULL}. Neighbourhood radius (radius
 #'   mode). Positive finite number in the same units as \code{coord}.
-#' @param n.cores \code{integer}. CPU cores. Default 1. Fork-based on Unix;
-#'   serial fallback on Windows.
+#' @param n.cores \code{integer}. CPU cores. Default 1. Uses socket-based
+#'   clusters (\code{parallel::makeCluster}) which work on all platforms
+#'   (Windows, macOS, Linux).
 #'
 #' @return A \code{data.table} keyed on \code{(from, to)} with columns:
 #' \describe{
@@ -136,17 +137,18 @@ create_Edgelist_Spatial <- function(coord,
   }
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Cross-platform parallel helper
+  # SECTION 3 ── Socket cluster setup (all platforms)
+  #
+  # parallel::makeCluster spawns independent worker processes via sockets.
+  # Unlike mclapply (fork-based, Unix only), socket clusters work on Windows,
+  # macOS, and Linux without OS-specific guards or font-rendering instability.
+  # on.exit() guarantees stopCluster() is called even if the function errors.
   # ════════════════════════════════════════════════════════════════════════════
 
-  .par_lapply <- function(X, FUN) {
-    if (n.cores > 1L && .Platform$OS.type == "unix") {
-      parallel::mclapply(X, FUN, mc.cores = n.cores)
-    } else {
-      if (n.cores > 1L && .Platform$OS.type != "unix")
-        message("[create_Edgelist_Spatial] Windows detected — falling back to serial.")
-      lapply(X, FUN)
-    }
+  if (n.cores > 1L) {
+    cl <- parallel::makeCluster(n.cores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterEvalQ(cl, library(data.table))
   }
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -168,8 +170,14 @@ create_Edgelist_Spatial <- function(coord,
       data.table(from = cell.names[i], to = cell.names[nb], weight = dists)
     }
 
-    edge.lst <- .par_lapply(seq_len(n.cells), .build_radius_edges)
-    edge.dt  <- rbindlist(Filter(Negate(is.null), edge.lst))
+    if (n.cores > 1L) {
+      parallel::clusterExport(cl, c("nb.list", "dist.list", "cell.names"),
+                              envir = environment())
+      edge.lst <- parallel::parLapply(cl, seq_len(n.cells), .build_radius_edges)
+    } else {
+      edge.lst <- lapply(seq_len(n.cells), .build_radius_edges)
+    }
+    edge.dt <- rbindlist(Filter(Negate(is.null), edge.lst))
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 4B ── kNN mode (RANN::nn2, mutual edges only)
@@ -190,7 +198,13 @@ create_Edgelist_Spatial <- function(coord,
       data.table(from = i, to = nb, weight = nn.dists[i, valid])
     }
 
-    edge.lst    <- .par_lapply(seq_len(n.cells), .build_knn_edges)
+    if (n.cores > 1L) {
+      parallel::clusterExport(cl, c("nn.idx", "nn.dists", "cell.names"),
+                              envir = environment())
+      edge.lst <- parallel::parLapply(cl, seq_len(n.cells), .build_knn_edges)
+    } else {
+      edge.lst <- lapply(seq_len(n.cells), .build_knn_edges)
+    }
     edge.dt.idx <- rbindlist(Filter(Negate(is.null), edge.lst))
 
     # Mutual edge filter via set intersection (O(E log E))

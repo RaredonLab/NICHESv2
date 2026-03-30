@@ -7,7 +7,7 @@
 # FUNCTIONS:
 #   CellToCell_InSitu()  — main batch plotting function
 #
-# DEPS: ggplot2, data.table, parallel
+# DEPS: ggplot2, data.table, scales, parallel
 # ==============================================================================
 
 
@@ -46,8 +46,9 @@
 #' @param width          Plot width in inches. Default \code{7}.
 #' @param height         Plot height in inches. Default \code{6}.
 #' @param dpi            Plot resolution. Default \code{150}.
-#' @param n.cores        Parallel cores. Default \code{1}. macOS forces serial
-#'   (fork + ggplot2 font-rendering incompatibility).
+#' @param n.cores        Parallel cores. Default \code{1}. Uses socket-based
+#'   clusters (\code{parallel::makeCluster}) which work on all platforms
+#'   (Windows, macOS, Linux).
 #'
 #' @return Invisibly, a \code{data.frame} with columns \code{LRM},
 #'   \code{status} (\code{"saved"} or \code{"skipped"}), and \code{path}.
@@ -143,26 +144,45 @@ CellToCell_InSitu <- function(niches.obj,
   }
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Execute (parallel on Linux, serial on macOS/Windows)
+  # SECTION 3 ── Execute (socket cluster on all platforms)
   #
-  # macOS: fork() + ggplot2 font rendering crashes at runtime.
-  # Windows: no fork-based parallelism.
-  # Both fall back to serial automatically.
+  # Socket clusters (parallel::makeCluster + parLapply) work on Windows,
+  # macOS, and Linux. Unlike fork-based mclapply, they avoid the CoreText
+  # crash on macOS that occurs when ggplot2 font rendering state is inherited
+  # by forked child processes.
+  #
+  # Workers receive:
+  #   - CellToCell_InSitu_Single_LRM from the NICHESv2 namespace
+  #   - all plot-parameter variables from this function's local environment
+  #   - ggplot2, data.table, scales loaded in each worker
+  #
+  # on.exit() guarantees stopCluster() even if an error occurs mid-batch.
   # ════════════════════════════════════════════════════════════════════════════
 
-  is.mac   <- Sys.info()[["sysname"]] == "Darwin"
-  use.fork <- n.cores > 1L && .Platform$OS.type == "unix" && !is.mac
+  message(sprintf("[CellToCell_InSitu] Plotting with %d core(s) ...", n.cores))
 
-  if (n.cores > 1L && is.mac) {
-    message("  macOS: falling back to serial execution (fork + ggplot2 incompatibility).")
-  }
-
-  message(sprintf("[CellToCell_InSitu] Plotting with %d core(s) ...", if (use.fork) n.cores else 1L))
-
-  job.results <- if (use.fork) {
-    parallel::mclapply(seq_len(n.pairs), .plot_one, mc.cores = n.cores)
+  if (n.cores > 1L) {
+    cl <- parallel::makeCluster(n.cores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterEvalQ(cl, {
+      library(ggplot2)
+      library(data.table)
+      library(scales)
+    })
+    # Ship the plotting function from the package namespace.
+    # asNamespace() works with both devtools::load_all() and installed builds.
+    parallel::clusterExport(cl,
+      varlist = c("CellToCell_InSitu_Single_LRM"),
+      envir   = asNamespace("NICHESv2"))
+    # Ship all plot parameters from this function's local environment.
+    parallel::clusterExport(cl,
+      varlist = c("pairs", "out.dir", "niches.obj", "value.col", "scale.upper",
+                  "bg.color", "bg.linewidth", "bg.alpha", "sig.linewidth",
+                  "sig.alpha", "viridis.option", "width", "height", "dpi"),
+      envir = environment())
+    job.results <- parallel::parLapply(cl, seq_len(n.pairs), .plot_one)
   } else {
-    lapply(seq_len(n.pairs), .plot_one)
+    job.results <- lapply(seq_len(n.pairs), .plot_one)
   }
 
   # ════════════════════════════════════════════════════════════════════════════
