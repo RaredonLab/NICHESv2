@@ -16,8 +16,9 @@ create_Edgelist_Spatial(coord, k = NULL, rad = NULL, n.cores = 1L)
 \item{rad}{\code{numeric} or \code{NULL}. Neighbourhood radius (radius
 mode). Positive finite number in the same units as \code{coord}.}
 
-\item{n.cores}{\code{integer}. CPU cores. Default 1. Fork-based on Unix;
-serial fallback on Windows.}
+\item{n.cores}{\code{integer}. CPU cores. Default 1. Uses socket-based
+clusters (\code{parallel::makeCluster}) which work on all platforms
+(Windows, macOS, Linux).}
 }
 \value{
 A \code{data.table} keyed on \code{(from, to)} with columns:

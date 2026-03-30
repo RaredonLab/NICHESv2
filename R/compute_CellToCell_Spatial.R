@@ -90,7 +90,8 @@
 #' @param method       Scoring method. \code{"product"} (default) or
 #'   \code{"minimum"}. See Complex scoring section.
 #' @param n.cores      CPU cores for parallel LRM-chunk processing. Default 1.
-#'   Fork-based on Unix; serial on Windows.
+#'   Uses socket-based clusters (\code{parallel::makeCluster}) which work on
+#'   all platforms (Windows, macOS, Linux).
 #'
 #' @return An \code{EdgeLRResult} object with slots:
 #' \describe{
@@ -199,10 +200,15 @@ compute_CellToCell_Spatial <- function(count.mtx,
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 3 ── Parallel computation over LRM chunks
   #
-  # Each chunk worker processes a slice of LRM pairs. For each pair, it calls
-  # .compute_lrm_score() which handles both simple genes and complexes. The
-  # worker returns a data.table of non-zero (edge, LRM, score) rows for its
-  # chunk.
+  # LRM pairs are split into n.cores chunks; each worker processes one chunk,
+  # calling .compute_lrm_score() per pair and returning non-zero (edge, LRM,
+  # score) rows for its chunk.
+  #
+  # Socket clusters (parallel::makeCluster) are used instead of fork-based
+  # mclapply so the code works on Windows, macOS, and Linux without guards.
+  # Workers receive: data variables (clusterExport from local environment) and
+  # internal scoring helpers (clusterExport from the NICHESv2 namespace).
+  # on.exit() guarantees stopCluster() even if an error occurs mid-run.
   # ════════════════════════════════════════════════════════════════════════════
 
   lr.idx.chunks <- if (n.cores == 1L) {
@@ -244,14 +250,22 @@ compute_CellToCell_Spatial <- function(count.mtx,
     if (length(filtered) == 0L) NULL else rbindlist(filtered)
   }
 
-  use.fork <- n.cores > 1L && .Platform$OS.type == "unix"
-
-  if (use.fork) {
-    chunk.results <- parallel::mclapply(lr.idx.chunks, .process_chunk,
-                                        mc.cores = n.cores)
+  if (n.cores > 1L) {
+    cl <- parallel::makeCluster(n.cores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterEvalQ(cl, { library(data.table); library(Matrix) })
+    # Ship data variables from this function's local environment
+    parallel::clusterExport(cl,
+      varlist = c("ligands", "receptors", "count.mtx",
+                  "sending.cells", "receiv.cells", "method"),
+      envir = environment())
+    # Ship internal scoring helpers from the package namespace.
+    # asNamespace() works both with devtools::load_all() and installed builds.
+    parallel::clusterExport(cl,
+      varlist = c(".compute_lrm_score", ".parse_complex", ".genes_available"),
+      envir = asNamespace("NICHESv2"))
+    chunk.results <- parallel::parLapply(cl, lr.idx.chunks, .process_chunk)
   } else {
-    if (n.cores > 1L && .Platform$OS.type != "unix")
-      message("[compute_CellToCell_Spatial] Windows detected — running serially.")
     chunk.results <- lapply(lr.idx.chunks, .process_chunk)
   }
 

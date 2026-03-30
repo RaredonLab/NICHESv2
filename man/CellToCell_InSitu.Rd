@@ -57,8 +57,9 @@ per pair. Passed to \code{CellToCell_InSitu_Single_LRM()}.}
 
 \item{dpi}{Plot resolution. Default \code{150}.}
 
-\item{n.cores}{Parallel cores. Default \code{1}. macOS forces serial
-(fork + ggplot2 font-rendering incompatibility).}
+\item{n.cores}{Parallel cores. Default \code{1}. Uses socket-based
+clusters (\code{parallel::makeCluster}) which work on all platforms
+(Windows, macOS, Linux).}
 }
 \value{
 Invisibly, a \code{data.frame} with columns \code{LRM},
