@@ -114,32 +114,30 @@ test_that("load_LRM_database: errors on unknown string shorthand", {
 
 test_that("as_matrix: returns a sparse matrix from EdgeLRResult", {
   .setup_fixtures()
-  elr <- compute_CellToCell_Spatial(count.mtx, edge.list, LRM.db)
+  elr <- compute_CellToCell(count.mtx, edge.list, LRM.db)
   mat <- as_matrix(elr)
   expect_true(inherits(mat, "CsparseMatrix"))
 })
 
 test_that("as_matrix: dimensions match n_edges x n_LRM", {
   .setup_fixtures()
-  elr  <- compute_CellToCell_Spatial(count.mtx, edge.list, LRM.db)
+  elr  <- compute_CellToCell(count.mtx, edge.list, LRM.db)
   mat  <- as_matrix(elr)
-  # Rows = unique non-zero edges; columns = unique LRM pairs in edges
   expect_equal(ncol(mat), length(unique(elr$edges$LRM)))
-  # Matrix should be non-empty
   expect_gt(nrow(mat), 0L)
   expect_gt(ncol(mat), 0L)
 })
 
 test_that("as_matrix: all values are strictly positive", {
   .setup_fixtures()
-  elr  <- compute_CellToCell_Spatial(count.mtx, edge.list, LRM.db)
+  elr  <- compute_CellToCell(count.mtx, edge.list, LRM.db)
   mat  <- as_matrix(elr)
   expect_true(all(mat@x > 0))
 })
 
 test_that("as_matrix: row names are in 'SendingCell|ReceivingCell' format", {
   .setup_fixtures()
-  elr <- compute_CellToCell_Spatial(count.mtx, edge.list, LRM.db)
+  elr <- compute_CellToCell(count.mtx, edge.list, LRM.db)
   mat <- as_matrix(elr)
   expect_true(all(grepl("|", rownames(mat), fixed = TRUE)))
 })

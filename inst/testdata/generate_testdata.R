@@ -122,6 +122,7 @@ niches.obj <- create_NICHESObject(
   count.mtx        = count.mtx,
   meta.data        = meta.data,
   LRM.db           = LRM.db,
+  mode             = "spatial",
   ligand.col       = "ligand",
   receptor.col     = "receptor",
   k                = 5L,

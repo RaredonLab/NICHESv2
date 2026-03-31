@@ -2,16 +2,20 @@
 % Please edit documentation in R/create_NICHESObject.R
 \name{create_NICHESObject}
 \alias{create_NICHESObject}
-\title{Create a NICHESObject from Spatial Single-Cell Data}
+\title{Create a NICHESObject from Single-Cell Data}
 \usage{
 create_NICHESObject(
   count.mtx,
   meta.data,
   LRM.db,
+  mode = c("spatial", "pseudobulk", "sampled"),
+  cell.type.col = NULL,
   ligand.col = "ligand",
   receptor.col = "receptor",
   k = NULL,
   rad = NULL,
+  seed = 42L,
+  max.cells = NULL,
   method = c("product", "minimum"),
   normalize.method = c("prop", "none"),
   gene.meta = NULL,
@@ -25,12 +29,20 @@ dense \code{matrix}). Row names = gene symbols; column names = cell
 barcodes.}
 
 \item{meta.data}{\code{data.frame} with one row per cell. Row names must
-match column names of \code{count.mtx}. \strong{Must contain columns
-\code{"x"} and \code{"y"}} (spatial coordinates). All other columns are
-propagated to \code{$cell.meta} and \code{$edge.meta}.}
+match column names of \code{count.mtx}. For \code{mode = "spatial"},
+must contain columns \code{"x"} and \code{"y"} (spatial coordinates).
+For non-spatial modes, must contain \code{cell.type.col}.}
 
 \item{LRM.db}{LR database: \code{"fantom5"}, \code{"omnipath"}, or a
 \code{data.frame} with at least \code{ligand.col} and \code{receptor.col}.}
+
+\item{mode}{Analysis mode. One of \code{"spatial"} (default),
+\code{"pseudobulk"}, or \code{"sampled"}.}
+
+\item{cell.type.col}{\code{character(1)} or \code{NULL}. Column name in
+\code{meta.data} holding cell type labels. Required for
+\code{mode = "pseudobulk"} and \code{mode = "sampled"}; ignored for
+\code{mode = "spatial"}.}
 
 \item{ligand.col}{Column name for ligands in \code{LRM.db}. Default
 \code{"ligand"}.}
@@ -39,93 +51,113 @@ propagated to \code{$cell.meta} and \code{$edge.meta}.}
 \code{"receptor"}.}
 
 \item{k}{\code{integer} or \code{NULL}. kNN neighbourhood size.
-Passed to \code{create_Edgelist_Spatial()}.}
+Spatial mode only. Passed to \code{create_Edgelist_Spatial()}.}
 
 \item{rad}{\code{numeric} or \code{NULL}. Radius neighbourhood size.
-Passed to \code{create_Edgelist_Spatial()}.}
+Spatial mode only. Passed to \code{create_Edgelist_Spatial()}.}
+
+\item{seed}{\code{integer(1)}. Random seed for reproducibility.
+Sampled mode only. Default \code{42L}.}
+
+\item{max.cells}{\code{integer(1)} or \code{NULL}. Per-crossing edge cap.
+Sampled mode only. Default \code{NULL} (cap = \code{min(n_i, n_j)}).}
 
 \item{method}{Scoring method: \code{"product"} (default) or
 \code{"minimum"}.}
 
 \item{normalize.method}{Normalisation for \code{score.norm}:
-\code{"prop"} (default, proportional within group) or \code{"none"}.}
+\code{"prop"} (default) or \code{"none"}.}
 
 \item{gene.meta}{Optional \code{data.frame} with a \code{"gene"} column
-and any additional gene-level annotation. If \code{NULL}, a minimal
-table with only the \code{gene} column is created.}
+and any additional gene-level annotation.}
 
-\item{n.cores}{CPU cores. Default 1. Fork-based on Unix; serial on
-Windows.}
+\item{n.cores}{CPU cores. Default 1. Uses socket clusters
+(\code{parallel::makeCluster}) — works on all platforms.}
 
 \item{verbose}{Print progress messages. Default \code{TRUE}.}
 }
 \value{
-A \code{NICHESObject}.
+A \code{NICHESObject} with a \code{mode} attribute.
 }
 \description{
-The primary entry point for NICHESv2. Takes a gene × cell expression matrix
-and a cell metadata table (which must contain spatial coordinates \code{x}
-and \code{y}), builds a spatial neighbourhood graph, computes all valid
-ligand-receptor scores, and assembles the result into a fully populated
-\code{NICHESObject} with 13 slots.
+The primary entry point for NICHESv2. Supports three analysis modes that
+differ in how the cell-to-cell edge list is defined:
+
+\describe{
+  \item{\code{"spatial"}}{Edges are defined by physical proximity using
+    k-nearest neighbours or a fixed radius in x/y coordinate space.
+    Requires \code{x} and \code{y} columns in \code{meta.data}.}
+  \item{\code{"pseudobulk"}}{One directed edge per ordered cell type pair
+    (T² edges total, including autocrine). Scoring uses the per-type mean
+    expression profile. \code{$cell.list} and \code{$cell.data} retain
+    original single-cell resolution; only edge-level data are type-level.
+    Requires \code{cell.type.col}.}
+  \item{\code{"sampled"}}{NICHES v1-style stratified random sampling. For
+    each directed type pair (A → B), up to \code{min(n_A, n_B)} cell
+    barcodes are independently drawn from each side and paired positionally.
+    All T² crossings are represented. Requires \code{cell.type.col}.}
+}
 }
 \section{Slot construction summary}{
 
 \describe{
-  \item{\code{$cell.list}}{Column names of \code{count.mtx}.}
+  \item{\code{$cell.list}}{Column names of \code{count.mtx} (original cell
+    barcodes in all modes).}
   \item{\code{$cell.data}}{Long-format expression table (cell, gene, score,
-    score.norm). Sparse: only rows where \code{score > 0} or
-    \code{score.norm > 0} are retained. \code{score.norm} is per-cell
-    proportional (gene count / total cell count).}
+    score.norm). Sparse: only rows where \code{score > 0} retained.
+    Always built from original single-cell \code{count.mtx}.}
   \item{\code{$cell.meta}}{\code{meta.data} coerced to a data.table with a
-    \code{cell} column added (= row names of \code{meta.data}).}
-  \item{\code{$edge.list}}{Derived from \code{create_Edgelist_Spatial()};
-    columns: \code{edge} (\code{"SendingCell|ReceivingCell"}),
-    \code{SendingCell}, \code{ReceivingCell}.}
-  \item{\code{$edge.data}}{Per-edge LRM scores; \code{score.norm} normalised
-    \emph{per edge} (each LRM's score divided by that edge's total score).}
-  \item{\code{$edge.meta}}{Sending / receiving cell metadata joined per edge.
-    Categorical columns get a \code{Joint.*} column
-    (\code{"SendingValue|ReceivingValue"}). Numeric metadata columns are
-    added with \code{Sending.*} and \code{Receiving.*} prefixes only.}
+    \code{cell} column. Always contains original cell barcodes.}
+  \item{\code{$edge.list}}{Columns: \code{edge}
+    (\code{"Sender|Receiver"}), \code{SendingCell}, \code{ReceivingCell}.
+    In \code{"pseudobulk"} mode, SendingCell and ReceivingCell hold type
+    labels rather than barcodes.}
+  \item{\code{$edge.data}}{Per-edge LRM scores with \code{score.norm}
+    normalised per edge (proportional).}
+  \item{\code{$edge.meta}}{Sending / receiving metadata joined per edge.
+    In \code{"pseudobulk"} mode, contains only edge identity columns since
+    the edge nodes are type labels, not individual cells.}
   \item{\code{$neighborhood.*}}{Reserved as \code{NULL}.}
   \item{\code{$gene.list}}{Row names of \code{count.mtx}.}
-  \item{\code{$gene.meta}}{Minimal table (\code{gene} column only) unless
-    \code{gene.meta} is supplied.}
-  \item{\code{$LRM.list}}{Character vector of \code{"ligand|receptor"}
-    strings for all LRM pairs that pass gene-availability filtering.}
-  \item{\code{$LRM.meta}}{Standardised LRM annotation table: \code{LRM},
-    \code{ligand}, \code{receptor}, plus any extra columns from
-    \code{LRM.db}.}
+  \item{\code{$gene.meta}}{Minimal table unless \code{gene.meta} supplied.}
+  \item{\code{$LRM.list}}{Valid \code{"ligand|receptor"} strings after gene
+    filtering.}
+  \item{\code{$LRM.meta}}{LRM annotation table: LRM, ligand, receptor,
+    plus any extra columns from \code{LRM.db}.}
 }
+The assembled object carries a \code{mode} attribute recording which of the
+three modes was used.
 }
 
 \examples{
 \dontrun{
-# From a Seurat object
-count.mtx  <- Seurat::GetAssayData(seu, slot = "counts")
+# Spatial mode (from a Seurat object)
+count.mtx <- Seurat::GetAssayData(seu, slot = "counts")
 meta.data  <- seu@meta.data   # must contain x, y columns
+niches.obj <- create_NICHESObject(count.mtx, meta.data,
+                                  LRM.db = "omnipath", k = 6)
 
-niches.obj <- create_NICHESObject(
-  count.mtx = count.mtx,
-  meta.data = meta.data,
-  LRM.db    = "omnipath",
-  k         = 6,
-  method    = "product"
-)
+# Pseudobulk mode
+niches.obj <- create_NICHESObject(count.mtx, meta.data,
+                                  LRM.db = "omnipath",
+                                  mode = "pseudobulk",
+                                  cell.type.col = "cell.type")
 
-# From raw matrices
-niches.obj <- create_NICHESObject(
-  count.mtx = my.count.matrix,
-  meta.data = my.meta.data,
-  LRM.db    = my.lr.dataframe,
-  rad       = 200
-)
+# Sampled mode
+niches.obj <- create_NICHESObject(count.mtx, meta.data,
+                                  LRM.db = "omnipath",
+                                  mode = "sampled",
+                                  cell.type.col = "cell.type",
+                                  seed = 42L, max.cells = 100L)
 }
 
 }
 \seealso{
-\code{\link{compute_CellToCell_Spatial}},
-  \code{\link{create_Edgelist_Spatial}}, \code{\link{load_LRM_database}},
-  \code{\link{Aggregate_CellToCell_Edges}}, \code{\link{CellToCell_InSitu}}
+\code{\link{compute_CellToCell}},
+  \code{\link{create_Edgelist_Spatial}},
+  \code{\link{create_Edgelist_PseudoBulk}},
+  \code{\link{create_Edgelist_SamplingByType}},
+  \code{\link{load_LRM_database}},
+  \code{\link{Aggregate_CellToCell_Edges}},
+  \code{\link{CellToCell_InSitu}}
 }
