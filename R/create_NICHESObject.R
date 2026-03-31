@@ -1,9 +1,14 @@
 # ==============================================================================
 # FILE:    create_NICHESObject.R
 # PURPOSE: Top-level constructor for the NICHESObject S3 class. Orchestrates
-#          the full pipeline: coordinate extraction → edge list → LR scoring →
-#          slot assembly. Accepts Seurat-like inputs (count matrix + meta.data
-#          data.frame) or raw R objects.
+#          the full pipeline: edge list construction → LR scoring → slot
+#          assembly. Three analysis modes are supported:
+#
+#   "spatial"    — physical kNN or radius neighbourhood from x/y coordinates
+#   "pseudobulk" — one directed edge per ordered cell type pair; scoring uses
+#                  per-type mean expression (genes × types matrix)
+#   "sampled"    — NICHES v1-style stratified random sampling of cell barcodes
+#                  within each directed type pair crossing
 #
 # FUNCTIONS:
 #   create_NICHESObject()  — main function
@@ -14,115 +19,144 @@
 
 
 # ==============================================================================
-#' Create a NICHESObject from Spatial Single-Cell Data
+#' Create a NICHESObject from Single-Cell Data
 #'
 #' @description
-#' The primary entry point for NICHESv2. Takes a gene × cell expression matrix
-#' and a cell metadata table (which must contain spatial coordinates \code{x}
-#' and \code{y}), builds a spatial neighbourhood graph, computes all valid
-#' ligand-receptor scores, and assembles the result into a fully populated
-#' \code{NICHESObject} with 13 slots.
+#' The primary entry point for NICHESv2. Supports three analysis modes that
+#' differ in how the cell-to-cell edge list is defined:
+#'
+#' \describe{
+#'   \item{\code{"spatial"}}{Edges are defined by physical proximity using
+#'     k-nearest neighbours or a fixed radius in x/y coordinate space.
+#'     Requires \code{x} and \code{y} columns in \code{meta.data}.}
+#'   \item{\code{"pseudobulk"}}{One directed edge per ordered cell type pair
+#'     (T² edges total, including autocrine). Scoring uses the per-type mean
+#'     expression profile. \code{$cell.list} and \code{$cell.data} retain
+#'     original single-cell resolution; only edge-level data are type-level.
+#'     Requires \code{cell.type.col}.}
+#'   \item{\code{"sampled"}}{NICHES v1-style stratified random sampling. For
+#'     each directed type pair (A → B), up to \code{min(n_A, n_B)} cell
+#'     barcodes are independently drawn from each side and paired positionally.
+#'     All T² crossings are represented. Requires \code{cell.type.col}.}
+#' }
 #'
 #' @section Slot construction summary:
 #' \describe{
-#'   \item{\code{$cell.list}}{Column names of \code{count.mtx}.}
+#'   \item{\code{$cell.list}}{Column names of \code{count.mtx} (original cell
+#'     barcodes in all modes).}
 #'   \item{\code{$cell.data}}{Long-format expression table (cell, gene, score,
-#'     score.norm). Sparse: only rows where \code{score > 0} or
-#'     \code{score.norm > 0} are retained. \code{score.norm} is per-cell
-#'     proportional (gene count / total cell count).}
+#'     score.norm). Sparse: only rows where \code{score > 0} retained.
+#'     Always built from original single-cell \code{count.mtx}.}
 #'   \item{\code{$cell.meta}}{\code{meta.data} coerced to a data.table with a
-#'     \code{cell} column added (= row names of \code{meta.data}).}
-#'   \item{\code{$edge.list}}{Derived from \code{create_Edgelist_Spatial()};
-#'     columns: \code{edge} (\code{"SendingCell|ReceivingCell"}),
-#'     \code{SendingCell}, \code{ReceivingCell}.}
-#'   \item{\code{$edge.data}}{Per-edge LRM scores; \code{score.norm} normalised
-#'     \emph{per edge} (each LRM's score divided by that edge's total score).}
-#'   \item{\code{$edge.meta}}{Sending / receiving cell metadata joined per edge.
-#'     Categorical columns get a \code{Joint.*} column
-#'     (\code{"SendingValue|ReceivingValue"}). Numeric metadata columns are
-#'     added with \code{Sending.*} and \code{Receiving.*} prefixes only.}
+#'     \code{cell} column. Always contains original cell barcodes.}
+#'   \item{\code{$edge.list}}{Columns: \code{edge}
+#'     (\code{"Sender|Receiver"}), \code{SendingCell}, \code{ReceivingCell}.
+#'     In \code{"pseudobulk"} mode, SendingCell and ReceivingCell hold type
+#'     labels rather than barcodes.}
+#'   \item{\code{$edge.data}}{Per-edge LRM scores with \code{score.norm}
+#'     normalised per edge (proportional).}
+#'   \item{\code{$edge.meta}}{Sending / receiving metadata joined per edge.
+#'     In \code{"pseudobulk"} mode, contains only edge identity columns since
+#'     the edge nodes are type labels, not individual cells.}
 #'   \item{\code{$neighborhood.*}}{Reserved as \code{NULL}.}
 #'   \item{\code{$gene.list}}{Row names of \code{count.mtx}.}
-#'   \item{\code{$gene.meta}}{Minimal table (\code{gene} column only) unless
-#'     \code{gene.meta} is supplied.}
-#'   \item{\code{$LRM.list}}{Character vector of \code{"ligand|receptor"}
-#'     strings for all LRM pairs that pass gene-availability filtering.}
-#'   \item{\code{$LRM.meta}}{Standardised LRM annotation table: \code{LRM},
-#'     \code{ligand}, \code{receptor}, plus any extra columns from
-#'     \code{LRM.db}.}
+#'   \item{\code{$gene.meta}}{Minimal table unless \code{gene.meta} supplied.}
+#'   \item{\code{$LRM.list}}{Valid \code{"ligand|receptor"} strings after gene
+#'     filtering.}
+#'   \item{\code{$LRM.meta}}{LRM annotation table: LRM, ligand, receptor,
+#'     plus any extra columns from \code{LRM.db}.}
 #' }
+#' The assembled object carries a \code{mode} attribute recording which of the
+#' three modes was used.
 #'
 #' @param count.mtx   Gene × cell expression matrix (sparse \code{dgCMatrix} or
 #'   dense \code{matrix}). Row names = gene symbols; column names = cell
 #'   barcodes.
 #' @param meta.data   \code{data.frame} with one row per cell. Row names must
-#'   match column names of \code{count.mtx}. \strong{Must contain columns
-#'   \code{"x"} and \code{"y"}} (spatial coordinates). All other columns are
-#'   propagated to \code{$cell.meta} and \code{$edge.meta}.
+#'   match column names of \code{count.mtx}. For \code{mode = "spatial"},
+#'   must contain columns \code{"x"} and \code{"y"} (spatial coordinates).
+#'   For non-spatial modes, must contain \code{cell.type.col}.
 #' @param LRM.db      LR database: \code{"fantom5"}, \code{"omnipath"}, or a
 #'   \code{data.frame} with at least \code{ligand.col} and \code{receptor.col}.
+#' @param mode        Analysis mode. One of \code{"spatial"} (default),
+#'   \code{"pseudobulk"}, or \code{"sampled"}.
+#' @param cell.type.col \code{character(1)} or \code{NULL}. Column name in
+#'   \code{meta.data} holding cell type labels. Required for
+#'   \code{mode = "pseudobulk"} and \code{mode = "sampled"}; ignored for
+#'   \code{mode = "spatial"}.
 #' @param ligand.col  Column name for ligands in \code{LRM.db}. Default
 #'   \code{"ligand"}.
 #' @param receptor.col Column name for receptors in \code{LRM.db}. Default
 #'   \code{"receptor"}.
 #' @param k           \code{integer} or \code{NULL}. kNN neighbourhood size.
-#'   Passed to \code{create_Edgelist_Spatial()}.
+#'   Spatial mode only. Passed to \code{create_Edgelist_Spatial()}.
 #' @param rad         \code{numeric} or \code{NULL}. Radius neighbourhood size.
-#'   Passed to \code{create_Edgelist_Spatial()}.
+#'   Spatial mode only. Passed to \code{create_Edgelist_Spatial()}.
+#' @param seed        \code{integer(1)}. Random seed for reproducibility.
+#'   Sampled mode only. Default \code{42L}.
+#' @param max.cells   \code{integer(1)} or \code{NULL}. Per-crossing edge cap.
+#'   Sampled mode only. Default \code{NULL} (cap = \code{min(n_i, n_j)}).
 #' @param method      Scoring method: \code{"product"} (default) or
 #'   \code{"minimum"}.
 #' @param normalize.method Normalisation for \code{score.norm}:
-#'   \code{"prop"} (default, proportional within group) or \code{"none"}.
+#'   \code{"prop"} (default) or \code{"none"}.
 #' @param gene.meta   Optional \code{data.frame} with a \code{"gene"} column
-#'   and any additional gene-level annotation. If \code{NULL}, a minimal
-#'   table with only the \code{gene} column is created.
-#' @param n.cores     CPU cores. Default 1. Fork-based on Unix; serial on
-#'   Windows.
+#'   and any additional gene-level annotation.
+#' @param n.cores     CPU cores. Default 1. Uses socket clusters
+#'   (\code{parallel::makeCluster}) — works on all platforms.
 #' @param verbose     Print progress messages. Default \code{TRUE}.
 #'
-#' @return A \code{NICHESObject}.
+#' @return A \code{NICHESObject} with a \code{mode} attribute.
 #'
-#' @seealso \code{\link{compute_CellToCell_Spatial}},
-#'   \code{\link{create_Edgelist_Spatial}}, \code{\link{load_LRM_database}},
-#'   \code{\link{Aggregate_CellToCell_Edges}}, \code{\link{CellToCell_InSitu}}
+#' @seealso \code{\link{compute_CellToCell}},
+#'   \code{\link{create_Edgelist_Spatial}},
+#'   \code{\link{create_Edgelist_PseudoBulk}},
+#'   \code{\link{create_Edgelist_SamplingByType}},
+#'   \code{\link{load_LRM_database}},
+#'   \code{\link{Aggregate_CellToCell_Edges}},
+#'   \code{\link{CellToCell_InSitu}}
 #'
 #' @examples
 #' \dontrun{
-#' # From a Seurat object
-#' count.mtx  <- Seurat::GetAssayData(seu, slot = "counts")
+#' # Spatial mode (from a Seurat object)
+#' count.mtx <- Seurat::GetAssayData(seu, slot = "counts")
 #' meta.data  <- seu@meta.data   # must contain x, y columns
+#' niches.obj <- create_NICHESObject(count.mtx, meta.data,
+#'                                   LRM.db = "omnipath", k = 6)
 #'
-#' niches.obj <- create_NICHESObject(
-#'   count.mtx = count.mtx,
-#'   meta.data = meta.data,
-#'   LRM.db    = "omnipath",
-#'   k         = 6,
-#'   method    = "product"
-#' )
+#' # Pseudobulk mode
+#' niches.obj <- create_NICHESObject(count.mtx, meta.data,
+#'                                   LRM.db = "omnipath",
+#'                                   mode = "pseudobulk",
+#'                                   cell.type.col = "cell.type")
 #'
-#' # From raw matrices
-#' niches.obj <- create_NICHESObject(
-#'   count.mtx = my.count.matrix,
-#'   meta.data = my.meta.data,
-#'   LRM.db    = my.lr.dataframe,
-#'   rad       = 200
-#' )
+#' # Sampled mode
+#' niches.obj <- create_NICHESObject(count.mtx, meta.data,
+#'                                   LRM.db = "omnipath",
+#'                                   mode = "sampled",
+#'                                   cell.type.col = "cell.type",
+#'                                   seed = 42L, max.cells = 100L)
 #' }
 #'
 #' @export
 create_NICHESObject <- function(count.mtx,
                                  meta.data,
                                  LRM.db,
-                                 ligand.col        = "ligand",
-                                 receptor.col      = "receptor",
-                                 k                 = NULL,
-                                 rad               = NULL,
-                                 method            = c("product", "minimum"),
-                                 normalize.method  = c("prop", "none"),
-                                 gene.meta         = NULL,
-                                 n.cores           = 1L,
-                                 verbose           = TRUE) {
+                                 mode             = c("spatial", "pseudobulk", "sampled"),
+                                 cell.type.col    = NULL,
+                                 ligand.col       = "ligand",
+                                 receptor.col     = "receptor",
+                                 k                = NULL,
+                                 rad              = NULL,
+                                 seed             = 42L,
+                                 max.cells        = NULL,
+                                 method           = c("product", "minimum"),
+                                 normalize.method = c("prop", "none"),
+                                 gene.meta        = NULL,
+                                 n.cores          = 1L,
+                                 verbose          = TRUE) {
 
+  mode             <- match.arg(mode)
   method           <- match.arg(method)
   normalize.method <- match.arg(normalize.method)
   n.cores          <- as.integer(n.cores)
@@ -141,25 +175,32 @@ create_NICHESObject <- function(count.mtx,
   if (is.null(rownames(meta.data)))
     stop("[create_NICHESObject] 'meta.data' must have row names matching column names of 'count.mtx'.")
 
-  # Spatial coordinate check
-  if (!all(c("x", "y") %in% colnames(meta.data)))
-    stop(
-      "[create_NICHESObject] 'meta.data' must contain columns 'x' and 'y' ",
-      "(spatial coordinates).\n",
-      "  If your data uses different column names, please rename them to 'x' ",
-      "and 'y' before calling create_NICHESObject().\n",
-      "  Non-spatial analysis will be supported in a future version."
-    )
+  # Mode-specific input requirements
+  if (mode == "spatial") {
+    if (!all(c("x", "y") %in% colnames(meta.data)))
+      stop(
+        "[create_NICHESObject] mode = 'spatial' requires columns 'x' and 'y' in 'meta.data'.\n",
+        "  If your data uses different column names, please rename them to 'x' and 'y'."
+      )
+  } else {
+    if (is.null(cell.type.col))
+      stop(sprintf(
+        "[create_NICHESObject] mode = '%s' requires 'cell.type.col' to be specified.", mode
+      ))
+    if (!is.character(cell.type.col) || length(cell.type.col) != 1L)
+      stop("[create_NICHESObject] 'cell.type.col' must be a single character string.")
+    if (!cell.type.col %in% colnames(meta.data))
+      stop(sprintf(
+        "[create_NICHESObject] 'cell.type.col' ('%s') not found in 'meta.data'.",
+        cell.type.col
+      ))
+  }
 
   # Cell alignment: keep intersection of meta.data rownames and count.mtx colnames
   shared.cells <- intersect(rownames(meta.data), colnames(count.mtx))
   if (length(shared.cells) == 0L)
     stop("[create_NICHESObject] No shared cells between 'meta.data' row names ",
          "and 'count.mtx' column names.")
-
-  n.dropped.cells <- (ncol(count.mtx) + nrow(meta.data)) -
-    (length(colnames(count.mtx)) + length(rownames(meta.data))) +
-    length(shared.cells)  # simplified: just warn if any mismatch
 
   if (length(shared.cells) < ncol(count.mtx) && verbose)
     message(sprintf(
@@ -173,30 +214,65 @@ create_NICHESObject <- function(count.mtx,
     ))
 
   count.mtx <- count.mtx[, shared.cells, drop = FALSE]
-  meta.data <- meta.data[shared.cells, , drop = FALSE]
+  meta.data  <- meta.data[shared.cells, , drop = FALSE]
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Build spatial edge list
+  # SECTION 2 ── Build edge list (mode-dependent)
   # ════════════════════════════════════════════════════════════════════════════
 
-  if (verbose) message("[create_NICHESObject] Building spatial edge list ...")
+  if (verbose) message(sprintf(
+    "[create_NICHESObject] Building edge list (mode = '%s') ...", mode
+  ))
 
-  coord.df <- data.frame(
-    x = meta.data[["x"]],
-    y = meta.data[["y"]],
-    row.names = shared.cells
-  )
+  if (mode == "spatial") {
 
-  el.raw <- create_Edgelist_Spatial(coord = coord.df, k = k, rad = rad, n.cores = n.cores)
+    coord.df <- data.frame(
+      x = meta.data[["x"]],
+      y = meta.data[["y"]],
+      row.names = shared.cells
+    )
+    el.raw <- create_Edgelist_Spatial(coord = coord.df, k = k, rad = rad,
+                                      n.cores = n.cores)
+
+  } else if (mode == "pseudobulk") {
+
+    el.raw <- create_Edgelist_PseudoBulk(meta.data     = meta.data,
+                                          cell.type.col = cell.type.col)
+
+  } else {  # mode == "sampled"
+
+    el.raw <- create_Edgelist_SamplingByType(meta.data     = meta.data,
+                                              cell.type.col = cell.type.col,
+                                              seed          = seed,
+                                              max.cells     = max.cells)
+  }
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 3 ── Compute LR scores
+  #
+  # Pseudobulk mode: pass a genes × cell_types mean-expression matrix so that
+  # compute_CellToCell() can look up type-label "cells" in colnames().
+  # All other modes: pass the original single-cell count matrix.
   # ════════════════════════════════════════════════════════════════════════════
 
   if (verbose) message("[create_NICHESObject] Computing LR scores ...")
 
-  elr <- compute_CellToCell_Spatial(
-    count.mtx    = count.mtx,
+  if (mode == "pseudobulk") {
+    # Compute per-type mean expression: genes × cell_types dense matrix.
+    # Types are derived from the filtered meta.data (after cell alignment).
+    cell.types.ordered <- attr(el.raw, "cell.names")   # sorted type labels
+    pb.mtx <- do.call(cbind, lapply(cell.types.ordered, function(ct) {
+      ct.barcodes <- rownames(meta.data)[meta.data[[cell.type.col]] == ct]
+      Matrix::rowMeans(count.mtx[, ct.barcodes, drop = FALSE])
+    }))
+    colnames(pb.mtx) <- cell.types.ordered
+    score.mtx <- pb.mtx
+  } else {
+    score.mtx <- count.mtx
+  }
+
+  elr <- compute_CellToCell(
+    count.mtx    = score.mtx,
     edge.list    = el.raw,
     LRM.db       = LRM.db,
     ligand.col   = ligand.col,
@@ -207,17 +283,16 @@ create_NICHESObject <- function(count.mtx,
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 4 ── Build $cell.list and $gene.list
+  #
+  # Always derived from the original count.mtx (cell barcodes), not the
+  # pseudobulk matrix, so single-cell resolution is preserved in all modes.
   # ════════════════════════════════════════════════════════════════════════════
 
   cell.list <- shared.cells
   gene.list <- rownames(count.mtx)
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Build $cell.data (sparse, per-cell normalised)
-  #
-  # Convert count matrix to long format, filter zeros, add score.norm.
-  # For large matrices we iterate over cells in batches to avoid
-  # a single dense materialisation.
+  # SECTION 5 ── Build $cell.data (always from original single-cell matrix)
   # ════════════════════════════════════════════════════════════════════════════
 
   if (verbose) message("[create_NICHESObject] Building cell.data ...")
@@ -225,7 +300,7 @@ create_NICHESObject <- function(count.mtx,
   cell.data <- .build_cell_data(count.mtx, normalize.method)
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 6 ── Build $cell.meta
+  # SECTION 6 ── Build $cell.meta (always original cell barcodes)
   # ════════════════════════════════════════════════════════════════════════════
 
   cell.meta <- as.data.table(meta.data, keep.rownames = "cell")
@@ -249,12 +324,11 @@ create_NICHESObject <- function(count.mtx,
   if (verbose) message("[create_NICHESObject] Building edge.data ...")
 
   edge.data <- data.table(
-    edge     = paste(elr$edges$from, elr$edges$to, sep = "|"),
-    LRM      = elr$edges$LRM,
-    score    = elr$edges$score
+    edge  = paste(elr$edges$from, elr$edges$to, sep = "|"),
+    LRM   = elr$edges$LRM,
+    score = elr$edges$score
   )
 
-  # Per-edge normalisation of score.norm
   if (normalize.method == "prop") {
     edge.data[, score.norm := .prop_norm(score), by = edge]
   } else {
@@ -265,11 +339,25 @@ create_NICHESObject <- function(count.mtx,
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 9 ── Build $edge.meta
+  #
+  # Pseudobulk: edges connect type labels, not barcodes. We pass a minimal
+  # type-label table (no extra columns) to .build_edge_meta() so the result
+  # contains edge, SendingCell, and ReceivingCell columns only — which is all
+  # that is meaningful when nodes are type names rather than individual cells.
+  #
+  # Spatial and sampled: edges connect cell barcodes, so we join the full
+  # cell.meta as usual to get Sending.*, Receiving.*, and Joint.* columns.
   # ════════════════════════════════════════════════════════════════════════════
 
   if (verbose) message("[create_NICHESObject] Building edge.meta ...")
 
-  edge.meta <- .build_edge_meta(edge.list.dt, cell.meta)
+  if (mode == "pseudobulk") {
+    type.meta.dt <- data.table(cell = attr(el.raw, "cell.names"))
+    setkeyv(type.meta.dt, "cell")
+    edge.meta <- .build_edge_meta(edge.list.dt, type.meta.dt)
+  } else {
+    edge.meta <- .build_edge_meta(edge.list.dt, cell.meta)
+  }
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 10 ── Build $gene.meta
@@ -279,7 +367,6 @@ create_NICHESObject <- function(count.mtx,
     gene.meta.dt <- as.data.table(gene.meta)
     if (!"gene" %in% colnames(gene.meta.dt))
       stop("[create_NICHESObject] 'gene.meta' must have a 'gene' column.")
-    # Fill in any genes missing from the supplied table
     missing.genes <- setdiff(gene.list, gene.meta.dt$gene)
     if (length(missing.genes) > 0L)
       gene.meta.dt <- rbindlist(
@@ -299,7 +386,6 @@ create_NICHESObject <- function(count.mtx,
   LRM.meta.dt <- copy(elr$lr.meta)
   LRM.list    <- LRM.meta.dt$LRM
 
-  # Ensure LRM column is first, followed by ligand, receptor, then extras
   other.cols <- setdiff(colnames(LRM.meta.dt), c("LRM", "ligand", "receptor"))
   setcolorder(LRM.meta.dt, c("LRM", "ligand", "receptor", other.cols))
   setkeyv(LRM.meta.dt, "LRM")
@@ -324,10 +410,13 @@ create_NICHESObject <- function(count.mtx,
     LRM.meta               = LRM.meta.dt
   )
 
+  # Stamp the mode as an object-level attribute for downstream inspection
+  attr(obj, "mode") <- mode
+
   if (verbose) {
     message(sprintf(
-      "[create_NICHESObject] Done. %d cells | %d edges | %d LRM pairs | %d non-zero edge signals.",
-      length(cell.list), nrow(edge.list.dt), length(LRM.list), nrow(edge.data)
+      "[create_NICHESObject] Done. mode = '%s' | %d cells | %d edges | %d LRM pairs | %d non-zero edge signals.",
+      mode, length(cell.list), nrow(edge.list.dt), length(LRM.list), nrow(edge.data)
     ))
   }
 
@@ -361,7 +450,6 @@ add_cell_meta <- function(niches.obj, new.meta, rebuild.edge.meta = TRUE) {
   if (!"cell" %in% colnames(new.meta))
     stop("[add_cell_meta] 'new.meta' must have a 'cell' column.")
 
-  # Overwrite / add columns via update join
   new.cols <- setdiff(colnames(new.meta), "cell")
   niches.obj$cell.meta <- new.meta[niches.obj$cell.meta, on = "cell"]
 
@@ -380,7 +468,6 @@ add_cell_meta <- function(niches.obj, new.meta, rebuild.edge.meta = TRUE) {
 #' @noRd
 .build_cell_data <- function(count.mtx, normalize.method) {
 
-  # Convert to TsparseMatrix for fast triplet extraction
   tsm  <- as(count.mtx, "TsparseMatrix")
   rows <- rownames(count.mtx)
   cols <- colnames(count.mtx)
@@ -391,15 +478,12 @@ add_cell_meta <- function(niches.obj, new.meta, rebuild.edge.meta = TRUE) {
     score = tsm@x
   )
 
-  # Per-cell proportional normalisation
   if (normalize.method == "prop") {
     dt[, score.norm := .prop_norm(score), by = cell]
   } else {
     dt[, score.norm := score]
   }
 
-  # Keep only rows where at least one value is non-zero (already guaranteed
-  # for score by sparse format, but defensive for score.norm == 0)
   dt <- dt[score > 0 | score.norm > 0]
 
   setkeyv(dt, c("cell", "gene"))
@@ -415,27 +499,21 @@ add_cell_meta <- function(niches.obj, new.meta, rebuild.edge.meta = TRUE) {
 #' @noRd
 .build_edge_meta <- function(edge.list.dt, cell.meta) {
 
-  # Identify metadata columns (exclude the key "cell" column)
   meta.cols <- setdiff(colnames(cell.meta), "cell")
-
-  # Start with the edge identity columns
-  edge.meta <- copy(edge.list.dt)   # edge, SendingCell, ReceivingCell
+  edge.meta <- copy(edge.list.dt)
 
   if (length(meta.cols) == 0L) return(edge.meta)
 
-  # Join sending-cell metadata
   send.meta <- cell.meta[edge.meta[, .(cell = SendingCell)], on = "cell"]
   for (col in meta.cols) {
     edge.meta[[paste0("Sending.", col)]] <- send.meta[[col]]
   }
 
-  # Join receiving-cell metadata
   recv.meta <- cell.meta[edge.meta[, .(cell = ReceivingCell)], on = "cell"]
   for (col in meta.cols) {
     edge.meta[[paste0("Receiving.", col)]] <- recv.meta[[col]]
   }
 
-  # Joint columns for categorical variables only
   cat.cols <- .categorical_cols(cell.meta, exclude = "cell")
   for (col in cat.cols) {
     s.col <- paste0("Sending.",   col)
