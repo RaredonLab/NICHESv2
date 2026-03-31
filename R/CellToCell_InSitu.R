@@ -132,7 +132,8 @@ CellToCell_InSitu <- function(niches.obj,
         bg.alpha       = bg.alpha,
         sig.linewidth  = sig.linewidth,
         sig.alpha      = sig.alpha,
-        viridis.option = viridis.option
+        viridis.option = viridis.option,
+        precomputed.bg = all.edges
       )
       ggsave(filename = fpath, plot = p,
              width = width, height = height, dpi = dpi, bg = "black")
@@ -144,7 +145,46 @@ CellToCell_InSitu <- function(niches.obj,
   }
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Execute (socket cluster on all platforms)
+  # SECTION 3 ── Slim the NICHESObject before export
+  #
+  # Socket clusters serialise every exported object and send it over a local
+  # socket to each worker. The full niches.obj is expensive to ship because:
+  #   $cell.data  — large sparse table, completely unused by plotting
+  #   $edge.data  — contains ALL LRMs; only the pairs being plotted are needed
+  #
+  # We overwrite niches.obj in this local environment with a stripped version:
+  #   $cell.data  → NULL
+  #   $edge.data  → filtered to rows whose LRM is in the current pair list
+  #
+  # .plot_one() looks up niches.obj at call time (R lexical scoping), so it
+  # automatically uses the slim version with no other code changes required.
+  # ════════════════════════════════════════════════════════════════════════════
+
+  niches.obj$cell.data <- NULL
+  niches.obj$edge.data <- niches.obj$edge.data[LRM %in% pairs$LRM]
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # SECTION 4 ── Pre-compute background edge table once
+  #
+  # The background (all inter-cell edges with coordinates attached) is identical
+  # for every LRM — building it inside Single_LRM would repeat two O(n_edges)
+  # joins for every plot. We build it once here and pass it to every worker
+  # via precomputed.bg, so Single_LRM skips Section 3 entirely in batch mode.
+  # ════════════════════════════════════════════════════════════════════════════
+
+  coords    <- niches.obj$cell.meta[, .(cell, x, y)]
+  all.edges <- niches.obj$edge.list[SendingCell != ReceivingCell]
+
+  all.edges <- coords[all.edges, on = .(cell = SendingCell)]
+  setnames(all.edges, c("x", "y"), c("x.from", "y.from"))
+  setnames(all.edges, "cell", "SendingCell")
+
+  all.edges <- coords[all.edges, on = .(cell = ReceivingCell)]
+  setnames(all.edges, c("x", "y"), c("x.to", "y.to"))
+  setnames(all.edges, "cell", "ReceivingCell")
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # SECTION 5 ── Execute (socket cluster on all platforms)
   #
   # Socket clusters (parallel::makeCluster + parLapply) work on Windows,
   # macOS, and Linux. Unlike fork-based mclapply, they avoid the CoreText
@@ -153,8 +193,9 @@ CellToCell_InSitu <- function(niches.obj,
   #
   # Workers receive:
   #   - CellToCell_InSitu_Single_LRM from the NICHESv2 namespace
-  #   - all plot-parameter variables from this function's local environment
-  #   - ggplot2, data.table, scales loaded in each worker
+  #   - slim niches.obj, pre-computed all.edges, and all plot parameters
+  #   - ggplot2, data.table, scales loaded; data.table threads set to 1
+  #     to prevent OpenMP contention across socket-cluster workers
   #
   # on.exit() guarantees stopCluster() even if an error occurs mid-batch.
   # ════════════════════════════════════════════════════════════════════════════
@@ -168,15 +209,20 @@ CellToCell_InSitu <- function(niches.obj,
       library(ggplot2)
       library(data.table)
       library(scales)
+      data.table::setDTthreads(1)
     })
     # Ship the plotting function from the package namespace.
     # asNamespace() works with both devtools::load_all() and installed builds.
     parallel::clusterExport(cl,
       varlist = c("CellToCell_InSitu_Single_LRM"),
       envir   = asNamespace("NICHESv2"))
-    # Ship all plot parameters from this function's local environment.
+    # Ship the slim niches.obj, the pre-computed background, and all plot
+    # parameters. $cell.data is NULL and $edge.data is pre-filtered, so
+    # serialisation cost is minimal. all.edges is shipped once and reused
+    # across every plot job, eliminating repeated coordinate joins in workers.
     parallel::clusterExport(cl,
-      varlist = c("pairs", "out.dir", "niches.obj", "value.col", "scale.upper",
+      varlist = c("pairs", "out.dir", "niches.obj", "all.edges",
+                  "value.col", "scale.upper",
                   "bg.color", "bg.linewidth", "bg.alpha", "sig.linewidth",
                   "sig.alpha", "viridis.option", "width", "height", "dpi"),
       envir = environment())
@@ -186,7 +232,7 @@ CellToCell_InSitu <- function(niches.obj,
   }
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4 ── Summarise and report
+  # SECTION 5 ── Summarise and report
   # ════════════════════════════════════════════════════════════════════════════
 
   summary.df <- rbindlist(lapply(job.results, as.data.table))

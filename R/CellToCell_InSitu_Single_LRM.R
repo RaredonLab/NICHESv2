@@ -46,6 +46,13 @@
 #' @param viridis.option Viridis palette letter (\code{"A"}–\code{"H"}).
 #'   Default \code{"C"} (plasma).
 #' @param title          Plot title. Defaults to \code{"ligand|receptor Connectivity"}.
+#' @param precomputed.bg Optional pre-built background edge \code{data.table}
+#'   (with columns \code{edge}, \code{SendingCell}, \code{ReceivingCell},
+#'   \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to}) as returned by
+#'   \code{CellToCell_InSitu}'s internal pre-computation step. When supplied,
+#'   Section 3 (coordinate joining) is skipped, giving a significant speedup
+#'   during batch plotting. End users calling this function directly should
+#'   leave this \code{NULL} (the default).
 #'
 #' @return A \code{ggplot} object.
 #'
@@ -62,7 +69,8 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
                                           sig.linewidth  = 0.4,
                                           sig.alpha      = 0.8,
                                           viridis.option = "C",
-                                          title          = NULL) {
+                                          title          = NULL,
+                                          precomputed.bg = NULL) {
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 1 ── Input validation
@@ -111,19 +119,28 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
   #
   # All unique inter-cell edges from $edge.list, with coordinates attached.
   # Autocrine edges (SendingCell == ReceivingCell) are excluded from plotting.
+  #
+  # When called from CellToCell_InSitu() in batch mode, precomputed.bg is
+  # supplied and this section is skipped entirely — the two coordinate joins
+  # are O(n_edges) and identical across all LRMs, so pre-computing them once
+  # in the caller and reusing here gives a large speedup for batch jobs.
   # ════════════════════════════════════════════════════════════════════════════
 
-  all.edges <- niches.obj$edge.list[SendingCell != ReceivingCell]
+  if (!is.null(precomputed.bg)) {
+    all.edges <- precomputed.bg
+  } else {
+    all.edges <- niches.obj$edge.list[SendingCell != ReceivingCell]
 
-  # Join sending coordinates
-  all.edges <- coords[all.edges, on = .(cell = SendingCell)]
-  setnames(all.edges, c("x", "y"), c("x.from", "y.from"))
-  setnames(all.edges, "cell", "SendingCell")
+    # Join sending coordinates
+    all.edges <- coords[all.edges, on = .(cell = SendingCell)]
+    setnames(all.edges, c("x", "y"), c("x.from", "y.from"))
+    setnames(all.edges, "cell", "SendingCell")
 
-  # Join receiving coordinates
-  all.edges <- coords[all.edges, on = .(cell = ReceivingCell)]
-  setnames(all.edges, c("x", "y"), c("x.to", "y.to"))
-  setnames(all.edges, "cell", "ReceivingCell")
+    # Join receiving coordinates
+    all.edges <- coords[all.edges, on = .(cell = ReceivingCell)]
+    setnames(all.edges, c("x", "y"), c("x.to", "y.to"))
+    setnames(all.edges, "cell", "ReceivingCell")
+  }
 
   message(sprintf(
     "[CellToCell_InSitu_Single_LRM] %d total edges | LRM: %s",
