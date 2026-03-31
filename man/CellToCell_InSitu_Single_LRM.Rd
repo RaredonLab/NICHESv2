@@ -15,7 +15,8 @@ CellToCell_InSitu_Single_LRM(
   sig.linewidth = 0.4,
   sig.alpha = 0.8,
   viridis.option = "C",
-  title = NULL
+  title = NULL,
+  precomputed.bg = NULL
 )
 }
 \arguments{
@@ -48,6 +49,14 @@ edges). Lower-value edges scale down to near-zero alpha. Default \code{0.8}.}
 Default \code{"C"} (plasma).}
 
 \item{title}{Plot title. Defaults to \code{"ligand|receptor Connectivity"}.}
+
+\item{precomputed.bg}{Optional pre-built background edge \code{data.table}
+(with columns \code{edge}, \code{SendingCell}, \code{ReceivingCell},
+\code{x.from}, \code{y.from}, \code{x.to}, \code{y.to}) as returned by
+\code{CellToCell_InSitu}'s internal pre-computation step. When supplied,
+Section 3 (coordinate joining) is skipped, giving a significant speedup
+during batch plotting. End users calling this function directly should
+leave this \code{NULL} (the default).}
 }
 \value{
 A \code{ggplot} object.
