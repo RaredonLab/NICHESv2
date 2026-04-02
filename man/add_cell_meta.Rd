@@ -2,25 +2,20 @@
 % Please edit documentation in R/create_NICHESObject.R
 \name{add_cell_meta}
 \alias{add_cell_meta}
-\title{Add or Update Columns in a NICHESObject's cell.meta Slot}
+\title{Add or Update Columns in \code{$cell.meta}}
 \usage{
 add_cell_meta(niches.obj, new.meta, rebuild.edge.meta = TRUE)
 }
 \arguments{
 \item{niches.obj}{A \code{NICHESObject}.}
 
-\item{new.meta}{\code{data.frame} or \code{data.table} with a \code{"cell"}
-column and one or more additional columns to add or overwrite.}
+\item{new.meta}{data.frame or data.table with a \code{"cell"} column.}
 
-\item{rebuild.edge.meta}{Logical. Whether to rebuild \code{$edge.meta} after
-the join. Default \code{TRUE}. Set \code{FALSE} to skip if you plan to
-call \code{add_cell_meta()} multiple times before needing \code{$edge.meta}.}
+\item{rebuild.edge.meta}{Logical. Default \code{TRUE}.}
 }
 \value{
-An updated \code{NICHESObject}.
+Updated \code{NICHESObject}.
 }
 \description{
-Joins additional metadata columns onto \code{$cell.meta} and rebuilds
-\code{$edge.meta} to reflect the change. Useful for adding cell type
-annotations, clustering results, or QC metrics after initial construction.
+Add or Update Columns in \code{$cell.meta}
 }

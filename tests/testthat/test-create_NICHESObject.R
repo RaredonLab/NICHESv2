@@ -136,72 +136,6 @@ test_that("create_NICHESObject: dim() returns named vector", {
   expect_equal(d["cells"], c(cells = length(niches.obj$cell.list)))
 })
 
-# ── Pseudobulk mode ───────────────────────────────────────────────────────────
-
-test_that("create_NICHESObject pseudobulk: returns a NICHESObject", {
-  .setup_fixtures()
-  pb.obj <- create_NICHESObject(
-    count.mtx     = count.mtx,
-    meta.data     = meta.data,
-    LRM.db        = LRM.db,
-    mode          = "pseudobulk",
-    cell.type.col = "celltype"
-  )
-  expect_s3_class(pb.obj, "NICHESObject")
-  expect_true(is_NICHESObject(pb.obj))
-})
-
-test_that("create_NICHESObject pseudobulk: mode attribute is 'pseudobulk'", {
-  .setup_fixtures()
-  pb.obj <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                 mode = "pseudobulk", cell.type.col = "celltype")
-  expect_equal(attr(pb.obj, "mode"), "pseudobulk")
-})
-
-test_that("create_NICHESObject pseudobulk: $cell.list holds original barcodes", {
-  .setup_fixtures()
-  pb.obj <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                 mode = "pseudobulk", cell.type.col = "celltype")
-  expect_equal(sort(pb.obj$cell.list), sort(colnames(count.mtx)))
-})
-
-test_that("create_NICHESObject pseudobulk: edge nodes are type labels not barcodes", {
-  .setup_fixtures()
-  pb.obj    <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                    mode = "pseudobulk", cell.type.col = "celltype")
-  type.labels <- sort(unique(meta.data$celltype))
-  # SendingCell and ReceivingCell values must all be type labels
-  expect_true(all(pb.obj$edge.list$SendingCell   %in% type.labels))
-  expect_true(all(pb.obj$edge.list$ReceivingCell %in% type.labels))
-})
-
-test_that("create_NICHESObject pseudobulk: T² edges are produced", {
-  .setup_fixtures()
-  pb.obj    <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                    mode = "pseudobulk", cell.type.col = "celltype")
-  n.types   <- length(unique(meta.data$celltype))
-  expect_equal(nrow(pb.obj$edge.list), n.types^2)
-})
-
-test_that("create_NICHESObject pseudobulk: autocrine type edges present", {
-  .setup_fixtures()
-  pb.obj <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                 mode = "pseudobulk", cell.type.col = "celltype")
-  # Every type should have a self-loop
-  autocrine <- pb.obj$edge.list[pb.obj$edge.list$SendingCell ==
-                                  pb.obj$edge.list$ReceivingCell, ]
-  n.types   <- length(unique(meta.data$celltype))
-  expect_equal(nrow(autocrine), n.types)
-})
-
-test_that("create_NICHESObject pseudobulk: errors when cell.type.col missing", {
-  .setup_fixtures()
-  expect_error(
-    create_NICHESObject(count.mtx, meta.data, LRM.db, mode = "pseudobulk"),
-    regexp = "cell.type.col"
-  )
-})
-
 # ── Sampled mode ──────────────────────────────────────────────────────────────
 
 test_that("create_NICHESObject sampled: returns a NICHESObject", {
@@ -249,5 +183,88 @@ test_that("create_NICHESObject sampled: errors when cell.type.col missing", {
   expect_error(
     create_NICHESObject(count.mtx, meta.data, LRM.db, mode = "sampled"),
     regexp = "cell.type.col"
+  )
+})
+
+# ── Sampled mode with smoothing ───────────────────────────────────────────────
+
+test_that("create_NICHESObject sampled smooth: returns a NICHESObject", {
+  .setup_fixtures()
+  samp.smooth <- create_NICHESObject(
+    count.mtx     = count.mtx,
+    meta.data     = meta.data,
+    LRM.db        = LRM.db,
+    mode          = "sampled",
+    cell.type.col = "celltype",
+    seed          = 42L,
+    smooth        = TRUE,
+    smooth.k      = 3L,    # small k for fixture (80 cells)
+    n.pcs         = 5L     # small PCs for fixture (50 genes)
+  )
+  expect_s3_class(samp.smooth, "NICHESObject")
+  expect_true(is_NICHESObject(samp.smooth))
+})
+
+test_that("create_NICHESObject sampled smooth: mode attribute is 'sampled'", {
+  .setup_fixtures()
+  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
+                                      mode = "sampled", cell.type.col = "celltype",
+                                      seed = 42L, smooth = TRUE,
+                                      smooth.k = 3L, n.pcs = 5L)
+  expect_equal(attr(samp.smooth, "mode"), "sampled")
+})
+
+test_that("create_NICHESObject sampled smooth: $cell.list holds original barcodes", {
+  .setup_fixtures()
+  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
+                                      mode = "sampled", cell.type.col = "celltype",
+                                      seed = 42L, smooth = TRUE,
+                                      smooth.k = 3L, n.pcs = 5L)
+  # Smoothing must not alter the cell identity registry
+  expect_equal(sort(samp.smooth$cell.list), sort(colnames(count.mtx)))
+})
+
+test_that("create_NICHESObject sampled smooth: $cell.data uses original raw counts", {
+  .setup_fixtures()
+  # Build both smooth and non-smooth versions with same seed
+  samp.raw    <- create_NICHESObject(count.mtx, meta.data, LRM.db,
+                                      mode = "sampled", cell.type.col = "celltype",
+                                      seed = 42L, smooth = FALSE)
+  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
+                                      mode = "sampled", cell.type.col = "celltype",
+                                      seed = 42L, smooth = TRUE,
+                                      smooth.k = 3L, n.pcs = 5L)
+  # $cell.data must be identical — smoothing only affects the scoring matrix,
+  # not the stored cell-level expression table
+  expect_equal(samp.raw$cell.data, samp.smooth$cell.data)
+})
+
+test_that("create_NICHESObject sampled smooth: edge scores differ from unsmoothed", {
+  .setup_fixtures()
+  samp.raw    <- create_NICHESObject(count.mtx, meta.data, LRM.db,
+                                      mode = "sampled", cell.type.col = "celltype",
+                                      seed = 42L, smooth = FALSE)
+  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
+                                      mode = "sampled", cell.type.col = "celltype",
+                                      seed = 42L, smooth = TRUE,
+                                      smooth.k = 3L, n.pcs = 5L)
+  # Smoothing changes expression → scores should differ (not identical)
+  # Both should have non-zero signals
+  expect_gt(nrow(samp.raw$edge.data),    0L)
+  expect_gt(nrow(samp.smooth$edge.data), 0L)
+  # They share the same edges but likely different scores
+  expect_false(identical(samp.raw$edge.data$score, samp.smooth$edge.data$score))
+})
+
+test_that("create_NICHESObject sampled smooth: errors when smooth=TRUE without irlba", {
+  # This test only runs if irlba is not installed — skip otherwise
+  skip_if(requireNamespace("irlba", quietly = TRUE),
+          "irlba is installed; this error path is not triggered")
+  .setup_fixtures()
+  expect_error(
+    create_NICHESObject(count.mtx, meta.data, LRM.db,
+                        mode = "sampled", cell.type.col = "celltype",
+                        smooth = TRUE, smooth.k = 3L, n.pcs = 5L),
+    regexp = "irlba"
   )
 })
