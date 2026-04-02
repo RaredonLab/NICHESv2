@@ -8,7 +8,7 @@ create_NICHESObject(
   count.mtx,
   meta.data,
   LRM.db,
-  mode = c("spatial", "pseudobulk", "sampled"),
+  mode = c("spatial", "sampled"),
   cell.type.col = NULL,
   ligand.col = "ligand",
   receptor.col = "receptor",
@@ -16,6 +16,9 @@ create_NICHESObject(
   rad = NULL,
   seed = 42L,
   max.cells = NULL,
+  smooth = FALSE,
+  smooth.k = 9L,
+  n.pcs = 30L,
   method = c("product", "minimum"),
   normalize.method = c("prop", "none"),
   gene.meta = NULL,
@@ -24,138 +27,85 @@ create_NICHESObject(
 )
 }
 \arguments{
-\item{count.mtx}{Gene × cell expression matrix (sparse \code{dgCMatrix} or
-dense \code{matrix}). Row names = gene symbols; column names = cell
-barcodes.}
+\item{count.mtx}{Gene × cell matrix. Row names = genes; col names = cells.}
 
-\item{meta.data}{\code{data.frame} with one row per cell. Row names must
-match column names of \code{count.mtx}. For \code{mode = "spatial"},
-must contain columns \code{"x"} and \code{"y"} (spatial coordinates).
-For non-spatial modes, must contain \code{cell.type.col}.}
+\item{meta.data}{\code{data.frame}, row names = cell barcodes.}
 
-\item{LRM.db}{LR database: \code{"fantom5"}, \code{"omnipath"}, or a
-\code{data.frame} with at least \code{ligand.col} and \code{receptor.col}.}
+\item{LRM.db}{\code{"fantom5"}, \code{"omnipath"}, or a data.frame.}
 
-\item{mode}{Analysis mode. One of \code{"spatial"} (default),
-\code{"pseudobulk"}, or \code{"sampled"}.}
+\item{mode}{\code{"spatial"} (default) or \code{"sampled"}.}
 
-\item{cell.type.col}{\code{character(1)} or \code{NULL}. Column name in
-\code{meta.data} holding cell type labels. Required for
-\code{mode = "pseudobulk"} and \code{mode = "sampled"}; ignored for
-\code{mode = "spatial"}.}
+\item{cell.type.col}{Column in \code{meta.data} with cell type labels.
+Required for \code{mode = "sampled"}.}
 
-\item{ligand.col}{Column name for ligands in \code{LRM.db}. Default
-\code{"ligand"}.}
+\item{ligand.col}{Default \code{"ligand"}.}
 
-\item{receptor.col}{Column name for receptors in \code{LRM.db}. Default
-\code{"receptor"}.}
+\item{receptor.col}{Default \code{"receptor"}.}
 
-\item{k}{\code{integer} or \code{NULL}. kNN neighbourhood size.
-Spatial mode only. Passed to \code{create_Edgelist_Spatial()}.}
+\item{k}{kNN size. Spatial mode only.}
 
-\item{rad}{\code{numeric} or \code{NULL}. Radius neighbourhood size.
-Spatial mode only. Passed to \code{create_Edgelist_Spatial()}.}
+\item{rad}{Radius. Spatial mode only.}
 
-\item{seed}{\code{integer(1)}. Random seed for reproducibility.
-Sampled mode only. Default \code{42L}.}
+\item{seed}{Random seed. Sampled mode only. Default \code{42L}.}
 
-\item{max.cells}{\code{integer(1)} or \code{NULL}. Per-crossing edge cap.
-Sampled mode only. Default \code{NULL} (cap = \code{min(n_i, n_j)}).}
+\item{max.cells}{Per-crossing edge cap. Sampled mode only. Default
+\code{NULL}.}
 
-\item{method}{Scoring method: \code{"product"} (default) or
-\code{"minimum"}.}
+\item{smooth}{Logical. Enable PCA neighbourhood smoothing before
+scoring. Sampled mode only. Default \code{FALSE}.}
 
-\item{normalize.method}{Normalisation for \code{score.norm}:
-\code{"prop"} (default) or \code{"none"}.}
+\item{smooth.k}{Neighbours for smoothing (k+1 cells averaged). Default
+\code{9L}. Sampled + smooth only.}
 
-\item{gene.meta}{Optional \code{data.frame} with a \code{"gene"} column
-and any additional gene-level annotation.}
+\item{n.pcs}{PCA components for neighbour search. Default \code{30L}.
+Capped at \code{min(n.pcs, ncells-1, ngenes-1)}. Sampled + smooth only.}
 
-\item{n.cores}{CPU cores. Default 1. Uses socket clusters
-(\code{parallel::makeCluster}) — works on all platforms.}
+\item{method}{\code{"product"} (default) or \code{"minimum"}.}
 
-\item{verbose}{Print progress messages. Default \code{TRUE}.}
+\item{normalize.method}{\code{"prop"} (default) or \code{"none"}.}
+
+\item{gene.meta}{Optional data.frame with \code{"gene"} column.}
+
+\item{n.cores}{CPU cores. Default 1. Socket cluster — all platforms.}
+
+\item{verbose}{Default \code{TRUE}.}
 }
 \value{
-A \code{NICHESObject} with a \code{mode} attribute.
+\code{NICHESObject} with \code{attr(obj, "mode")} set.
 }
 \description{
-The primary entry point for NICHESv2. Supports three analysis modes that
-differ in how the cell-to-cell edge list is defined:
+The primary entry point for NICHESv2. Supports two analysis modes:
 
 \describe{
-  \item{\code{"spatial"}}{Edges are defined by physical proximity using
-    k-nearest neighbours or a fixed radius in x/y coordinate space.
-    Requires \code{x} and \code{y} columns in \code{meta.data}.}
-  \item{\code{"pseudobulk"}}{One directed edge per ordered cell type pair
-    (T² edges total, including autocrine). Scoring uses the per-type mean
-    expression profile. \code{$cell.list} and \code{$cell.data} retain
-    original single-cell resolution; only edge-level data are type-level.
-    Requires \code{cell.type.col}.}
-  \item{\code{"sampled"}}{NICHES v1-style stratified random sampling. For
-    each directed type pair (A → B), up to \code{min(n_A, n_B)} cell
-    barcodes are independently drawn from each side and paired positionally.
-    All T² crossings are represented. Requires \code{cell.type.col}.}
-}
-}
-\section{Slot construction summary}{
-
-\describe{
-  \item{\code{$cell.list}}{Column names of \code{count.mtx} (original cell
-    barcodes in all modes).}
-  \item{\code{$cell.data}}{Long-format expression table (cell, gene, score,
-    score.norm). Sparse: only rows where \code{score > 0} retained.
-    Always built from original single-cell \code{count.mtx}.}
-  \item{\code{$cell.meta}}{\code{meta.data} coerced to a data.table with a
-    \code{cell} column. Always contains original cell barcodes.}
-  \item{\code{$edge.list}}{Columns: \code{edge}
-    (\code{"Sender|Receiver"}), \code{SendingCell}, \code{ReceivingCell}.
-    In \code{"pseudobulk"} mode, SendingCell and ReceivingCell hold type
-    labels rather than barcodes.}
-  \item{\code{$edge.data}}{Per-edge LRM scores with \code{score.norm}
-    normalised per edge (proportional).}
-  \item{\code{$edge.meta}}{Sending / receiving metadata joined per edge.
-    In \code{"pseudobulk"} mode, contains only edge identity columns since
-    the edge nodes are type labels, not individual cells.}
-  \item{\code{$neighborhood.*}}{Reserved as \code{NULL}.}
-  \item{\code{$gene.list}}{Row names of \code{count.mtx}.}
-  \item{\code{$gene.meta}}{Minimal table unless \code{gene.meta} supplied.}
-  \item{\code{$LRM.list}}{Valid \code{"ligand|receptor"} strings after gene
-    filtering.}
-  \item{\code{$LRM.meta}}{LRM annotation table: LRM, ligand, receptor,
-    plus any extra columns from \code{LRM.db}.}
-}
-The assembled object carries a \code{mode} attribute recording which of the
-three modes was used.
+  \item{\code{"spatial"}}{Edges defined by physical proximity using kNN or
+    radius in x/y space. Requires \code{x} and \code{y} in \code{meta.data}.}
+  \item{\code{"sampled"}}{NICHES v1-style type-stratified sampling. Requires
+    \code{cell.type.col}. Optional PCA-based neighbourhood smoothing via
+    \code{smooth = TRUE}.}
 }
 
-\examples{
-\dontrun{
-# Spatial mode (from a Seurat object)
-count.mtx <- Seurat::GetAssayData(seu, slot = "counts")
-meta.data  <- seu@meta.data   # must contain x, y columns
-niches.obj <- create_NICHESObject(count.mtx, meta.data,
-                                  LRM.db = "omnipath", k = 6)
+For pseudobulk (type-averaged) connectivity use
+\code{\link{compute_PseudoBulk_Connectivity}} — it returns a plain
+\code{data.table}, not a \code{NICHESObject}.
+}
+\section{Smoothing (\code{smooth = TRUE}, sampled mode only)}{
 
-# Pseudobulk mode
-niches.obj <- create_NICHESObject(count.mtx, meta.data,
-                                  LRM.db = "omnipath",
-                                  mode = "pseudobulk",
-                                  cell.type.col = "cell.type")
-
-# Sampled mode
-niches.obj <- create_NICHESObject(count.mtx, meta.data,
-                                  LRM.db = "omnipath",
-                                  mode = "sampled",
-                                  cell.type.col = "cell.type",
-                                  seed = 42L, max.cells = 100L)
+\enumerate{
+  \item Temporary log1p-normalised matrix computed → truncated PCA via
+    \code{irlba} (\code{n.pcs} components).
+  \item \code{smooth.k} nearest neighbours found per sampled cell in PC space
+    via \code{RANN::nn2}.
+  \item Smoothed value = mean of \strong{raw counts} across k+1 cells.
+  \item Smoothed columns replace originals before scoring. Original barcodes
+    and the NICHESObject schema are unchanged.
+  \item PCA embedding is discarded immediately — never stored.
+}
 }
 
-}
 \seealso{
-\code{\link{compute_CellToCell}},
+\code{\link{compute_PseudoBulk_Connectivity}},
+  \code{\link{compute_CellToCell}},
   \code{\link{create_Edgelist_Spatial}},
-  \code{\link{create_Edgelist_PseudoBulk}},
   \code{\link{create_Edgelist_SamplingByType}},
   \code{\link{load_LRM_database}},
   \code{\link{Aggregate_CellToCell_Edges}},
