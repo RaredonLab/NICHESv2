@@ -9,6 +9,7 @@ create_NICHESObject(
   meta.data,
   LRM.db,
   mode = c("spatial", "sampled"),
+  sample.col = NULL,
   cell.type.col = NULL,
   ligand.col = "ligand",
   receptor.col = "receptor",
@@ -27,13 +28,22 @@ create_NICHESObject(
 )
 }
 \arguments{
-\item{count.mtx}{Gene × cell matrix. Row names = genes; col names = cells.}
+\item{count.mtx}{Gene x cell matrix. Row names = genes; col names = cells.}
 
 \item{meta.data}{\code{data.frame}, row names = cell barcodes.}
 
 \item{LRM.db}{\code{"fantom5"}, \code{"omnipath"}, or a data.frame.}
 
 \item{mode}{\code{"spatial"} (default) or \code{"sampled"}.}
+
+\item{sample.col}{Character or \code{NULL} (default). Name of a column in
+\code{meta.data} identifying the biological sample of origin for each cell.
+When supplied, cell-cell connectivity is computed \emph{independently within
+each sample}, preventing spurious cross-sample edges. Results are then
+merged into a single \code{NICHESObject}.
+\strong{Barcodes must be globally unique across samples.}
+Prepend a sample-specific prefix if needed
+(e.g. \code{paste0(sample.id, "_", barcode)}).}
 
 \item{cell.type.col}{Column in \code{meta.data} with cell type labels.
 Required for \code{mode = "sampled"}.}
@@ -71,7 +81,8 @@ Capped at \code{min(n.pcs, ncells-1, ngenes-1)}. Sampled + smooth only.}
 \item{verbose}{Default \code{TRUE}.}
 }
 \value{
-\code{NICHESObject} with \code{attr(obj, "mode")} set.
+\code{NICHESObject} with \code{attr(obj, "mode")} set. If
+  \code{sample.col} is provided, \code{attr(obj, "sample.col")} is also set.
 }
 \description{
 The primary entry point for NICHESv2. Supports two analysis modes:
@@ -88,22 +99,9 @@ For pseudobulk (type-averaged) connectivity use
 \code{\link{compute_PseudoBulk_Connectivity}} — it returns a plain
 \code{data.table}, not a \code{NICHESObject}.
 }
-\section{Smoothing (\code{smooth = TRUE}, sampled mode only)}{
-
-\enumerate{
-  \item Temporary log1p-normalised matrix computed → truncated PCA via
-    \code{irlba} (\code{n.pcs} components).
-  \item \code{smooth.k} nearest neighbours found per sampled cell in PC space
-    via \code{RANN::nn2}.
-  \item Smoothed value = mean of \strong{raw counts} across k+1 cells.
-  \item Smoothed columns replace originals before scoring. Original barcodes
-    and the NICHESObject schema are unchanged.
-  \item PCA embedding is discarded immediately — never stored.
-}
-}
-
 \seealso{
-\code{\link{compute_PseudoBulk_Connectivity}},
+\code{\link{merge_NICHESObjects}},
+  \code{\link{compute_PseudoBulk_Connectivity}},
   \code{\link{compute_CellToCell}},
   \code{\link{create_Edgelist_Spatial}},
   \code{\link{create_Edgelist_SamplingByType}},
