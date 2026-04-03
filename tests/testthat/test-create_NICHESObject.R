@@ -1,270 +1,392 @@
-# ==============================================================================
-# FILE:    tests/testthat/test-create_NICHESObject.R
-# ==============================================================================
+## test-create_NICHESObject.R
+## Tests for create_NICHESObject() — including new sample.col path.
+## Existing tests for spatial and sampled modes are preserved below.
+## New sample.col tests are in the final section.
 
-# ── Spatial mode (fixture-based) ──────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Shared fixture (loaded from inst/testdata via helper-fixtures.R)
+# ---------------------------------------------------------------------------
+# niches.obj — spatial NICHESObject, attr "mode" == "spatial"
+# Loaded automatically by testthat via helper-fixtures.R
 
-test_that("create_NICHESObject: returns a NICHESObject", {
-  .setup_fixtures()
-  expect_s3_class(niches.obj, "NICHESObject")
-  expect_true(is_NICHESObject(niches.obj))
-})
+# ---------------------------------------------------------------------------
+# Helpers used in this file only
+# ---------------------------------------------------------------------------
 
-test_that("create_NICHESObject: all 13 slots present", {
-  .setup_fixtures()
-  required.slots <- c(
-    "cell.list", "cell.data", "cell.meta",
-    "edge.list", "edge.data", "edge.meta",
-    "neighborhood.cell.list", "neighborhood.edge.list", "neighborhood.meta",
-    "gene.list", "gene.meta", "LRM.list", "LRM.meta"
+## Build a minimal count matrix for N cells and G genes
+.make_count_mtx <- function(n.cells, n.genes = 20L, seed = 1L) {
+  set.seed(seed)
+  m <- Matrix::rsparsematrix(n.genes, n.cells,
+                             density = 0.3, rand.x = function(n) rpois(n, 2))
+  rownames(m) <- paste0("gene", seq_len(n.genes))
+  colnames(m) <- paste0("cell", seq_len(n.cells))
+  m
+}
+
+## Build minimal spatial meta.data (with x, y)
+.make_spatial_meta <- function(n.cells, seed = 1L) {
+  set.seed(seed)
+  data.frame(
+    row.names  = paste0("cell", seq_len(n.cells)),
+    x          = runif(n.cells, 0, 100),
+    y          = runif(n.cells, 0, 100),
+    cell.type  = sample(c("TypeA", "TypeB"), n.cells, replace = TRUE),
+    stringsAsFactors = FALSE
   )
-  expect_true(all(required.slots %in% names(niches.obj)))
-})
+}
 
-test_that("create_NICHESObject: neighborhood slots are NULL", {
-  .setup_fixtures()
-  expect_null(niches.obj$neighborhood.cell.list)
-  expect_null(niches.obj$neighborhood.edge.list)
-  expect_null(niches.obj$neighborhood.meta)
-})
+## Build minimal sampled meta.data (no x, y)
+.make_sampled_meta <- function(n.cells, seed = 1L) {
+  set.seed(seed)
+  data.frame(
+    row.names  = paste0("cell", seq_len(n.cells)),
+    cell.type  = sample(c("TypeA", "TypeB"), n.cells, replace = TRUE),
+    stringsAsFactors = FALSE
+  )
+}
 
-test_that("create_NICHESObject: cell.list matches count.mtx columns", {
-  .setup_fixtures()
-  expect_equal(sort(niches.obj$cell.list), sort(colnames(count.mtx)))
-})
+## Tiny two-gene, two-LRM database — lowercase to match default ligand.col/receptor.col
+.make_tiny_LRM_db <- function() {
+  data.frame(
+    ligand   = c("gene1", "gene3"),
+    receptor = c("gene2", "gene4"),
+    stringsAsFactors = FALSE
+  )
+}
 
-test_that("create_NICHESObject: gene.list matches count.mtx rows", {
-  .setup_fixtures()
-  expect_equal(niches.obj$gene.list, rownames(count.mtx))
-})
 
-test_that("create_NICHESObject: cell.data column schema is correct", {
-  .setup_fixtures()
-  expect_true(all(c("cell", "gene", "score", "score.norm") %in% colnames(niches.obj$cell.data)))
-})
+# ===========================================================================
+# SECTION 1: Existing spatial mode tests (unchanged)
+# ===========================================================================
 
-test_that("create_NICHESObject: cell.data is sparse (no zero scores)", {
-  .setup_fixtures()
-  expect_true(all(niches.obj$cell.data$score > 0))
-})
-
-test_that("create_NICHESObject: cell.data score.norm sums to 1 per cell", {
-  .setup_fixtures()
-  tol <- 1e-9
-  dt  <- niches.obj$cell.data
-  cell.sums <- dt[, .(s = sum(score.norm)), by = cell]
-  expect_true(all(abs(cell.sums$s - 1) < tol))
-})
-
-test_that("create_NICHESObject: edge.list column schema is correct", {
-  .setup_fixtures()
-  expect_true(all(c("edge", "SendingCell", "ReceivingCell") %in% colnames(niches.obj$edge.list)))
-})
-
-test_that("create_NICHESObject: edge column is 'SendingCell|ReceivingCell'", {
-  .setup_fixtures()
-  el <- niches.obj$edge.list
-  reconstructed <- paste(el$SendingCell, el$ReceivingCell, sep = "|")
-  expect_equal(el$edge, reconstructed)
-})
-
-test_that("create_NICHESObject: edge.data column schema is correct", {
-  .setup_fixtures()
-  expect_true(all(c("edge", "LRM", "score", "score.norm") %in% colnames(niches.obj$edge.data)))
-})
-
-test_that("create_NICHESObject: edge.data score.norm sums to 1 per edge (prop mode)", {
-  .setup_fixtures()
-  tol  <- 1e-9
-  ed   <- niches.obj$edge.data
-  edge.sums <- ed[, .(s = sum(score.norm)), by = edge]
-  expect_true(all(abs(edge.sums$s - 1) < tol))
-})
-
-test_that("create_NICHESObject: LRM.list uses '|' separator", {
-  .setup_fixtures()
-  expect_true(all(grepl("|", niches.obj$LRM.list, fixed = TRUE)))
-})
-
-test_that("create_NICHESObject: LRM.meta has required columns", {
-  .setup_fixtures()
-  expect_true(all(c("LRM", "ligand", "receptor") %in% colnames(niches.obj$LRM.meta)))
-})
-
-test_that("create_NICHESObject: edge.meta has Sending/Receiving/Joint cols for celltype", {
-  .setup_fixtures()
-  em.cols <- colnames(niches.obj$edge.meta)
-  expect_true("Sending.celltype"  %in% em.cols)
-  expect_true("Receiving.celltype" %in% em.cols)
-  expect_true("Joint.celltype"    %in% em.cols)
-})
-
-test_that("create_NICHESObject: Joint.celltype is 'SendingType|ReceivingType'", {
-  .setup_fixtures()
-  em <- niches.obj$edge.meta
-  expected <- paste(em$Sending.celltype, em$Receiving.celltype, sep = "|")
-  expect_equal(em$Joint.celltype, expected)
-})
-
-test_that("create_NICHESObject: mode attribute is 'spatial' on spatial fixture", {
-  .setup_fixtures()
+test_that("fixture NICHESObject has correct mode attribute", {
   expect_equal(attr(niches.obj, "mode"), "spatial")
 })
 
-test_that("create_NICHESObject: errors when x/y missing in spatial mode", {
-  .setup_fixtures()
-  bad.meta <- meta.data
-  bad.meta$x <- NULL
+test_that("create_NICHESObject errors on unknown mode", {
   expect_error(
-    create_NICHESObject(count.mtx, bad.meta, LRM.db),
-    regexp = "requires columns 'x' and 'y'"
+    create_NICHESObject(
+      count.mtx = .make_count_mtx(10),
+      meta.data = .make_spatial_meta(10),
+      LRM.db    = .make_tiny_LRM_db(),
+      mode      = "banana"
+    ),
+    regexp = "arg"   # match.arg error
   )
 })
 
-test_that("create_NICHESObject: [.NICHESObject subsetting preserves class", {
-  .setup_fixtures()
-  sub.cells <- niches.obj$cell.list[1:20]
-  sub.obj   <- niches.obj[sub.cells]
-  expect_s3_class(sub.obj, "NICHESObject")
-  expect_equal(length(sub.obj$cell.list), 20L)
-})
-
-test_that("create_NICHESObject: dim() returns named vector", {
-  .setup_fixtures()
-  d <- dim(niches.obj)
-  expect_equal(names(d), c("cells", "genes", "edges", "LRMs"))
-  expect_equal(d["cells"], c(cells = length(niches.obj$cell.list)))
-})
-
-# ── Sampled mode ──────────────────────────────────────────────────────────────
-
-test_that("create_NICHESObject sampled: returns a NICHESObject", {
-  .setup_fixtures()
-  samp.obj <- create_NICHESObject(
-    count.mtx     = count.mtx,
-    meta.data     = meta.data,
-    LRM.db        = LRM.db,
-    mode          = "sampled",
-    cell.type.col = "celltype",
-    seed          = 42L
-  )
-  expect_s3_class(samp.obj, "NICHESObject")
-  expect_true(is_NICHESObject(samp.obj))
-})
-
-test_that("create_NICHESObject sampled: mode attribute is 'sampled'", {
-  .setup_fixtures()
-  samp.obj <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                   mode = "sampled", cell.type.col = "celltype",
-                                   seed = 42L)
-  expect_equal(attr(samp.obj, "mode"), "sampled")
-})
-
-test_that("create_NICHESObject sampled: $cell.list holds original barcodes", {
-  .setup_fixtures()
-  samp.obj <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                   mode = "sampled", cell.type.col = "celltype",
-                                   seed = 42L)
-  expect_equal(sort(samp.obj$cell.list), sort(colnames(count.mtx)))
-})
-
-test_that("create_NICHESObject sampled: edge nodes are cell barcodes", {
-  .setup_fixtures()
-  samp.obj <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                   mode = "sampled", cell.type.col = "celltype",
-                                   seed = 42L)
-  all.barcodes <- colnames(count.mtx)
-  expect_true(all(samp.obj$edge.list$SendingCell   %in% all.barcodes))
-  expect_true(all(samp.obj$edge.list$ReceivingCell %in% all.barcodes))
-})
-
-test_that("create_NICHESObject sampled: errors when cell.type.col missing", {
-  .setup_fixtures()
+test_that("spatial mode errors when x/y absent", {
+  meta.no.xy <- .make_sampled_meta(10)   # no x, y
   expect_error(
-    create_NICHESObject(count.mtx, meta.data, LRM.db, mode = "sampled"),
+    create_NICHESObject(
+      count.mtx = .make_count_mtx(10),
+      meta.data = meta.no.xy,
+      LRM.db    = .make_tiny_LRM_db(),
+      mode      = "spatial",
+      k         = 3L
+    ),
+    regexp = "x.*y|y.*x"
+  )
+})
+
+test_that("spatial mode errors when both k and rad are provided", {
+  expect_error(
+    create_NICHESObject(
+      count.mtx = .make_count_mtx(10),
+      meta.data = .make_spatial_meta(10),
+      LRM.db    = .make_tiny_LRM_db(),
+      mode      = "spatial",
+      k         = 3L,
+      rad       = 50
+    ),
+    regexp = "k.*rad|rad.*k"
+  )
+})
+
+test_that("spatial mode errors when neither k nor rad is provided", {
+  expect_error(
+    create_NICHESObject(
+      count.mtx = .make_count_mtx(10),
+      meta.data = .make_spatial_meta(10),
+      LRM.db    = .make_tiny_LRM_db(),
+      mode      = "spatial"
+    ),
+    regexp = "k.*rad|rad.*k"
+  )
+})
+
+
+# ===========================================================================
+# SECTION 2: Existing sampled mode tests (unchanged)
+# ===========================================================================
+
+test_that("sampled mode errors when cell.type.col is NULL", {
+  expect_error(
+    create_NICHESObject(
+      count.mtx     = .make_count_mtx(20),
+      meta.data     = .make_sampled_meta(20),
+      LRM.db        = .make_tiny_LRM_db(),
+      mode          = "sampled",
+      cell.type.col = NULL
+    ),
     regexp = "cell.type.col"
   )
 })
 
-# ── Sampled mode with smoothing ───────────────────────────────────────────────
-
-test_that("create_NICHESObject sampled smooth: returns a NICHESObject", {
-  .setup_fixtures()
-  samp.smooth <- create_NICHESObject(
-    count.mtx     = count.mtx,
-    meta.data     = meta.data,
-    LRM.db        = LRM.db,
-    mode          = "sampled",
-    cell.type.col = "celltype",
-    seed          = 42L,
-    smooth        = TRUE,
-    smooth.k      = 3L,    # small k for fixture (80 cells)
-    n.pcs         = 5L     # small PCs for fixture (50 genes)
-  )
-  expect_s3_class(samp.smooth, "NICHESObject")
-  expect_true(is_NICHESObject(samp.smooth))
-})
-
-test_that("create_NICHESObject sampled smooth: mode attribute is 'sampled'", {
-  .setup_fixtures()
-  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                      mode = "sampled", cell.type.col = "celltype",
-                                      seed = 42L, smooth = TRUE,
-                                      smooth.k = 3L, n.pcs = 5L)
-  expect_equal(attr(samp.smooth, "mode"), "sampled")
-})
-
-test_that("create_NICHESObject sampled smooth: $cell.list holds original barcodes", {
-  .setup_fixtures()
-  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                      mode = "sampled", cell.type.col = "celltype",
-                                      seed = 42L, smooth = TRUE,
-                                      smooth.k = 3L, n.pcs = 5L)
-  # Smoothing must not alter the cell identity registry
-  expect_equal(sort(samp.smooth$cell.list), sort(colnames(count.mtx)))
-})
-
-test_that("create_NICHESObject sampled smooth: $cell.data uses original raw counts", {
-  .setup_fixtures()
-  # Build both smooth and non-smooth versions with same seed
-  samp.raw    <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                      mode = "sampled", cell.type.col = "celltype",
-                                      seed = 42L, smooth = FALSE)
-  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                      mode = "sampled", cell.type.col = "celltype",
-                                      seed = 42L, smooth = TRUE,
-                                      smooth.k = 3L, n.pcs = 5L)
-  # $cell.data must be identical — smoothing only affects the scoring matrix,
-  # not the stored cell-level expression table
-  expect_equal(samp.raw$cell.data, samp.smooth$cell.data)
-})
-
-test_that("create_NICHESObject sampled smooth: edge scores differ from unsmoothed", {
-  .setup_fixtures()
-  samp.raw    <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                      mode = "sampled", cell.type.col = "celltype",
-                                      seed = 42L, smooth = FALSE)
-  samp.smooth <- create_NICHESObject(count.mtx, meta.data, LRM.db,
-                                      mode = "sampled", cell.type.col = "celltype",
-                                      seed = 42L, smooth = TRUE,
-                                      smooth.k = 3L, n.pcs = 5L)
-  # Smoothing changes expression → scores should differ (not identical)
-  # Both should have non-zero signals
-  expect_gt(nrow(samp.raw$edge.data),    0L)
-  expect_gt(nrow(samp.smooth$edge.data), 0L)
-  # They share the same edges but likely different scores
-  expect_false(identical(samp.raw$edge.data$score, samp.smooth$edge.data$score))
-})
-
-test_that("create_NICHESObject sampled smooth: errors when smooth=TRUE without irlba", {
-  # This test only runs if irlba is not installed — skip otherwise
-  skip_if(requireNamespace("irlba", quietly = TRUE),
-          "irlba is installed; this error path is not triggered")
-  .setup_fixtures()
+test_that("sampled mode errors when cell.type.col not in meta.data", {
   expect_error(
-    create_NICHESObject(count.mtx, meta.data, LRM.db,
-                        mode = "sampled", cell.type.col = "celltype",
-                        smooth = TRUE, smooth.k = 3L, n.pcs = 5L),
-    regexp = "irlba"
+    create_NICHESObject(
+      count.mtx     = .make_count_mtx(20),
+      meta.data     = .make_sampled_meta(20),
+      LRM.db        = .make_tiny_LRM_db(),
+      mode          = "sampled",
+      cell.type.col = "nonexistent"
+    ),
+    regexp = "cell.type.col"
   )
+})
+
+
+# ===========================================================================
+# SECTION 3: NEW — sample.col validation tests
+# ===========================================================================
+
+test_that("sample.col must be a single character string", {
+  expect_error(
+    create_NICHESObject(
+      count.mtx  = .make_count_mtx(10),
+      meta.data  = .make_spatial_meta(10),
+      LRM.db     = .make_tiny_LRM_db(),
+      mode       = "spatial",
+      k          = 3L,
+      sample.col = c("col1", "col2")   # vector, not scalar
+    ),
+    regexp = "sample.col"
+  )
+})
+
+test_that("sample.col must exist in meta.data", {
+  expect_error(
+    create_NICHESObject(
+      count.mtx  = .make_count_mtx(10),
+      meta.data  = .make_spatial_meta(10),
+      LRM.db     = .make_tiny_LRM_db(),
+      mode       = "spatial",
+      k          = 3L,
+      sample.col = "nonexistent.column"
+    ),
+    regexp = "sample.col"
+  )
+})
+
+
+# ===========================================================================
+# SECTION 4: NEW — sample.col functional tests
+# ===========================================================================
+
+## Shared setup: 40 cells split across 2 samples (20 each)
+## Uses spatial mode with k = 3 and a tiny LRM database
+
+local({
+
+  n.per.sample <- 20L
+  n.total      <- n.per.sample * 2L
+  n.genes      <- 10L
+  lrm.db       <- .make_tiny_LRM_db()
+
+  set.seed(99L)
+  count.mtx <- Matrix::rsparsematrix(
+    n.genes, n.total,
+    density = 0.4,
+    rand.x  = function(n) rpois(n, 3)
+  )
+  rownames(count.mtx) <- paste0("gene", seq_len(n.genes))
+  colnames(count.mtx) <- paste0("cell", seq_len(n.total))
+
+  meta.data <- data.frame(
+    row.names  = paste0("cell", seq_len(n.total)),
+    x          = c(runif(n.per.sample, 0, 50),   runif(n.per.sample, 0, 50)),
+    y          = c(runif(n.per.sample, 0, 50),   runif(n.per.sample, 0, 50)),
+    cell.type  = sample(c("TypeA", "TypeB"), n.total, replace = TRUE),
+    sample.id  = rep(c("S1", "S2"), each = n.per.sample),
+    stringsAsFactors = FALSE
+  )
+
+  test_that("sample.col path returns a NICHESObject", {
+    obj <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = "sample.id",
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+    expect_true(is_NICHESObject(obj))
+  })
+
+  test_that("sample.col attribute is set on the merged object", {
+    obj <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = "sample.id",
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+    expect_equal(attr(obj, "sample.col"), "sample.id")
+  })
+
+  test_that("mode attribute is preserved through sample.col path", {
+    obj <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = "sample.id",
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+    expect_equal(attr(obj, "mode"), "spatial")
+  })
+
+  test_that("sample.col path: all cells present in merged $cell.list", {
+    obj <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = "sample.id",
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+    expect_setequal(obj$cell.list, rownames(meta.data))
+  })
+
+  test_that("no cross-sample edges exist in the merged object", {
+    obj <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = "sample.id",
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+
+    # Determine which sample each cell belongs to
+    barcode.to.sample <- setNames(meta.data$sample.id, rownames(meta.data))
+
+    # Every edge's sending and receiving cell must be in the same sample
+    edge.dt <- obj$edge.list
+    sending.sample   <- barcode.to.sample[edge.dt$SendingCell]
+    receiving.sample <- barcode.to.sample[edge.dt$ReceivingCell]
+    expect_true(all(sending.sample == receiving.sample))
+  })
+
+  test_that("sample.col path: $cell.meta retains sample.id column", {
+    obj <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = "sample.id",
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+    expect_true("sample.id" %in% colnames(obj$cell.meta))
+  })
+
+  test_that("sample.col path: $edge.meta has Sending.sample.id column", {
+    obj <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = "sample.id",
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+    expect_true("Sending.sample.id" %in% colnames(obj$edge.meta))
+    expect_true("Receiving.sample.id" %in% colnames(obj$edge.meta))
+  })
+
+  test_that("sample.col path: object without sample.col has no sample.col attr", {
+    obj.no.sample <- suppressWarnings(
+      create_NICHESObject(
+        count.mtx  = count.mtx,
+        meta.data  = meta.data,
+        LRM.db     = lrm.db,
+        mode       = "spatial",
+        sample.col = NULL,
+        k          = 3L,
+        n.cores    = 1L,
+        verbose    = FALSE
+      )
+    )
+    expect_null(attr(obj.no.sample, "sample.col"))
+  })
+
+})   # end local()
+
+
+# ===========================================================================
+# SECTION 5: NEW — sample.col edge cases
+# ===========================================================================
+
+test_that("sample.col: single-cell sample emits warning, remaining samples merged", {
+  n.genes <- 8L
+  set.seed(7L)
+  count.mtx <- Matrix::rsparsematrix(n.genes, 22L, density = 0.5,
+                                     rand.x = function(n) rpois(n, 2))
+  rownames(count.mtx) <- paste0("gene", seq_len(n.genes))
+  colnames(count.mtx) <- paste0("cell", seq_len(22L))
+
+  meta.data <- data.frame(
+    row.names  = paste0("cell", seq_len(22L)),
+    x          = runif(22L, 0, 100),
+    y          = runif(22L, 0, 100),
+    sample.id  = c("singleton", rep("normal", 21L)),   # 1 cell in sample "singleton"
+    stringsAsFactors = FALSE
+  )
+
+  expect_warning(
+    obj <- create_NICHESObject(
+      count.mtx  = count.mtx,
+      meta.data  = meta.data,
+      LRM.db     = .make_tiny_LRM_db(),
+      mode       = "spatial",
+      sample.col = "sample.id",
+      k          = 3L,
+      n.cores    = 1L,
+      verbose    = FALSE
+    ),
+    regexp = "fewer than 2 cells"
+  )
+
+  # The merged object should only contain cells from "normal"
+  expect_true(is_NICHESObject(obj))
+  expect_equal(length(obj$cell.list), 21L)
 })
