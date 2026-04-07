@@ -110,6 +110,20 @@ test_that("load_LRM_database: errors on unknown string shorthand", {
   expect_error(load_LRM_database("connectomeDB"), regexp = "Unknown built-in")
 })
 
+test_that("load_LRM_database: errors on invalid species for fantom5", {
+  expect_error(
+    load_LRM_database("fantom5", species = "zebrafish", verbose = FALSE),
+    regexp = "species"
+  )
+})
+
+test_that("load_LRM_database: errors on invalid species for omnipath", {
+  expect_error(
+    load_LRM_database("omnipath", species = "pig", verbose = FALSE),
+    regexp = "species"
+  )
+})
+
 # ── as_matrix ─────────────────────────────────────────────────────────────────
 
 test_that("as_matrix: returns a sparse matrix from EdgeLRResult", {

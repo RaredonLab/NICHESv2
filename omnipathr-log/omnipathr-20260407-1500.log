@@ -1,0 +1,66 @@
+[2026-04-07 15:00:20] [INFO]    [OmnipathR] Welcome to OmnipathR!
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:20] [INFO]    [OmnipathR] Initialized cache: `/Users/nw426/Library/Caches/OmnipathR`.
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] Reading JSON from `/Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library/OmnipathR/db/db_def.json` (encoding: UTF-8).
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] Reading JSON from `/Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library/OmnipathR/internal/magic_bytes.json` (encoding: UTF-8).
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] Reading JSON from `/Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library/OmnipathR/internal/urls.json` (encoding: UTF-8).
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] Reading JSON from `/Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library/OmnipathR/internal/id_types.json` (encoding: UTF-8).
+[2026-04-07 15:00:20] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:21] [INFO]    [OmnipathR] Cache record does not exist: `https://omnipathdb.org/interactions?genesymbols=yes&datasets=omnipath,pathwayextra,kinaseextra,ligrecextra&organisms=9606&fields=datasets,sources,references,curation_effort&license=academic`
+[2026-04-07 15:00:21] [INFO]    [OmnipathR] Retrieving URL: `https://omnipathdb.org/interactions?genesymbols=yes&datasets=omnipath,pathwayextra,kinaseextra,ligrecextra&organisms=9606&fields=datasets,sources,references,curation_effort&license=academic`
+[2026-04-07 15:00:21] [TRACE]   [OmnipathR] Attempt 1/3: `https://omnipathdb.org/interactions?genesymbols=yes&datasets=omnipath,pathwayextra,kinaseextra,ligrecextra&organisms=9606&fields=datasets,sources,references,curation_effort&license=academic`
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:25] [INFO]    [OmnipathR] Cache item `3098404926bc0cf155d043ff0c6efe64e3424b74` version 1: status changed from `unknown` to `started`.
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] Exporting object to RDS: `/Users/nw426/Library/Caches/OmnipathR/3098404926bc0cf155d043ff0c6efe64e3424b74-1.rds`.
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] Exported RDS to `/Users/nw426/Library/Caches/OmnipathR/3098404926bc0cf155d043ff0c6efe64e3424b74-1.rds`.
+[2026-04-07 15:00:25] [INFO]    [OmnipathR] Download ready [key=3098404926bc0cf155d043ff0c6efe64e3424b74, version=1]
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:25] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:25] [INFO]    [OmnipathR] Cache item `3098404926bc0cf155d043ff0c6efe64e3424b74` version 1: status changed from `started` to `ready`.
+[2026-04-07 15:00:28] [SUCCESS] [OmnipathR] Downloaded 139054 interactions.
+[2026-04-07 15:00:28] [INFO]    [OmnipathR] Cache record does not exist: `https://omnipathdb.org/intercell?scope=generic&causality=trans&license=academic`
+[2026-04-07 15:00:28] [INFO]    [OmnipathR] Retrieving URL: `https://omnipathdb.org/intercell?scope=generic&causality=trans&license=academic`
+[2026-04-07 15:00:28] [TRACE]   [OmnipathR] Attempt 1/3: `https://omnipathdb.org/intercell?scope=generic&causality=trans&license=academic`
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:29] [INFO]    [OmnipathR] Cache item `1ac430724a20c137fc374a8499adabb468a12835` version 1: status changed from `unknown` to `started`.
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] Exporting object to RDS: `/Users/nw426/Library/Caches/OmnipathR/1ac430724a20c137fc374a8499adabb468a12835-1.rds`.
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] Exported RDS to `/Users/nw426/Library/Caches/OmnipathR/1ac430724a20c137fc374a8499adabb468a12835-1.rds`.
+[2026-04-07 15:00:29] [INFO]    [OmnipathR] Download ready [key=1ac430724a20c137fc374a8499adabb468a12835, version=1]
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:29] [INFO]    [OmnipathR] Cache item `1ac430724a20c137fc374a8499adabb468a12835` version 1: status changed from `started` to `ready`.
+[2026-04-07 15:00:29] [SUCCESS] [OmnipathR] Downloaded 39981 intercellular communication role records.
+[2026-04-07 15:00:29] [INFO]    [OmnipathR] Cache record does not exist: `https://omnipathdb.org/intercell?scope=generic&causality=rec&license=academic`
+[2026-04-07 15:00:29] [INFO]    [OmnipathR] Retrieving URL: `https://omnipathdb.org/intercell?scope=generic&causality=rec&license=academic`
+[2026-04-07 15:00:29] [TRACE]   [OmnipathR] Attempt 1/3: `https://omnipathdb.org/intercell?scope=generic&causality=rec&license=academic`
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:31] [INFO]    [OmnipathR] Cache item `552757063f9934c7b745a9c4247c3b5282a66c88` version 1: status changed from `unknown` to `started`.
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] Exporting object to RDS: `/Users/nw426/Library/Caches/OmnipathR/552757063f9934c7b745a9c4247c3b5282a66c88-1.rds`.
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] Exported RDS to `/Users/nw426/Library/Caches/OmnipathR/552757063f9934c7b745a9c4247c3b5282a66c88-1.rds`.
+[2026-04-07 15:00:31] [INFO]    [OmnipathR] Download ready [key=552757063f9934c7b745a9c4247c3b5282a66c88, version=1]
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] Reading JSON from `/Users/nw426/Library/Caches/OmnipathR/cache.json` (encoding: UTF-8).
+[2026-04-07 15:00:31] [TRACE]   [OmnipathR] JSON validation successful: TRUE
+[2026-04-07 15:00:31] [INFO]    [OmnipathR] Cache item `552757063f9934c7b745a9c4247c3b5282a66c88` version 1: status changed from `started` to `ready`.
+[2026-04-07 15:00:31] [SUCCESS] [OmnipathR] Downloaded 48774 intercellular communication role records.
+[2026-04-07 15:53:17] [TRACE]   [OmnipathR] Loaded data from RDS `/Users/nw426/Library/Caches/OmnipathR/3098404926bc0cf155d043ff0c6efe64e3424b74-1.rds`.
+[2026-04-07 15:53:17] [INFO]    [OmnipathR] Loaded from cache: `https://omnipathdb.org/interactions?genesymbols=yes&datasets=omnipath,pathwayextra,kinaseextra,ligrecextra&organisms=9606&fields=datasets,sources,references,curation_effort&license=academic`
+[2026-04-07 15:53:20] [SUCCESS] [OmnipathR] Loaded 139054 interactions from cache.
+[2026-04-07 15:53:20] [TRACE]   [OmnipathR] Loaded data from RDS `/Users/nw426/Library/Caches/OmnipathR/1ac430724a20c137fc374a8499adabb468a12835-1.rds`.
+[2026-04-07 15:53:20] [INFO]    [OmnipathR] Loaded from cache: `https://omnipathdb.org/intercell?scope=generic&causality=trans&license=academic`
+[2026-04-07 15:53:20] [SUCCESS] [OmnipathR] Loaded 39981 intercellular communication role records from cache.
+[2026-04-07 15:53:20] [TRACE]   [OmnipathR] Loaded data from RDS `/Users/nw426/Library/Caches/OmnipathR/552757063f9934c7b745a9c4247c3b5282a66c88-1.rds`.
+[2026-04-07 15:53:20] [INFO]    [OmnipathR] Loaded from cache: `https://omnipathdb.org/intercell?scope=generic&causality=rec&license=academic`
+[2026-04-07 15:53:20] [SUCCESS] [OmnipathR] Loaded 48774 intercellular communication role records from cache.

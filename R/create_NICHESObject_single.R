@@ -90,6 +90,7 @@
                                  meta.data,
                                  LRM.db,
                                  mode             = c("spatial", "sampled"),
+                                 species          = "human",
                                  cell.type.col    = NULL,
                                  ligand.col       = "ligand",
                                  receptor.col     = "receptor",
@@ -217,6 +218,17 @@
   # ════════════════════════════════════════════════════════════════════════════
 
   if (verbose) message("[create_NICHESObject] Computing LR scores ...")
+  
+  # Resolve string shorthand to a data.frame before scoring (handles species)
+  if(is.character(LRM.db)){
+    LRM.db <- load_LRM_database(
+      db = LRM.db,
+      species = species,
+      ligand.col = ligand.col,
+      receptor.col = receptor.col,
+      verbose = verbose
+    )
+  }
 
   elr <- compute_CellToCell(
     count.mtx    = score.mtx,
