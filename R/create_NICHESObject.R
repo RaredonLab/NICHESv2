@@ -37,6 +37,9 @@
 #' @param meta.data   \code{data.frame}, row names = cell barcodes.
 #' @param LRM.db      \code{"fantom5"}, \code{"omnipath"}, or a data.frame.
 #' @param mode        \code{"spatial"} (default) or \code{"sampled"}.
+#' @param species     Species for built-in LRM databases. One of \code{"human"}
+#'   (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"} (FANTOM5 only).
+#'   Ignored when \code{LRM.db} is a \code{data.frame}.
 #' @param sample.col  Character or \code{NULL} (default). Name of a column in
 #'   \code{meta.data} identifying the biological sample of origin for each cell.
 #'   When supplied, cell-cell connectivity is computed \emph{independently within
@@ -83,6 +86,7 @@ create_NICHESObject <- function(count.mtx,
                                 meta.data,
                                 LRM.db,
                                 mode             = c("spatial", "sampled"),
+                                species          = "human",
                                 sample.col       = NULL,
                                 cell.type.col    = NULL,
                                 ligand.col       = "ligand",
@@ -123,6 +127,7 @@ create_NICHESObject <- function(count.mtx,
       meta.data        = meta.data,
       LRM.db           = LRM.db,
       mode             = mode,
+      species          = species,
       sample.col       = sample.col,
       cell.type.col    = cell.type.col,
       ligand.col       = ligand.col,
@@ -150,6 +155,7 @@ create_NICHESObject <- function(count.mtx,
     meta.data        = meta.data,
     LRM.db           = LRM.db,
     mode             = mode,
+    species          = species,
     cell.type.col    = cell.type.col,
     ligand.col       = ligand.col,
     receptor.col     = receptor.col,
@@ -179,6 +185,7 @@ create_NICHESObject <- function(count.mtx,
                                            meta.data,
                                            LRM.db,
                                            mode,
+                                           species,
                                            sample.col,
                                            cell.type.col,
                                            ligand.col,
@@ -243,6 +250,7 @@ create_NICHESObject <- function(count.mtx,
       meta.data        = sample.meta.data,
       LRM.db           = LRM.db,
       mode             = mode,
+      species          = species,
       cell.type.col    = cell.type.col,
       ligand.col       = ligand.col,
       receptor.col     = receptor.col,

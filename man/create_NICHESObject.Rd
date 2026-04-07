@@ -9,6 +9,7 @@ create_NICHESObject(
   meta.data,
   LRM.db,
   mode = c("spatial", "sampled"),
+  species = "human",
   sample.col = NULL,
   cell.type.col = NULL,
   ligand.col = "ligand",
@@ -35,6 +36,10 @@ create_NICHESObject(
 \item{LRM.db}{\code{"fantom5"}, \code{"omnipath"}, or a data.frame.}
 
 \item{mode}{\code{"spatial"} (default) or \code{"sampled"}.}
+
+\item{species}{Species for built-in LRM databases. One of \code{"human"}
+(default), \code{"mouse"}, \code{"rat"}, or \code{"pig"} (FANTOM5 only).
+Ignored when \code{LRM.db} is a \code{data.frame}.}
 
 \item{sample.col}{Character or \code{NULL} (default). Name of a column in
 \code{meta.data} identifying the biological sample of origin for each cell.

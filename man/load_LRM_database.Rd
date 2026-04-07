@@ -6,6 +6,7 @@
 \usage{
 load_LRM_database(
   db,
+  species = "human",
   ligand.col = "ligand",
   receptor.col = "receptor",
   verbose = TRUE
@@ -16,13 +17,18 @@ load_LRM_database(
 OR a \code{data.frame} / \code{data.table} with at least two columns
 containing ligand and receptor gene symbols.}
 
+\item{species}{Species for built-in databases. One of \code{"human"}
+(default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
+(FANTOM5 only — OmniPath does not support pig). Ignored silently when
+\code{db} is a \code{data.frame}.}
+
 \item{ligand.col}{Column name for ligand symbols when \code{db} is a
 \code{data.frame}. Default: \code{"ligand"}.}
 
 \item{receptor.col}{Column name for receptor symbols when \code{db} is a
 \code{data.frame}. Default: \code{"receptor"}.}
 
-\item{verbose}{Print a summary message after loading. Default \code{TRUE}.}
+\item{verbose}{Print progress messages. Default \code{TRUE}.}
 }
 \value{
 A \code{data.frame} with columns \code{"ligand"}, \code{"receptor"},
@@ -32,23 +38,26 @@ A \code{data.frame} with columns \code{"ligand"}, \code{"receptor"},
 \description{
 Returns a standardised ligand-receptor pair table for use as the
 \code{LRM.db} argument of \code{create_NICHESObject()} and
-\code{compute_CellToCell_Spatial()}. Two curated databases can be loaded
-by name; alternatively, any user-supplied \code{data.frame} is accepted and
-column names are remapped to the canonical \code{"ligand"} /
-\code{"receptor"} names.
+\code{compute_CellToCell()}. Two curated databases can be loaded by name;
+alternatively, any user-supplied \code{data.frame} is accepted and column
+names are remapped to the canonical \code{"ligand"} / \code{"receptor"}
+names.
 }
 \section{Built-in databases}{
 
 \describe{
   \item{\code{"fantom5"}}{
-    Ramilowski et al. (2015) FANTOM5 human ligand-receptor pairs.
-    Requires internet access on first use; downloaded from the OmniPath
-    REST API (\url{https://omnipathdb.org}) via the \pkg{OmnipathR} package.
-    Install with: \code{BiocManager::install("OmnipathR")}.
+    Ramilowski et al. (2015) FANTOM5 ligand-receptor pairs, bundled within
+    the package for human, mouse, rat, and pig. No internet access or
+    additional packages required. Species-specific datasets were derived
+    using the methodology in Raredon et al. 2019
+    (DOI: 10.1126/sciadv.aaw3851).
   }
   \item{\code{"omnipath"}}{
-    OmniPath intercellular communication network (Türei et al. 2021).
-    Also requires \pkg{OmnipathR}.
+    OmniPath ligand-receptor extra interactions (Türei et al. 2021).
+    Requires internet access and the \pkg{OmnipathR} package.
+    Install with: \code{BiocManager::install("OmnipathR")}.
+    Supported species: \code{"human"}, \code{"mouse"}, \code{"rat"}.
   }
 }
 }
@@ -63,14 +72,15 @@ functions in NICHESv2 handle complexes automatically.
 
 \examples{
 \dontrun{
-# Built-in databases (require OmnipathR)
-lrm <- load_LRM_database("omnipath")
-lrm <- load_LRM_database("fantom5")
+# Built-in databases — species must match your count matrix gene symbols
+lrm <- load_LRM_database("fantom5", species = "human")
+lrm <- load_LRM_database("fantom5", species = "rat")
+lrm <- load_LRM_database("omnipath", species = "mouse")
 
-# User-supplied table
+# User-supplied table (species argument ignored)
 my.db <- data.frame(
-  Ligand   = c("MIF", "VEGFA", "CXCL12_PF4"),
-  Receptor = c("CD74", "KDR",  "ACKR3")
+  Ligand   = c("MIF", "VEGFA", "Cxcl12_Pf4"),
+  Receptor = c("CD74", "KDR",  "Ackr3")
 )
 lrm <- load_LRM_database(my.db, ligand.col = "Ligand", receptor.col = "Receptor")
 }
