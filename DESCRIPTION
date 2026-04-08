@@ -23,6 +23,8 @@ Imports:
     irlba (>= 2.3.0),
     parallel
 Suggests:
+    SeuratObject,
+    rhdf5,
     OmnipathR,
     testthat (>= 3.0.0),
     withr,
