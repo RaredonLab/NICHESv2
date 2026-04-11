@@ -15,7 +15,7 @@
 #
 # FUNCTIONS:
 #   create_NICHESObject()  — main function
-#   add_cell_meta()        — add / update cell.meta columns post-construction
+#   (add_cell_meta() now lives in its own file, R/add_cell_meta.R)
 #
 # DEPS: data.table (>= 1.14), Matrix (>= 1.5)
 # ==============================================================================
@@ -205,10 +205,10 @@
       smooth.k, n.pcs
     ))
     sampled.barcodes <- unique(c(el.raw$from, el.raw$to))
-    score.mtx <- .smooth_expression(count.mtx = count.mtx,
-                                     barcodes  = sampled.barcodes,
-                                     k         = smooth.k,
-                                     n.pcs     = n.pcs)
+    score.mtx <- smooth_expression(count.mtx = count.mtx,
+                                   barcodes  = sampled.barcodes,
+                                   k         = smooth.k,
+                                   n.pcs     = n.pcs)
   } else {
     score.mtx <- count.mtx
   }
@@ -252,7 +252,7 @@
   # ════════════════════════════════════════════════════════════════════════════
 
   if (verbose) message("[create_NICHESObject] Building cell.data ...")
-  cell.data <- .build_cell_data(count.mtx, normalize.method)
+  cell.data <- build_cell_data(count.mtx, normalize.method)
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 7 ── Build $cell.meta
@@ -296,7 +296,7 @@
   # ════════════════════════════════════════════════════════════════════════════
 
   if (verbose) message("[create_NICHESObject] Building edge.meta ...")
-  edge.meta <- .build_edge_meta(edge.list.dt, cell.meta)
+  edge.meta <- build_edge_meta(edge.list.dt, cell.meta)
 
   # ════════════════════════════════════════════════════════════════════════════
   # SECTION 11 ── Build $gene.meta
@@ -363,73 +363,3 @@
 }
 
 
-# ==============================================================================
-#' Add or Update Columns in \code{$cell.meta}
-#'
-#' @param niches.obj A \code{NICHESObject}.
-#' @param new.meta   data.frame or data.table with a \code{"cell"} column.
-#' @param rebuild.edge.meta Logical. Default \code{TRUE}.
-#' @return Updated \code{NICHESObject}.
-#' @export
-add_cell_meta <- function(niches.obj, new.meta, rebuild.edge.meta = TRUE) {
-
-  if (!is_NICHESObject(niches.obj))
-    stop("[add_cell_meta] 'niches.obj' must be a NICHESObject.")
-
-  new.meta <- as.data.table(new.meta)
-  if (!"cell" %in% colnames(new.meta))
-    stop("[add_cell_meta] 'new.meta' must have a 'cell' column.")
-
-  niches.obj$cell.meta <- new.meta[niches.obj$cell.meta, on = "cell"]
-
-  if (rebuild.edge.meta)
-    niches.obj$edge.meta <- .build_edge_meta(niches.obj$edge.list,
-                                              niches.obj$cell.meta)
-  niches.obj
-}
-
-
-# ==============================================================================
-# INTERNAL CONSTRUCTION HELPERS
-# ==============================================================================
-
-#' @noRd
-.build_cell_data <- function(count.mtx, normalize.method) {
-  tsm  <- as(count.mtx, "TsparseMatrix")
-  rows <- rownames(count.mtx)
-  cols <- colnames(count.mtx)
-  dt   <- data.table(cell  = cols[tsm@j + 1L],
-                     gene  = rows[tsm@i + 1L],
-                     score = tsm@x)
-  if (normalize.method == "prop") {
-    dt[, score.norm := .prop_norm(score), by = cell]
-  } else {
-    dt[, score.norm := score]
-  }
-  dt <- dt[score > 0 | score.norm > 0]
-  setkeyv(dt, c("cell", "gene"))
-  dt
-}
-
-
-#' @noRd
-.build_edge_meta <- function(edge.list.dt, cell.meta) {
-  meta.cols <- setdiff(colnames(cell.meta), "cell")
-  edge.meta <- copy(edge.list.dt)
-  if (length(meta.cols) == 0L) return(edge.meta)
-  send.meta <- cell.meta[edge.meta[, .(cell = SendingCell)], on = "cell"]
-  for (col in meta.cols)
-    edge.meta[[paste0("Sending.", col)]] <- send.meta[[col]]
-  recv.meta <- cell.meta[edge.meta[, .(cell = ReceivingCell)], on = "cell"]
-  for (col in meta.cols)
-    edge.meta[[paste0("Receiving.", col)]] <- recv.meta[[col]]
-  cat.cols <- .categorical_cols(cell.meta, exclude = "cell")
-  for (col in cat.cols) {
-    edge.meta[[paste0("Joint.", col)]] <- paste(
-      edge.meta[[paste0("Sending.",   col)]],
-      edge.meta[[paste0("Receiving.", col)]], sep = "|"
-    )
-  }
-  setkeyv(edge.meta, "edge")
-  edge.meta
-}
