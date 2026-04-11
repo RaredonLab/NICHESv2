@@ -214,7 +214,7 @@ compute_CellToCell <- function(count.mtx,
   # SECTION 3 ── Parallel computation over LRM chunks (socket cluster)
   #
   # LRM pairs are split into n.cores chunks; each worker processes one chunk,
-  # calling .compute_lrm_score() per pair and returning non-zero (edge, LRM,
+  # calling compute_LRM_Score() per pair and returning non-zero (edge, LRM,
   # score) rows for its chunk.
   #
   # Internal scoring helpers are exported from the NICHESv2 namespace via
@@ -238,7 +238,7 @@ compute_CellToCell <- function(count.mtx,
     for (k in seq_along(chunk.idx)) {
       i <- chunk.idx[k]
 
-      score.vec <- .compute_lrm_score(
+      score.vec <- compute_LRM_Score(
         lig.str       = ligands[i],
         rec.str       = receptors[i],
         count.mtx     = count.mtx,
@@ -276,7 +276,7 @@ compute_CellToCell <- function(count.mtx,
                   "sending.cells", "receiv.cells", "method"),
       envir = environment())
     parallel::clusterExport(cl,
-      varlist = c(".compute_lrm_score", ".parse_complex", ".genes_available"),
+      varlist = c("compute_LRM_Score", ".parse_complex", ".genes_available"),
       envir = asNamespace("NICHESv2"))
     chunk.results <- parallel::parLapply(cl, lr.idx.chunks, .process_chunk)
   } else {
