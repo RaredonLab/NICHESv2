@@ -85,7 +85,11 @@ compute_LRM_Score(lig.str, rec.str, count.mtx,
 
 compute_CellToCell(count.mtx, edge.list, LRM.db, ligand.col, receptor.col,
                    method, n.cores)
-  → EdgeLRResult S3: $edges|$cell.meta|$lr.meta|$params
+  → plain named list: $edges | $lr.meta
+  $edges:   data.table — from|to|ligand|receptor|LRM|score (+ x.from|y.from|
+            x.to|y.to for spatial edgelists); keyed (from, to, LRM)
+  $lr.meta: data.table — ligand|receptor|LRM + extras from LRM.db;
+            keyed (ligand, receptor)
 
 compute_PseudoBulk_Connectivity(count.mtx, meta.data, LRM.db, cell.type.col,
                                 ligand.col, receptor.col, method,

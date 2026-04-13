@@ -4,21 +4,17 @@
 #          Accepts any edge list produced by create_Edgelist_Spatial(),
 #          create_Edgelist_PseudoBulk(), or create_Edgelist_SamplingByType().
 #          Supports single-gene and multi-gene complex ligands / receptors
-#          (underscore-delimited, e.g. "COL1A1_COL1A2"). Returns an
-#          EdgeLRResult S3 object suitable for assembly into a NICHESObject
-#          via create_NICHESObject().
+#          (underscore-delimited, e.g. "COL1A1_COL1A2"). Returns a plain
+#          2-element list suitable for assembly into a NICHESObject via
+#          create_NICHESObject().
 #
 # FUNCTIONS:
 #   .sparse_emin()        (internal) element-wise min of sparse matrices
 #   compute_CellToCell()  main function
-#   print.EdgeLRResult    S3 print method
-#   as_matrix()           S3 generic + method to reconstruct dgCMatrix
 #
-# OUTPUT STRUCTURE (class "EdgeLRResult"):
-#   $edges     — data.table, one row per non-zero (edge × LRM)
-#   $cell.meta — data.table, one row per cell/type (with x, y if available)
-#   $lr.meta   — data.table, one row per valid LRM pair
-#   $params    — list, run provenance
+# OUTPUT STRUCTURE (plain named list):
+#   $edges   — data.table, one row per non-zero (edge × LRM)
+#   $lr.meta — data.table, one row per valid LRM pair
 #
 # DEPS: Matrix (>= 1.5), data.table (>= 1.14), parallel
 # ==============================================================================
@@ -103,20 +99,16 @@
 #'   Uses socket clusters (\code{parallel::makeCluster}) — works on Windows,
 #'   macOS, and Linux without OS restrictions.
 #'
-#' @return An \code{EdgeLRResult} object with slots:
+#' @return A plain named list with two elements:
 #' \describe{
 #'   \item{\code{$edges}}{data.table: \code{from}, \code{to}, \code{ligand},
-#'     \code{receptor}, \code{LRM} (\code{"ligand|receptor"}), \code{x.from},
-#'     \code{y.from}, \code{x.to}, \code{y.to} (spatial only), \code{score}.
-#'     One row per non-zero (edge × LRM). Keyed on \code{(from, to, LRM)}.}
-#'   \item{\code{$cell.meta}}{data.table: \code{cell}, \code{x}, \code{y}
-#'     (when coordinates are embedded in \code{edge.list}). Keyed on
-#'     \code{cell}.}
+#'     \code{receptor}, \code{LRM} (\code{"ligand|receptor"}), \code{score},
+#'     plus \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to} when the
+#'     input \code{edge.list} carries coordinates (spatial only). One row per
+#'     non-zero (edge × LRM). Keyed on \code{(from, to, LRM)}.}
 #'   \item{\code{$lr.meta}}{data.table: \code{ligand}, \code{receptor},
 #'     \code{LRM}, plus any extra columns from \code{LRM.db}. Keyed on
 #'     \code{(ligand, receptor)}.}
-#'   \item{\code{$params}}{Named list: \code{method}, \code{n.cells},
-#'     \code{n.edges}, \code{n.lr}, \code{n.nonzero}, \code{created.at}.}
 #' }
 #'
 #' @seealso \code{\link{create_Edgelist_Spatial}},
@@ -327,20 +319,9 @@ compute_CellToCell <- function(count.mtx,
   message(sprintf("[compute_CellToCell] Done. %d non-zero edge signals.", n.nonzero))
 
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Build cell.meta and lr.meta slots
+  # SECTION 5 ── Build lr.meta
   # ════════════════════════════════════════════════════════════════════════════
-
-  all.cells <- unique(c(sending.cells, receiv.cells))
-  cell.meta <- data.table(cell = all.cells)
-
-  if (has.coords) {
-    coords.from  <- unique(as.data.table(edge.list)[, .(cell = from, x = x.from, y = y.from)])
-    coords.to    <- unique(as.data.table(edge.list)[, .(cell = to,   x = x.to,   y = y.to)])
-    coord.lookup <- unique(rbindlist(list(coords.from, coords.to)), by = "cell")
-    cell.meta    <- coord.lookup[cell.meta, on = "cell"]
-  }
-  setkeyv(cell.meta, "cell")
-
+  
   # lr.meta: one row per valid LRM pair, standardise column names
   lr.meta <- as.data.table(LRM.valid)
   setnames(lr.meta,
@@ -350,74 +331,13 @@ compute_CellToCell <- function(count.mtx,
   lr.meta <- unique(lr.meta, by = c("ligand", "receptor"))
   lr.meta[, LRM := paste(ligand, receptor, sep = "|")]
   setkeyv(lr.meta, c("ligand", "receptor"))
-
+  
   # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 6 ── Assemble and return EdgeLRResult
+  # SECTION 6 ── Return plain 2-element list
   # ════════════════════════════════════════════════════════════════════════════
-
-  structure(
-    list(
-      edges     = edges,
-      cell.meta = cell.meta,
-      lr.meta   = lr.meta,
-      params    = list(
-        method     = method,
-        n.cells    = length(all.cells),
-        n.edges    = n.edges,
-        n.lr       = n.lr,
-        n.nonzero  = n.nonzero,
-        created.at = Sys.time()
-      )
-    ),
-    class = "EdgeLRResult"
+  
+  list(
+    edges   = edges,
+    lr.meta = lr.meta
   )
-}
-
-
-# ==============================================================================
-# S3 METHODS FOR EdgeLRResult
-# ==============================================================================
-
-#' @export
-print.EdgeLRResult <- function(x, ...) {
-  p <- x$params
-  cat("EdgeLRResult\n")
-  cat(sprintf("  Cells        : %d\n", p$n.cells))
-  cat(sprintf("  Edges        : %d\n", p$n.edges))
-  cat(sprintf("  LR pairs     : %d\n", p$n.lr))
-  cat(sprintf("  Non-zero     : %d\n", p$n.nonzero))
-  cat(sprintf("  Method       : %s\n", p$method))
-  cat(sprintf("  Created      : %s\n", format(p$created.at, "%Y-%m-%d %H:%M:%S")))
-  cat("\n  Slots: $edges, $cell.meta, $lr.meta, $params\n")
-  invisible(x)
-}
-
-
-#' Reconstruct a dgCMatrix (edges × LR pairs) from an EdgeLRResult on demand.
-#'
-#' The matrix is NOT stored in the object — it is recomputed each call.
-#' Use only when a downstream function requires a matrix; for most operations
-#' work directly with \code{$edges}.
-#'
-#' @param x   An \code{EdgeLRResult} object.
-#' @param ... Unused.
-#' @return A \code{dgCMatrix} with rows = unique edges, columns = LRM pairs.
-#' @export
-as_matrix <- function(x, ...) UseMethod("as_matrix")
-
-#' @export
-as_matrix.EdgeLRResult <- function(x, ...) {
-  sig        <- x$edges
-  edge.ids   <- paste(sig$from, sig$to, sep = "|")
-  edge.lvls  <- unique(edge.ids)
-  lr.lvls    <- unique(sig$LRM)
-
-  mat <- Matrix::sparseMatrix(
-    i        = match(edge.ids, edge.lvls),
-    j        = match(sig$LRM,  lr.lvls),
-    x        = sig$score,
-    dims     = c(length(edge.lvls), length(lr.lvls)),
-    dimnames = list(edge.lvls, lr.lvls)
-  )
-  as(mat, "CsparseMatrix")
 }

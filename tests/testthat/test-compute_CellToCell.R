@@ -2,15 +2,16 @@
 # FILE:    tests/testthat/test-compute_CellToCell.R
 # ==============================================================================
 
-test_that("compute_CellToCell: returns EdgeLRResult with correct slots", {
+test_that("compute_CellToCell: returns plain list with edges and lr.meta", {
   .setup_fixtures()
   elr <- compute_CellToCell(
     count.mtx = count.mtx,
     edge.list = edge.list,
     LRM.db    = LRM.db
   )
-  expect_s3_class(elr, "EdgeLRResult")
-  expect_true(all(c("edges", "cell.meta", "lr.meta", "params") %in% names(elr)))
+  expect_type(elr, "list")
+  expect_false(inherits(elr, "EdgeLRResult"))
+  expect_identical(sort(names(elr)), c("edges", "lr.meta"))
 })
 
 test_that("compute_CellToCell: $edges has required columns", {
@@ -114,7 +115,8 @@ test_that("compute_CellToCell: accepts edgelist without coordinates (non-spatial
   .setup_fixtures()
   bare.el <- data.frame(from = edge.list$from, to = edge.list$to)
   elr <- compute_CellToCell(count.mtx, bare.el, LRM.db)
-  expect_s3_class(elr, "EdgeLRResult")
+  expect_type(elr, "list")
+  expect_identical(sort(names(elr)), c("edges", "lr.meta"))
   # coord columns should be absent from $edges
   expect_false("x.from" %in% colnames(elr$edges))
 })

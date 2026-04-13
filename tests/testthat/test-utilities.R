@@ -1,7 +1,6 @@
 # ==============================================================================
 # FILE:    tests/testthat/test-utilities.R
-# PURPOSE: Tests for add_cell_meta(), load_LRM_database() (custom path),
-#          and as_matrix().
+# PURPOSE: Tests for add_cell_meta(), load_LRM_database() (custom path)
 # ==============================================================================
 
 # ── add_cell_meta ──────────────────────────────────────────────────────────────
@@ -124,34 +123,3 @@ test_that("load_LRM_database: errors on invalid species for omnipath", {
   )
 })
 
-# ── as_matrix ─────────────────────────────────────────────────────────────────
-
-test_that("as_matrix: returns a sparse matrix from EdgeLRResult", {
-  .setup_fixtures()
-  elr <- compute_CellToCell(count.mtx, edge.list, LRM.db)
-  mat <- as_matrix(elr)
-  expect_true(inherits(mat, "CsparseMatrix"))
-})
-
-test_that("as_matrix: dimensions match n_edges x n_LRM", {
-  .setup_fixtures()
-  elr  <- compute_CellToCell(count.mtx, edge.list, LRM.db)
-  mat  <- as_matrix(elr)
-  expect_equal(ncol(mat), length(unique(elr$edges$LRM)))
-  expect_gt(nrow(mat), 0L)
-  expect_gt(ncol(mat), 0L)
-})
-
-test_that("as_matrix: all values are strictly positive", {
-  .setup_fixtures()
-  elr  <- compute_CellToCell(count.mtx, edge.list, LRM.db)
-  mat  <- as_matrix(elr)
-  expect_true(all(mat@x > 0))
-})
-
-test_that("as_matrix: row names are in 'SendingCell|ReceivingCell' format", {
-  .setup_fixtures()
-  elr <- compute_CellToCell(count.mtx, edge.list, LRM.db)
-  mat <- as_matrix(elr)
-  expect_true(all(grepl("|", rownames(mat), fixed = TRUE)))
-})
