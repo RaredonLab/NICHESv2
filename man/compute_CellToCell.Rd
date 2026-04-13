@@ -41,20 +41,16 @@ Uses socket clusters (\code{parallel::makeCluster}) — works on Windows,
 macOS, and Linux without OS restrictions.}
 }
 \value{
-An \code{EdgeLRResult} object with slots:
+A plain named list with two elements:
 \describe{
   \item{\code{$edges}}{data.table: \code{from}, \code{to}, \code{ligand},
-    \code{receptor}, \code{LRM} (\code{"ligand|receptor"}), \code{x.from},
-    \code{y.from}, \code{x.to}, \code{y.to} (spatial only), \code{score}.
-    One row per non-zero (edge × LRM). Keyed on \code{(from, to, LRM)}.}
-  \item{\code{$cell.meta}}{data.table: \code{cell}, \code{x}, \code{y}
-    (when coordinates are embedded in \code{edge.list}). Keyed on
-    \code{cell}.}
+    \code{receptor}, \code{LRM} (\code{"ligand|receptor"}), \code{score},
+    plus \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to} when the
+    input \code{edge.list} carries coordinates (spatial only). One row per
+    non-zero (edge × LRM). Keyed on \code{(from, to, LRM)}.}
   \item{\code{$lr.meta}}{data.table: \code{ligand}, \code{receptor},
     \code{LRM}, plus any extra columns from \code{LRM.db}. Keyed on
     \code{(ligand, receptor)}.}
-  \item{\code{$params}}{Named list: \code{method}, \code{n.cells},
-    \code{n.edges}, \code{n.lr}, \code{n.nonzero}, \code{created.at}.}
 }
 }
 \description{

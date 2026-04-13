@@ -229,7 +229,11 @@
       verbose = verbose
     )
   }
-
+  
+  # `elr` = edge-LR result. Plain 2-element list from compute_CellToCell():
+  #   $edges   — non-zero (edge × LRM) scores (from, to, ligand, receptor, LRM, score [, coords])
+  #   $lr.meta — one row per valid LR pair (ligand, receptor, LRM, + extras from LRM.db)
+  # Unpacked into $edge.data (Section 9) and $LRM.meta (Section 12) below.
   elr <- compute_CellToCell(
     count.mtx    = score.mtx,
     edge.list    = el.raw,
