@@ -1,0 +1,837 @@
+---
+title: "Understanding S3 Dispatch in R Packages"
+author: "NICHES Development Team"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    code_folding: show
+vignette: >
+  %\VignetteIndexEntry{Understanding S3 Dispatch in R Packages}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  comment = "#>",
+  collapse = TRUE,
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Introduction
+
+This vignette explains **S3 method dispatch** in R—a powerful object-oriented programming pattern used extensively in R packages like NICHES. If you've ever wondered how functions like `print()`, `plot()`, or `summary()` know how to handle different types of objects, the answer is S3 dispatch.
+
+## What You'll Learn
+
+- What S3 dispatch is and why it matters
+- How to create S3 generic functions and methods
+- How NICHES uses S3 dispatch for `RunNICHES()`
+- Best practices for using S3 in your own packages
+
+---
+
+# What is S3 Dispatch?
+
+**S3** is R's original object-oriented system (named after the S language version 3). It provides **polymorphism**—the ability for a single function to behave differently based on the type (class) of its input.
+
+## A Simple Example
+
+You use S3 dispatch every day in R, often without realizing it:
+
+```{r basic_examples}
+# The print() function behaves differently based on object type
+x <- 42
+print(x)  # Prints a number
+
+y <- data.frame(a = 1:3, b = c("A", "B", "C"))
+print(y)  # Prints a formatted table
+
+z <- lm(mpg ~ wt, data = mtcars)
+print(z)  # Prints a regression summary
+```
+
+How does `print()` know what to do? It uses **S3 method dispatch**!
+
+```{r print_methods}
+# See what class each object has
+class(x)
+class(y)
+class(z)
+
+# See available print methods
+head(methods(print), 20)
+```
+
+When you call `print(z)` where `z` is an `lm` object, R automatically calls `print.lm()`.
+
+---
+
+# How S3 Dispatch Works
+
+## The Mechanism
+
+1. **Generic function** is called (e.g., `print()`)
+2. R checks the **class** of the first argument
+3. R looks for a **method** matching that class (e.g., `print.data.frame`)
+4. If found, R calls that method; otherwise, it calls the **default method**
+
+```
+┌─────────────────────────────────────────────┐
+│  User calls generic(object)                 │
+└────────────────┬────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────┐
+│  R checks class(object)                     │
+│  e.g., class = "lm"                         │
+└────────────────┬────────────────────────────┘
+                 │
+                 ▼
+       ┌─────────────────────┐
+       │  Method exists?     │
+       │  print.lm()         │
+       └──┬──────────────┬───┘
+          │              │
+    YES   │              │   NO
+          ▼              ▼
+  ┌───────────────┐  ┌────────────────────┐
+  │  Call         │  │  Call              │
+  │  print.lm()   │  │  print.default()   │
+  └───────────────┘  └────────────────────┘
+```
+
+---
+
+# Creating Your Own S3 System
+
+Let's build a simple example from scratch to understand the mechanics.
+
+## Step 1: Define a Generic Function
+
+A **generic function** is the entry point that users call. It uses `UseMethod()` to dispatch to the appropriate method.
+
+```{r create_generic}
+# Create a generic function for describing objects
+describe <- function(x, ...) {
+  UseMethod("describe")
+}
+```
+
+That's it! The generic is minimal—it just says "figure out what method to call based on x's class."
+
+## Step 2: Create Methods for Different Classes
+
+Now we create **methods** that handle specific object types:
+
+```{r create_methods}
+# Method for numeric objects
+describe.numeric <- function(x, ...) {
+  cat("This is a NUMERIC vector\n")
+  cat("Length:", length(x), "\n")
+  cat("Range:", min(x), "to", max(x), "\n")
+  cat("Mean:", mean(x), "\n")
+}
+
+# Method for character objects
+describe.character <- function(x, ...) {
+  cat("This is a CHARACTER vector\n")
+  cat("Length:", length(x), "\n")
+  cat("Unique values:", length(unique(x)), "\n")
+  cat("Sample:", paste(head(x, 3), collapse = ", "), "\n")
+}
+
+# Method for data.frame objects
+describe.data.frame <- function(x, ...) {
+  cat("This is a DATA FRAME\n")
+  cat("Dimensions:", nrow(x), "rows x", ncol(x), "columns\n")
+  cat("Column names:", paste(colnames(x), collapse = ", "), "\n")
+  cat("Classes:", paste(sapply(x, class), collapse = ", "), "\n")
+}
+
+# Default method (fallback)
+describe.default <- function(x, ...) {
+  cat("This is an object of class:", class(x), "\n")
+  cat("I don't have a specialized method for this type.\n")
+}
+```
+
+## Step 3: Test the Dispatch System
+
+```{r test_dispatch}
+# Test with numeric
+describe(c(1, 2, 3, 10, 20))
+
+# Test with character
+describe(c("apple", "banana", "apple", "cherry"))
+
+# Test with data.frame
+describe(mtcars)
+
+# Test with an unsupported class (falls back to default)
+describe(list(a = 1, b = 2))
+```
+
+Notice how the **same function name** (`describe`) produces different behavior based on the object's class!
+
+---
+
+# Real-World Example: How NICHES Uses S3
+
+The NICHES package uses S3 dispatch for its main function `RunNICHES()` to handle different input types seamlessly.
+
+## The Problem
+
+Users might provide data in different formats:
+- A **Seurat object** (most common)
+- A raw **matrix** of expression values
+- A sparse **Matrix** object
+
+We want a single function `RunNICHES()` that "just works" regardless of input type.
+
+## The Solution: S3 Dispatch
+
+### 1. The Generic
+
+```{r niches_generic, eval=FALSE}
+# This is the function users call
+RunNICHES <- function(object, ...) {
+  UseMethod("RunNICHES")
+}
+```
+
+### 2. Method for Seurat Objects
+
+```{r niches_seurat_method, eval=FALSE}
+RunNICHES.Seurat <- function(object,
+                               assay = "RNA",
+                               LR.database = "fantom5",
+                               species,
+                               min.cells.per.ident = NULL,
+                               min.cells.per.gene = NULL,
+                               cell_types = NULL,
+                               ...) {
+
+  # Validate Seurat-specific parameters
+  if (!is.null(cell_types)) {
+    # Check if cell_types column exists in metadata
+    if (!cell_types %in% colnames(object@meta.data)) {
+      stop("cell_types column not found in metadata")
+    }
+    # Set identities based on cell_types column
+    Idents(object) <- object@meta.data[[cell_types]]
+  }
+
+  # Call the default method that does the actual work
+  RunNICHES.default(
+    object = object,
+    assay = assay,
+    LR.database = LR.database,
+    species = species,
+    min.cells.per.ident = min.cells.per.ident,
+    min.cells.per.gene = min.cells.per.gene,
+    ...
+  )
+}
+```
+
+### 3. Method for Matrix Objects
+
+```{r niches_matrix_method, eval=FALSE}
+RunNICHES.matrix <- function(object,
+                               meta.data.df = NULL,
+                               cell_types,
+                               species,
+                               LR.database = "fantom5",
+                               ...) {
+
+  # Convert matrix to Seurat object
+  if (is.null(meta.data.df)) {
+    stop("meta.data.df is required when input is a matrix")
+  }
+
+  if (!cell_types %in% colnames(meta.data.df)) {
+    stop("cell_types column not found in meta.data.df")
+  }
+
+  # Create Seurat object from matrix
+  seurat_obj <- CreateSeuratObject(
+    counts = object,
+    meta.data = meta.data.df
+  )
+
+  # Set cell type identities
+  Idents(seurat_obj) <- meta.data.df[[cell_types]]
+
+  # Call the default method
+  RunNICHES.default(
+    object = seurat_obj,
+    species = species,
+    LR.database = LR.database,
+    ...
+  )
+}
+```
+
+### 4. Alias for Sparse Matrix
+
+```{r niches_Matrix_method, eval=FALSE}
+# Capital M Matrix = sparse Matrix from Matrix package
+RunNICHES.Matrix <- function(object, ...) {
+  # Just point to the regular matrix method
+  RunNICHES.matrix(object = object, ...)
+}
+```
+
+### 5. The Default Method (Core Logic)
+
+```{r niches_default_method, eval=FALSE}
+RunNICHES.default <- function(object,
+                                LR.database = "fantom5",
+                                species,
+                                assay = "RNA",
+                                CellToCell = TRUE,
+                                CellToSystem = FALSE,
+                                SystemToCell = FALSE,
+                                ...) {
+
+  # This method does the actual work:
+  # 1. Preprocess the object
+  node.object <- PrepNodeObject(object, assay, ...)
+
+  # 2. Load ligand-receptor database
+  ground.truth <- LoadGroundTruth(LR.database, species, ...)
+
+  # 3. Call transformation functions based on flags
+  output <- list()
+
+  if (CellToCell) {
+    output$CellToCell <- RunCellToCell(node.object, ground.truth, ...)
+  }
+
+  if (CellToSystem) {
+    output$CellToSystem <- RunCellToSystem(node.object, ground.truth, ...)
+  }
+
+  if (SystemToCell) {
+    output$SystemToCell <- RunSystemToCell(node.object, ground.truth, ...)
+  }
+
+  return(output)
+}
+```
+
+## How It Works in Practice
+
+```{r niches_usage, eval=FALSE}
+# User provides a Seurat object
+# R dispatches to RunNICHES.Seurat
+result1 <- RunNICHES(
+  object = seurat_obj,  # class: Seurat
+  species = "human",
+  cell_types = "celltype"
+)
+
+# User provides a matrix
+# R dispatches to RunNICHES.matrix
+result2 <- RunNICHES(
+  object = expression_matrix,  # class: matrix
+  meta.data.df = metadata,
+  cell_types = "celltype",
+  species = "human"
+)
+
+# User provides a sparse Matrix
+# R dispatches to RunNICHES.Matrix → RunNICHES.matrix
+result3 <- RunNICHES(
+  object = sparse_matrix,  # class: dgCMatrix (inherits Matrix)
+  meta.data.df = metadata,
+  cell_types = "celltype",
+  species = "human"
+)
+```
+
+The user calls the **same function** with different input types, and R automatically routes to the appropriate method!
+
+---
+
+# S3 Method Lookup Rules
+
+R's method dispatch follows specific rules:
+
+## 1. Class Hierarchy
+
+If an object has multiple classes, R tries them in order:
+
+```{r class_hierarchy}
+# Create an object with multiple classes
+x <- structure(
+  list(value = 42),
+  class = c("special_number", "number", "base")
+)
+
+class(x)
+
+# Define methods at different levels
+print.special_number <- function(x, ...) cat("SPECIAL NUMBER:", x$value, "\n")
+print.number <- function(x, ...) cat("NUMBER:", x$value, "\n")
+print.base <- function(x, ...) cat("BASE:", x$value, "\n")
+
+# R tries classes in order: special_number, number, base
+print(x)  # Calls print.special_number
+```
+
+## 2. NextMethod()
+
+A method can call the next method in the hierarchy:
+
+```{r next_method}
+print.special_number <- function(x, ...) {
+  cat("=== SPECIAL NUMBER ===\n")
+  NextMethod("print")  # Call print.number
+}
+
+print(x)
+```
+
+## 3. Method Discovery
+
+R looks for methods in this order:
+
+1. `generic.class1` (first class)
+2. `generic.class2` (second class)
+3. ...
+4. `generic.default` (fallback)
+
+```{r method_discovery, eval=FALSE}
+# See method lookup order (requires sloop package)
+sloop::s3_dispatch(print(x))
+```
+
+If you have the `sloop` package installed, this shows exactly which method R chose and what alternatives it considered.
+
+---
+
+# Best Practices for S3 Dispatch
+
+## 1. Always Provide a Default Method
+
+```{r best_practice_default, eval=FALSE}
+my_function <- function(x, ...) {
+  UseMethod("my_function")
+}
+
+my_function.default <- function(x, ...) {
+  stop(
+    "my_function doesn't know how to handle objects of class '",
+    class(x)[1], "'"
+  )
+}
+```
+
+## 2. Use Consistent Signatures
+
+All methods should accept the same parameters (or `...` for flexibility):
+
+```{r best_practice_signature, eval=FALSE}
+# GOOD: Consistent signatures
+analyze <- function(x, method = "auto", ...) UseMethod("analyze")
+analyze.data.frame <- function(x, method = "auto", ...) { }
+analyze.matrix <- function(x, method = "auto", ...) { }
+
+# BAD: Inconsistent signatures
+analyze.data.frame <- function(x, method, columns) { }
+analyze.matrix <- function(x, algo, iterations) { }
+```
+
+## 3. Document the Generic and Each Method
+
+```{r best_practice_docs, eval=FALSE}
+#' Analyze Data Objects
+#'
+#' @param x An object to analyze (data.frame, matrix, etc.)
+#' @param method Analysis method to use
+#' @param ... Additional arguments passed to methods
+#'
+#' @return Analysis results
+#' @export
+analyze <- function(x, method = "auto", ...) {
+  UseMethod("analyze")
+}
+
+#' @describeIn analyze Method for data.frame objects
+#' @export
+analyze.data.frame <- function(x, method = "auto", ...) {
+  # Implementation
+}
+
+#' @describeIn analyze Method for matrix objects
+#' @export
+analyze.matrix <- function(x, method = "auto", ...) {
+  # Implementation
+}
+```
+
+## 4. Validate Inputs in Methods, Not Generic
+
+```{r best_practice_validation, eval=FALSE}
+# Generic stays simple
+process <- function(x, ...) {
+  UseMethod("process")
+}
+
+# Methods do validation
+process.data.frame <- function(x, required_columns, ...) {
+  # Validate data.frame-specific requirements
+  if (!all(required_columns %in% colnames(x))) {
+    stop("Missing required columns")
+  }
+  # Process...
+}
+
+process.matrix <- function(x, min_rows = 1, ...) {
+  # Validate matrix-specific requirements
+  if (nrow(x) < min_rows) {
+    stop("Matrix must have at least ", min_rows, " rows")
+  }
+  # Process...
+}
+```
+
+## 5. Use sloop Package for Debugging
+
+```{r sloop_example, eval=FALSE}
+library(sloop)
+
+# Check what methods exist for a generic
+s3_methods_generic("print")
+
+# Check what methods exist for a class
+s3_methods_class("data.frame")
+
+# See method dispatch in action
+s3_dispatch(print(mtcars))
+```
+
+## 6. Export Generics and Methods Properly
+
+In your `NAMESPACE` file (or using roxygen2):
+
+```{r namespace_example, eval=FALSE}
+# Export the generic
+#' @export
+RunNICHES <- function(object, ...) {
+  UseMethod("RunNICHES")
+}
+
+# Export methods
+#' @export
+RunNICHES.Seurat <- function(object, ...) { }
+
+#' @export
+RunNICHES.matrix <- function(object, ...) { }
+
+# NAMESPACE will contain:
+# export(RunNICHES)
+# S3method(RunNICHES, Seurat)
+# S3method(RunNICHES, matrix)
+```
+
+---
+
+# Common Pitfalls and How to Avoid Them
+
+## Pitfall 1: Forgetting UseMethod()
+
+```{r pitfall1, error=TRUE}
+# WRONG: No dispatch
+bad_generic <- function(x, ...) {
+  # Missing UseMethod()!
+  return(x)
+}
+
+# Won't find methods
+bad_generic.numeric <- function(x, ...) "I'm numeric!"
+bad_generic(42)  # Just returns 42, doesn't dispatch
+```
+
+```{r pitfall1_fix}
+# CORRECT
+good_generic <- function(x, ...) {
+  UseMethod("good_generic")
+}
+
+good_generic.numeric <- function(x, ...) "I'm numeric!"
+good_generic(42)  # Dispatches correctly
+```
+
+## Pitfall 2: Inconsistent Parameter Names
+
+```{r pitfall2, eval=FALSE}
+# BAD: Different parameter names
+transform <- function(data, ...) UseMethod("transform")
+transform.data.frame <- function(df, ...) { }  # 'df' instead of 'data'
+transform.matrix <- function(mat, ...) { }     # 'mat' instead of 'data'
+
+# GOOD: Consistent naming
+transform <- function(data, ...) UseMethod("transform")
+transform.data.frame <- function(data, ...) { }
+transform.matrix <- function(data, ...) { }
+```
+
+## Pitfall 3: Not Handling Edge Cases
+
+```{r pitfall3}
+# BAD: No default method
+risky <- function(x, ...) UseMethod("risky")
+risky.numeric <- function(x, ...) "number"
+
+# What happens with an unsupported class?
+try(risky(list(a = 1)))  # Error: no applicable method
+
+# GOOD: Provide default
+safe <- function(x, ...) UseMethod("safe")
+safe.numeric <- function(x, ...) "number"
+safe.default <- function(x, ...) {
+  message("No specialized method for class: ", class(x)[1])
+  return(NULL)
+}
+
+safe(list(a = 1))  # Graceful handling
+```
+
+---
+
+# Advanced Topics
+
+## Internal Generics
+
+Some generics are "internal" (primitive functions in C):
+
+```{r internal_generics}
+# These are internal generics
+`[`     # subsetting
+`+`     # addition
+print
+plot
+```
+
+You can create methods for these too:
+
+```{r internal_generic_example}
+# Create a custom class
+my_vec <- structure(1:5, class = "my_vector")
+
+# Define custom subsetting
+`[.my_vector` <- function(x, i) {
+  cat("Custom subsetting!\n")
+  structure(NextMethod("["), class = "my_vector")
+}
+
+my_vec[1:3]
+```
+
+## Group Generics
+
+Group generics allow you to define methods for groups of functions at once:
+
+- **Math**: `abs`, `sqrt`, `log`, etc.
+- **Ops**: `+`, `-`, `*`, `/`, `<`, `>`, etc.
+- **Summary**: `sum`, `mean`, `range`, etc.
+
+```{r group_generics}
+# Create a percentage class
+percent <- function(x) {
+  structure(x, class = "percent")
+}
+
+# Define printing
+print.percent <- function(x, ...) {
+  cat(paste0(as.numeric(x) * 100, "%"), sep = ", ")
+}
+
+# Define math operations for ALL Math group functions
+Math.percent <- function(x, ...) {
+  percent(NextMethod())
+}
+
+p <- percent(0.5)
+print(p)
+sqrt(p)  # Uses Math.percent
+```
+
+---
+
+# Testing S3 Methods
+
+When writing tests for S3 methods:
+
+```{r testing_example, eval=FALSE}
+library(testthat)
+
+test_that("describe works for different classes", {
+  # Test numeric method
+  expect_output(describe(1:10), "NUMERIC vector")
+
+  # Test character method
+  expect_output(describe(letters), "CHARACTER vector")
+
+  # Test data.frame method
+  expect_output(describe(mtcars), "DATA FRAME")
+
+  # Test default method
+  expect_output(describe(list()), "don't have a specialized method")
+})
+
+test_that("method dispatch is correct", {
+  # Verify correct method is called
+  expect_equal(
+    class(s3_dispatch(describe(42)))[1],
+    "describe.numeric"
+  )
+})
+```
+
+---
+
+# Summary
+
+## Key Takeaways
+
+1. **S3 dispatch** allows one function name to handle multiple object types
+2. **Generic functions** use `UseMethod()` to dispatch
+3. **Methods** are named `generic.class` (e.g., `print.data.frame`)
+4. R searches for methods in **class hierarchy order**, falling back to `.default`
+5. **Always provide a default method** for graceful handling
+6. **Keep method signatures consistent** across all methods
+7. Use S3 to create **intuitive, user-friendly APIs**
+
+## Why S3 Matters for Package Development
+
+- **Cleaner user interface**: One function instead of many (`plot` vs `plot_dataframe`, `plot_matrix`, etc.)
+- **Extensibility**: Other packages can add methods for their classes
+- **Familiar pattern**: Users already understand how it works from base R
+- **Type safety**: Different logic for different input types, validated at the method level
+
+## Further Reading
+
+- [Advanced R - S3](https://adv-r.hadley.nz/s3.html) by Hadley Wickham
+- [R Packages - Object Oriented Programming](https://r-pkgs.org/s3.html)
+- `?UseMethod` for official documentation
+- `vignette("s3", package = "sloop")` for debugging tools
+
+---
+
+# Appendix: Complete Working Example
+
+Here's a complete, self-contained example you can run:
+
+```{r complete_example}
+# ============================================================================
+# Generic: A function to compute "score" for different data types
+# ============================================================================
+
+compute_score <- function(x, ...) {
+  UseMethod("compute_score")
+}
+
+# ============================================================================
+# Methods for different classes
+# ============================================================================
+
+compute_score.numeric <- function(x, penalty = 0, ...) {
+  score <- mean(x) - penalty
+  structure(
+    list(
+      score = score,
+      n = length(x),
+      type = "numeric"
+    ),
+    class = "score_result"
+  )
+}
+
+compute_score.character <- function(x, bonus = 0, ...) {
+  score <- length(unique(x)) + bonus
+  structure(
+    list(
+      score = score,
+      n = length(x),
+      type = "character"
+    ),
+    class = "score_result"
+  )
+}
+
+compute_score.data.frame <- function(x, weights = NULL, ...) {
+  if (is.null(weights)) {
+    weights <- rep(1, ncol(x))
+  }
+  score <- sum(sapply(x, function(col) length(unique(col))) * weights)
+  structure(
+    list(
+      score = score,
+      n = nrow(x),
+      type = "data.frame"
+    ),
+    class = "score_result"
+  )
+}
+
+compute_score.default <- function(x, ...) {
+  stop("Cannot compute score for objects of class: ", class(x)[1])
+}
+
+# ============================================================================
+# Method for the result class
+# ============================================================================
+
+print.score_result <- function(x, ...) {
+  cat("Score Result\n")
+  cat("------------\n")
+  cat("Score:", x$score, "\n")
+  cat("Observations:", x$n, "\n")
+  cat("Type:", x$type, "\n")
+  invisible(x)
+}
+
+# ============================================================================
+# Test the complete system
+# ============================================================================
+
+# Numeric input
+result1 <- compute_score(c(10, 20, 30, 40), penalty = 5)
+print(result1)
+
+# Character input
+result2 <- compute_score(c("A", "B", "A", "C"), bonus = 10)
+print(result2)
+
+# Data frame input
+result3 <- compute_score(mtcars[, 1:3])
+print(result3)
+
+# Unsupported input
+try(compute_score(list(a = 1)))
+```
+
+This example demonstrates:
+- Generic function (`compute_score`)
+- Multiple methods for different classes
+- A default method that provides helpful errors
+- Methods returning a custom class (`score_result`)
+- A print method for that custom class
+- Different parameters for different methods
+- Real usage showing dispatch in action
+
+---
+
+**Happy coding with S3 dispatch!** 🚀

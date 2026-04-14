@@ -1,0 +1,44 @@
+Package: NICHES
+Version: 2.0.0
+Date: 2025-11-01
+Title: Niche Interactions and Communication Heterogeneity in Extracellular Signaling
+Authors@R: c(person("Micha Sam", "Brickman Raredon", email = "michasam.raredon@yale.edu", role = c("aut", "cre")),person("Junchen", "Yang", email = "junchen.yang@yale.edu", role = c("aut")),person("Aaron", "Osgood-Zimmerman", email = "aeoz001@bucknell.edu", role = c("aut")),person("Nuoya", "Wang", email = "nuoya.wang@yale.edu", role = c("aut")),person("Sophie", "Edelstein", email = "sophie.edelstein@yale.edu", role = c("aut")),person("Allison", "Greaney", email = "allison.greaney@yale.edu", role = c("aut")))
+Description: Cell-cell Interactions at Single-Cell Resolution
+License: GPL-3
+Encoding: UTF-8
+LazyData: yes
+RoxygenNote: 7.3.3
+VignetteBuilder: knitr
+Depends:
+    R (>= 4.0)
+biocViews:
+Imports:
+    ComplexHeatmap,
+    OmnipathR,
+    dplyr,
+    ggrepel,
+    igraph,
+    plotrix,
+    RColorBrewer,
+    scales,
+    Seurat,
+    tibble,
+    data.table,
+    BisRNA,
+    ggplot2,
+    cowplot,
+    Matrix,
+    gtools,
+    permute,
+    circlize,
+    abind,
+    rlang,
+    utils,
+    stringr,
+    tidyr,
+    tidyverse
+Suggests:
+  knitr,
+  rmarkdown,
+  testthat (>= 3.0.0)
+URL: https://msraredon.github.io/NICHES/
