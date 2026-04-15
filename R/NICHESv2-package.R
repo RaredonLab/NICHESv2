@@ -1,10 +1,8 @@
-# ==============================================================================
-# FILE:    NICHESv2-package.R
-# PURPOSE: Package-level documentation and .onLoad hook.
-#          This file produces the ?NICHESv2 help page and registers the
-#          data.table aware-of-package declaration so that := and friends
-#          work without triggering R CMD check NOTEs.
-# ==============================================================================
+# NICHESv2-package.R ------------------------------------------------------
+# Package-level documentation and .onLoad hook.
+# This file produces the ?NICHESv2 help page and registers the
+# data.table aware-of-package declaration so that := and friends
+# work without triggering R CMD check NOTEs.
 
 
 # ==============================================================================
@@ -72,16 +70,16 @@
 #' \tabular{lll}{
 #'   \strong{Slot} \tab \strong{Type} \tab \strong{Contents} \cr
 #'   \code{$cell.list} \tab character \tab Cell barcodes \cr
-#'   \code{$cell.data} \tab data.table \tab (cell, gene, score, score.norm) — sparse \cr
-#'   \code{$cell.meta} \tab data.table \tab Per-cell metadata (x, y, celltype, …) \cr
+#'   \code{$cell.data} \tab data.table \tab (cell, gene, score, score.norm) -- sparse \cr
+#'   \code{$cell.meta} \tab data.table \tab Per-cell metadata (x, y, celltype, ...) \cr
 #'   \code{$edge.list} \tab data.table \tab (edge, SendingCell, ReceivingCell) \cr
-#'   \code{$edge.data} \tab data.table \tab (edge, LRM, score, score.norm) — sparse \cr
+#'   \code{$edge.data} \tab data.table \tab (edge, LRM, score, score.norm) -- sparse \cr
 #'   \code{$edge.meta} \tab data.table \tab Per-edge metadata with Sending/Receiving/Joint cols \cr
-#'   \code{$neighborhood.*} \tab reserved \tab NULL — populated by collaborator functions \cr
+#'   \code{$neighborhood.*} \tab reserved \tab NULL -- populated by collaborator functions \cr
 #'   \code{$gene.list} \tab character \tab Gene names \cr
 #'   \code{$gene.meta} \tab data.table \tab Per-gene annotation \cr
 #'   \code{$LRM.list} \tab character \tab "ligand|receptor" strings \cr
-#'   \code{$LRM.meta} \tab data.table \tab Per-LRM annotation (pathway, class, …) \cr
+#'   \code{$LRM.meta} \tab data.table \tab Per-LRM annotation (pathway, class, ...) \cr
 #' }
 #'
 #' @section Key separators:
@@ -104,7 +102,7 @@
 #' Ramilowski, J.A. et al. (2015). A draft network of ligand-receptor-mediated
 #' multicellular signalling in human. \emph{Nature Communications}, 6, 7866.
 #'
-#' Türei, D. et al. (2021). Integrated intra- and intercellular signaling
+#' Turei, D. et al. (2021). Integrated intra- and intercellular signaling
 #' knowledge for multicellular omics analysis. \emph{Molecular Systems Biology},
 #' 17(3), e9923.
 #'
@@ -118,9 +116,7 @@
 "_PACKAGE"
 
 
-# ==============================================================================
-# .onLoad — package startup tasks
-# ==============================================================================
+## .onLoad -- package startup tasks ----
 
 .onLoad <- function(libname, pkgname) {
   # Suppress the data.table "no visible binding" NOTE for := and .SD etc.
@@ -134,7 +130,7 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage(
     "NICHESv2 ", utils::packageVersion("NICHESv2"),
-    " — Spatial LR communication analysis. ",
+    " -- Spatial LR communication analysis. ",
     "See ?NICHESv2 or vignette('NICHESv2') to get started."
   )
 }

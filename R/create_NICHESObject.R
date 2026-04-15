@@ -1,19 +1,17 @@
-# ==============================================================================
-# FILE:    create_NICHESObject.R
-# PURPOSE: Public wrapper for NICHESObject construction.
-#          Routes to .create_NICHESObject_single() (single-pass, original logic)
-#          or .create_NICHESObject_by_sample() (sample-aware split/merge path).
+# create_NICHESObject.R ---------------------------------------------------
+# Public wrapper for NICHESObject construction.
+# Routes to .create_NICHESObject_single() (single-pass, original logic)
+# or .create_NICHESObject_by_sample() (sample-aware split/merge path).
 #
 # FUNCTIONS (exported):
-#   create_NICHESObject()   — main entry point; gains sample.col argument
+#   create_NICHESObject()   -- main entry point; gains sample.col argument
 #
 # INTERNAL HELPERS (unexported, in this file):
-#   create_NICHESObject_by_sample()  — splits meta.data, loops, merges
+#   create_NICHESObject_by_sample()  -- splits meta.data, loops, merges
 #
 # NOTE: create_NICHESObject_single() lives in create_NICHESObject_single.R
 #       alongside add_cell_meta() and the slot-building helpers. It is the
 #       original create_NICHESObject() body with only the function name changed.
-# ==============================================================================
 
 #' Create a NICHESObject from Single-Cell Data
 #'
@@ -29,7 +27,7 @@
 #' }
 #'
 #' For pseudobulk (type-averaged) connectivity use
-#' \code{\link{compute_PseudoBulk_Connectivity}} — it returns a plain
+#' \code{\link{compute_PseudoBulk_Connectivity}} -- it returns a plain
 #' \code{data.table}, not a \code{NICHESObject}.
 #'
 #' @param count.mtx   Gene x cell matrix. Row names = genes; col names = cells.
@@ -65,7 +63,7 @@
 #' @param method      \code{"product"} (default) or \code{"minimum"}.
 #' @param normalize.method \code{"prop"} (default) or \code{"none"}.
 #' @param gene.meta   Optional data.frame with \code{"gene"} column.
-#' @param n.cores     CPU cores. Default 1. Socket cluster — all platforms.
+#' @param n.cores     CPU cores. Default 1. Socket cluster -- all platforms.
 #' @param verbose     Default \code{TRUE}.
 #'
 #' @return \code{NICHESObject} with \code{attr(obj, "mode")} set. If
@@ -103,9 +101,7 @@ create_NICHESObject <- function(count.mtx,
                                 n.cores          = 1L,
                                 verbose          = TRUE) {
 
-  # ----------------------------------------------------------
-  # Validate sample.col before anything else
-  # ----------------------------------------------------------
+  ## Validate sample.col before anything else ----
   if (!is.null(sample.col)) {
     if (!is.character(sample.col) || length(sample.col) != 1L)
       stop("[create_NICHESObject] 'sample.col' must be a single character string or NULL.",
@@ -117,9 +113,7 @@ create_NICHESObject <- function(count.mtx,
       ), call. = FALSE)
   }
 
-  # ----------------------------------------------------------
-  # BRANCH: sample.col provided → split, compute per sample, merge
-  # ----------------------------------------------------------
+  ## BRANCH: sample.col provided -> split, compute per sample, merge ----
   if (!is.null(sample.col)) {
     return(.create_NICHESObject_by_sample(
       count.mtx        = count.mtx,
@@ -146,9 +140,7 @@ create_NICHESObject <- function(count.mtx,
     ))
   }
 
-  # ----------------------------------------------------------
-  # BRANCH: no sample.col → original single-pass logic
-  # ----------------------------------------------------------
+  ## BRANCH: no sample.col -> original single-pass logic ----
   .create_NICHESObject_single(
     count.mtx        = count.mtx,
     meta.data        = meta.data,

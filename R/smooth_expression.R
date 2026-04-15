@@ -1,14 +1,13 @@
-# ==============================================================================
-# FILE:    smooth_expression.R
-# PURPOSE: PCA + kNN smoothing of a count matrix for sampled-mode workflows.
-# ==============================================================================
+# smooth_expression.R -----------------------------------------------------
+# PCA + kNN smoothing of a count matrix for sampled-mode workflows.
+# Internal helper used by .create_NICHESObject_single().
 
 #' Smooth a count matrix by averaging k nearest neighbors in PCA space
 #'
-#' Replaces the columns of \code{count.mtx} corresponding to \code{barcodes}
-#' with the average of their k nearest neighbors in PCA space (computed
-#' across ALL cells in \code{count.mtx}). Non-target columns are returned
-#' unchanged.
+#' Internal. Replaces the columns of \code{count.mtx} corresponding to
+#' \code{barcodes} with the average of their k nearest neighbors in PCA space
+#' (computed across ALL cells in \code{count.mtx}). Non-target columns are
+#' returned unchanged.
 #'
 #' Workflow:
 #' \enumerate{
@@ -39,37 +38,37 @@
 #'   search. Capped internally at \code{min(n.pcs, ncol - 1, nrow - 1)}.
 #' @return A matrix of the same dimensions and type as \code{count.mtx} with
 #'   the targeted columns replaced by smoothed raw counts.
-#' @export
-smooth_expression <- function(count.mtx, barcodes, k = 9L, n.pcs = 30L) {
-  
+#' @noRd
+.smooth_expression <- function(count.mtx, barcodes, k = 9L, n.pcs = 30L) {
+
   n.cells      <- ncol(count.mtx)
   n.genes      <- nrow(count.mtx)
   n.pcs.actual <- min(as.integer(n.pcs),
                       n.cells - 1L,
                       n.genes - 1L)
-  
+
   if (n.pcs.actual < 1L)
-    stop("[smooth_expression] Not enough cells or genes to compute PCA.")
-  
+    stop("[.smooth_expression] Not enough cells or genes to compute PCA.")
+
   lib.sizes             <- Matrix::colSums(count.mtx)
   lib.sizes[lib.sizes == 0L] <- 1L
   med.lib               <- stats::median(lib.sizes)
   norm.mtx              <- Matrix::t(Matrix::t(count.mtx) * (med.lib / lib.sizes))
   norm.mtx              <- log1p(norm.mtx)
-  
+
   svd.res   <- irlba::irlba(A  = Matrix::t(norm.mtx),
                             nv = n.pcs.actual, fastpath = FALSE)
   embedding <- svd.res$u %*% diag(svd.res$d, n.pcs.actual, n.pcs.actual)
   rownames(embedding) <- colnames(count.mtx)
   rm(norm.mtx, svd.res)
-  
+
   barcode.idx <- match(barcodes, colnames(count.mtx))
   query.emb   <- embedding[barcode.idx, , drop = FALSE]
   nn.idx      <- RANN::nn2(data  = embedding,
                            query = query.emb,
                            k     = k + 1L)$nn.idx
   rm(embedding)
-  
+
   smoothed.mat <- vapply(
     seq_along(barcodes),
     function(b) {
@@ -77,10 +76,10 @@ smooth_expression <- function(count.mtx, barcodes, k = 9L, n.pcs = 30L) {
     },
     numeric(n.genes)
   )
-  
+
   for (b in seq_along(barcodes)) {
     count.mtx[, barcode.idx[b]] <- smoothed.mat[, b]
   }
-  
+
   count.mtx
 }

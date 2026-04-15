@@ -15,7 +15,7 @@ compute_CellToCell(
 )
 }
 \arguments{
-\item{count.mtx}{Gene × cell (or gene × type for pseudobulk) expression
+\item{count.mtx}{Gene x cell (or gene x type for pseudobulk) expression
 matrix (sparse or dense). Row names = gene symbols; column names = cell
 barcodes or cell type labels matching \code{edge.list$from} / \code{$to}.}
 
@@ -37,7 +37,7 @@ Default: \code{"receptor"}.}
 \code{"minimum"}. See Complex scoring section.}
 
 \item{n.cores}{CPU cores for parallel LRM-chunk processing. Default 1.
-Uses socket clusters (\code{parallel::makeCluster}) — works on Windows,
+Uses socket clusters (\code{parallel::makeCluster}) -- works on Windows,
 macOS, and Linux without OS restrictions.}
 }
 \value{
@@ -47,7 +47,7 @@ A plain named list with two elements:
     \code{receptor}, \code{LRM} (\code{"ligand|receptor"}), \code{score},
     plus \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to} when the
     input \code{edge.list} carries coordinates (spatial only). One row per
-    non-zero (edge × LRM). Keyed on \code{(from, to, LRM)}.}
+    non-zero (edge x LRM). Keyed on \code{(from, to, LRM)}.}
   \item{\code{$lr.meta}}{data.table: \code{ligand}, \code{receptor},
     \code{LRM}, plus any extra columns from \code{LRM.db}. Keyed on
     \code{(ligand, receptor)}.}
@@ -56,9 +56,10 @@ A plain named list with two elements:
 \description{
 Universal scoring engine for all NICHESv2 edge modes. For each edge and each
 valid LR pair, computes a signal score. The edge list may come from any of
-the three edgelist constructors — spatial, pseudobulk, or type-sampled — and
-the count matrix is expected to match accordingly (cell barcodes as column
-names for spatial and sampled modes; cell type names for pseudobulk mode).
+the three edgelist constructors -- spatial, pseudobulk, or type-sampled --
+and the count matrix is expected to match accordingly (cell barcodes as
+column names for spatial and sampled modes; cell type names for pseudobulk
+mode).
 
 Supports \strong{multi-gene complexes}: a ligand or receptor represented as
 \code{"gene1_gene2"} is split on \code{"_"} and all component expressions
@@ -67,13 +68,13 @@ ligand and receptor components together}.
 
 Built-in LRM databases can be loaded by name:
 \itemize{
-  \item \code{"fantom5"}  — Ramilowski et al. 2015 (requires \pkg{OmnipathR})
-  \item \code{"omnipath"} — OmniPath intercell network (requires \pkg{OmnipathR})
+  \item \code{"fantom5"}  -- Ramilowski et al. 2015 (requires \pkg{OmnipathR})
+  \item \code{"omnipath"} -- OmniPath intercell network (requires \pkg{OmnipathR})
 }
 }
 \section{Complex scoring example}{
 
-LRM \code{"COL1A1_COL1A2 → ITGB1"} with \code{method = "product"}:
+LRM \code{"COL1A1_COL1A2 -> ITGB1"} with \code{method = "product"}:
 \deqn{score = \text{expr}_{send}(COL1A1) \times \text{expr}_{send}(COL1A2) \times \text{expr}_{recv}(ITGB1)}
 With \code{method = "minimum"}:
 \deqn{score = \min(\text{expr}_{send}(COL1A1),\ \text{expr}_{send}(COL1A2),\ \text{expr}_{recv}(ITGB1))}

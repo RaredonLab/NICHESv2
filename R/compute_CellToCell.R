@@ -1,28 +1,24 @@
-# ==============================================================================
-# FILE:    compute_CellToCell.R
-# PURPOSE: Universal cell-to-cell ligand-receptor signal scoring engine.
-#          Accepts any edge list produced by create_Edgelist_Spatial(),
-#          create_Edgelist_PseudoBulk(), or create_Edgelist_SamplingByType().
-#          Supports single-gene and multi-gene complex ligands / receptors
-#          (underscore-delimited, e.g. "COL1A1_COL1A2"). Returns a plain
-#          2-element list suitable for assembly into a NICHESObject via
-#          create_NICHESObject().
+# compute_CellToCell.R ----------------------------------------------------
+# Universal cell-to-cell ligand-receptor signal scoring engine.
+# Accepts any edge list produced by create_Edgelist_Spatial(),
+# create_Edgelist_PseudoBulk(), or create_Edgelist_SamplingByType().
+# Supports single-gene and multi-gene complex ligands / receptors
+# (underscore-delimited, e.g. "COL1A1_COL1A2"). Returns a plain
+# 2-element list suitable for assembly into a NICHESObject via
+# create_NICHESObject().
 #
 # FUNCTIONS:
 #   .sparse_emin()        (internal) element-wise min of sparse matrices
 #   compute_CellToCell()  main function
 #
 # OUTPUT STRUCTURE (plain named list):
-#   $edges   — data.table, one row per non-zero (edge × LRM)
-#   $lr.meta — data.table, one row per valid LRM pair
+#   $edges   - data.table, one row per non-zero (edge x LRM)
+#   $lr.meta - data.table, one row per valid LRM pair
 #
 # DEPS: Matrix (>= 1.5), data.table (>= 1.14), parallel
-# ==============================================================================
 
 
-# ==============================================================================
-# INTERNAL: Element-wise minimum of two non-negative sparse matrices
-# ==============================================================================
+## INTERNAL: Element-wise minimum of two non-negative sparse matrices ----
 
 #' @noRd
 .sparse_emin <- function(A, B) {
@@ -59,9 +55,10 @@
 #' @description
 #' Universal scoring engine for all NICHESv2 edge modes. For each edge and each
 #' valid LR pair, computes a signal score. The edge list may come from any of
-#' the three edgelist constructors — spatial, pseudobulk, or type-sampled — and
-#' the count matrix is expected to match accordingly (cell barcodes as column
-#' names for spatial and sampled modes; cell type names for pseudobulk mode).
+#' the three edgelist constructors -- spatial, pseudobulk, or type-sampled --
+#' and the count matrix is expected to match accordingly (cell barcodes as
+#' column names for spatial and sampled modes; cell type names for pseudobulk
+#' mode).
 #'
 #' Supports \strong{multi-gene complexes}: a ligand or receptor represented as
 #' \code{"gene1_gene2"} is split on \code{"_"} and all component expressions
@@ -70,17 +67,17 @@
 #'
 #' Built-in LRM databases can be loaded by name:
 #' \itemize{
-#'   \item \code{"fantom5"}  — Ramilowski et al. 2015 (requires \pkg{OmnipathR})
-#'   \item \code{"omnipath"} — OmniPath intercell network (requires \pkg{OmnipathR})
+#'   \item \code{"fantom5"}  -- Ramilowski et al. 2015 (requires \pkg{OmnipathR})
+#'   \item \code{"omnipath"} -- OmniPath intercell network (requires \pkg{OmnipathR})
 #' }
 #'
 #' @section Complex scoring example:
-#' LRM \code{"COL1A1_COL1A2 → ITGB1"} with \code{method = "product"}:
+#' LRM \code{"COL1A1_COL1A2 -> ITGB1"} with \code{method = "product"}:
 #' \deqn{score = \text{expr}_{send}(COL1A1) \times \text{expr}_{send}(COL1A2) \times \text{expr}_{recv}(ITGB1)}
 #' With \code{method = "minimum"}:
 #' \deqn{score = \min(\text{expr}_{send}(COL1A1),\ \text{expr}_{send}(COL1A2),\ \text{expr}_{recv}(ITGB1))}
 #'
-#' @param count.mtx    Gene × cell (or gene × type for pseudobulk) expression
+#' @param count.mtx    Gene x cell (or gene x type for pseudobulk) expression
 #'   matrix (sparse or dense). Row names = gene symbols; column names = cell
 #'   barcodes or cell type labels matching \code{edge.list$from} / \code{$to}.
 #' @param edge.list    \code{data.table} from \code{create_Edgelist_Spatial()},
@@ -96,7 +93,7 @@
 #' @param method       Scoring method. \code{"product"} (default) or
 #'   \code{"minimum"}. See Complex scoring section.
 #' @param n.cores      CPU cores for parallel LRM-chunk processing. Default 1.
-#'   Uses socket clusters (\code{parallel::makeCluster}) — works on Windows,
+#'   Uses socket clusters (\code{parallel::makeCluster}) -- works on Windows,
 #'   macOS, and Linux without OS restrictions.
 #'
 #' @return A plain named list with two elements:
@@ -105,7 +102,7 @@
 #'     \code{receptor}, \code{LRM} (\code{"ligand|receptor"}), \code{score},
 #'     plus \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to} when the
 #'     input \code{edge.list} carries coordinates (spatial only). One row per
-#'     non-zero (edge × LRM). Keyed on \code{(from, to, LRM)}.}
+#'     non-zero (edge x LRM). Keyed on \code{(from, to, LRM)}.}
 #'   \item{\code{$lr.meta}}{data.table: \code{ligand}, \code{receptor},
 #'     \code{LRM}, plus any extra columns from \code{LRM.db}. Keyed on
 #'     \code{(ligand, receptor)}.}
@@ -129,7 +126,7 @@ compute_CellToCell <- function(count.mtx,
   method  <- match.arg(method)
   n.cores <- as.integer(n.cores)
 
-  # ── Resolve LRM.db (accept name string or data.frame) ─────────────────────
+  # -- Resolve LRM.db (accept name string or data.frame) --------------------
   if (is.character(LRM.db) && length(LRM.db) == 1L) {
     LRM.db <- load_LRM_database(LRM.db, verbose = TRUE)
     ligand.col   <- "ligand"
@@ -140,12 +137,10 @@ compute_CellToCell <- function(count.mtx,
     stop("[compute_CellToCell] 'LRM.db' must be a data.frame or a ",
          "character string ('fantom5' or 'omnipath').")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 1 ── Validate & filter LRM pairs
+  ## SECTION 1: Validate & filter LRM pairs ----
   #
   # A pair is valid only when ALL gene components of BOTH ligand and receptor
   # are present as row names in count.mtx.
-  # ════════════════════════════════════════════════════════════════════════════
 
   ligands   <- as.character(LRM.db[[ligand.col]])
   receptors <- as.character(LRM.db[[receptor.col]])
@@ -175,9 +170,7 @@ compute_CellToCell <- function(count.mtx,
   if (n.lr == 0L)
     stop("[compute_CellToCell] No valid LR pairs remain after gene filtering.")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Validate & filter edges
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 2: Validate & filter edges ----
 
   cells.in.mtx   <- colnames(count.mtx)
   valid.edges    <- edge.list$from %in% cells.in.mtx & edge.list$to %in% cells.in.mtx
@@ -198,15 +191,14 @@ compute_CellToCell <- function(count.mtx,
     stop("[compute_CellToCell] No valid edges remain after identifier filtering.")
 
   message(sprintf(
-    "[compute_CellToCell] %d edges × %d LR pairs | method = '%s' | cores = %d",
+    "[compute_CellToCell] %d edges x %d LR pairs | method = '%s' | cores = %d",
     n.edges, n.lr, method, n.cores
   ))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Parallel computation over LRM chunks (socket cluster)
+  ## SECTION 3: Parallel computation over LRM chunks (socket cluster) ----
   #
   # LRM pairs are split into n.cores chunks; each worker processes one chunk,
-  # calling compute_LRM_Score() per pair and returning non-zero (edge, LRM,
+  # calling .compute_LRM_Score() per pair and returning non-zero (edge, LRM,
   # score) rows for its chunk.
   #
   # Internal scoring helpers are exported from the NICHESv2 namespace via
@@ -214,7 +206,6 @@ compute_CellToCell <- function(count.mtx,
   # builds. on.exit() guarantees stopCluster() even if an error occurs mid-run.
   # data.table threads are throttled to 1 per worker to prevent OpenMP
   # contention across socket-cluster workers.
-  # ════════════════════════════════════════════════════════════════════════════
 
   lr.idx.chunks <- if (n.cores == 1L) {
     list(seq_len(n.lr))
@@ -230,7 +221,7 @@ compute_CellToCell <- function(count.mtx,
     for (k in seq_along(chunk.idx)) {
       i <- chunk.idx[k]
 
-      score.vec <- compute_LRM_Score(
+      score.vec <- .compute_LRM_Score(
         lig.str       = ligands[i],
         rec.str       = receptors[i],
         count.mtx     = count.mtx,
@@ -268,16 +259,14 @@ compute_CellToCell <- function(count.mtx,
                   "sending.cells", "receiv.cells", "method"),
       envir = environment())
     parallel::clusterExport(cl,
-      varlist = c("compute_LRM_Score", ".parse_complex", ".genes_available"),
+      varlist = c(".compute_LRM_Score", ".parse_complex", ".genes_available"),
       envir = asNamespace("NICHESv2"))
     chunk.results <- parallel::parLapply(cl, lr.idx.chunks, .process_chunk)
   } else {
     chunk.results <- lapply(lr.idx.chunks, .process_chunk)
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4 ── Assemble edge data.table
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 4: Assemble edge data.table ----
 
   raw.chunks <- Filter(Negate(is.null), chunk.results)
   rm(chunk.results)
@@ -318,10 +307,8 @@ compute_CellToCell <- function(count.mtx,
 
   message(sprintf("[compute_CellToCell] Done. %d non-zero edge signals.", n.nonzero))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Build lr.meta
-  # ════════════════════════════════════════════════════════════════════════════
-  
+  ## SECTION 5: Build lr.meta ----
+
   # lr.meta: one row per valid LRM pair, standardise column names
   lr.meta <- as.data.table(LRM.valid)
   setnames(lr.meta,
@@ -331,11 +318,9 @@ compute_CellToCell <- function(count.mtx,
   lr.meta <- unique(lr.meta, by = c("ligand", "receptor"))
   lr.meta[, LRM := paste(ligand, receptor, sep = "|")]
   setkeyv(lr.meta, c("ligand", "receptor"))
-  
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 6 ── Return plain 2-element list
-  # ════════════════════════════════════════════════════════════════════════════
-  
+
+  ## SECTION 6: Return plain 2-element list ----
+
   list(
     edges   = edges,
     lr.meta = lr.meta

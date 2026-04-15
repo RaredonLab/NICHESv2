@@ -1,14 +1,12 @@
-# ==============================================================================
-# FILE:    CellToCell_InSitu.R
-# PURPOSE: Batch in situ plotting of LRM signals across all or a selected
-#          subset of pairs in a NICHESObject. Calls
-#          CellToCell_InSitu_Single_LRM() for each pair and saves PNGs.
+# CellToCell_InSitu.R -----------------------------------------------------
+# Batch in situ plotting of LRM signals across all or a selected
+# subset of pairs in a NICHESObject. Calls
+# CellToCell_InSitu_Single_LRM() for each pair and saves PNGs.
 #
 # FUNCTIONS:
-#   CellToCell_InSitu()  — main batch plotting function
+#   CellToCell_InSitu()  -- main batch plotting function
 #
 # DEPS: ggplot2, data.table, scales, parallel
-# ==============================================================================
 
 
 # ==============================================================================
@@ -20,9 +18,9 @@
 #'
 #' Two output modes:
 #' \itemize{
-#'   \item \strong{\code{LRM.list = NULL}} — plots all pairs in
+#'   \item \strong{\code{LRM.list = NULL}} -- plots all pairs in
 #'     \code{$LRM.list}; saved to \code{folder}.
-#'   \item \strong{\code{LRM.list = character vector}} — plots only the named
+#'   \item \strong{\code{LRM.list = character vector}} -- plots only the named
 #'     pairs; saved to \code{folder/selected_LRMs/}.
 #' }
 #'
@@ -77,9 +75,7 @@ CellToCell_InSitu <- function(niches.obj,
 
   n.cores <- as.integer(n.cores)
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 1 ── Resolve output directory and LRM pair list
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 1: Resolve output directory and LRM pair list ----
 
   selected.mode <- !is.null(LRM.list)
 
@@ -113,9 +109,7 @@ CellToCell_InSitu <- function(niches.obj,
   n.pairs <- nrow(pairs)
   message(sprintf("[CellToCell_InSitu] %d LRM pair(s) to plot.", n.pairs))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Per-pair plotting job
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 2: Per-pair plotting job ----
 
   .plot_one <- function(i) {
     lrm   <- pairs$LRM[i]
@@ -144,33 +138,29 @@ CellToCell_InSitu <- function(niches.obj,
     })
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Slim the NICHESObject before export
+  ## SECTION 3: Slim the NICHESObject before export ----
   #
   # Socket clusters serialise every exported object and send it over a local
   # socket to each worker. The full niches.obj is expensive to ship because:
-  #   $cell.data  — large sparse table, completely unused by plotting
-  #   $edge.data  — contains ALL LRMs; only the pairs being plotted are needed
+  #   $cell.data  -- large sparse table, completely unused by plotting
+  #   $edge.data  -- contains ALL LRMs; only the pairs being plotted are needed
   #
   # We overwrite niches.obj in this local environment with a stripped version:
-  #   $cell.data  → NULL
-  #   $edge.data  → filtered to rows whose LRM is in the current pair list
+  #   $cell.data  -> NULL
+  #   $edge.data  -> filtered to rows whose LRM is in the current pair list
   #
   # .plot_one() looks up niches.obj at call time (R lexical scoping), so it
   # automatically uses the slim version with no other code changes required.
-  # ════════════════════════════════════════════════════════════════════════════
 
   niches.obj$cell.data <- NULL
   niches.obj$edge.data <- niches.obj$edge.data[LRM %in% pairs$LRM]
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4 ── Pre-compute background edge table once
+  ## SECTION 4: Pre-compute background edge table once ----
   #
   # The background (all inter-cell edges with coordinates attached) is identical
-  # for every LRM — building it inside Single_LRM would repeat two O(n_edges)
+  # for every LRM -- building it inside Single_LRM would repeat two O(n_edges)
   # joins for every plot. We build it once here and pass it to every worker
   # via precomputed.bg, so Single_LRM skips Section 3 entirely in batch mode.
-  # ════════════════════════════════════════════════════════════════════════════
 
   coords    <- niches.obj$cell.meta[, .(cell, x, y)]
   all.edges <- niches.obj$edge.list[SendingCell != ReceivingCell]
@@ -183,8 +173,7 @@ CellToCell_InSitu <- function(niches.obj,
   setnames(all.edges, c("x", "y"), c("x.to", "y.to"))
   setnames(all.edges, "cell", "ReceivingCell")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Execute (socket cluster on all platforms)
+  ## SECTION 5: Execute (socket cluster on all platforms) ----
   #
   # Socket clusters (parallel::makeCluster + parLapply) work on Windows,
   # macOS, and Linux. Unlike fork-based mclapply, they avoid the CoreText
@@ -198,7 +187,6 @@ CellToCell_InSitu <- function(niches.obj,
   #     to prevent OpenMP contention across socket-cluster workers
   #
   # on.exit() guarantees stopCluster() even if an error occurs mid-batch.
-  # ════════════════════════════════════════════════════════════════════════════
 
   message(sprintf("[CellToCell_InSitu] Plotting with %d core(s) ...", n.cores))
 
@@ -231,9 +219,7 @@ CellToCell_InSitu <- function(niches.obj,
     job.results <- lapply(seq_len(n.pairs), .plot_one)
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Summarise and report
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 5: Summarise and report ----
 
   summary.df <- rbindlist(lapply(job.results, as.data.table))
   n.saved    <- sum(summary.df$status == "saved")

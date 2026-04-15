@@ -1,11 +1,11 @@
-# ==============================================================================
-# FILE:    build_edge_meta.R
-# PURPOSE: Join sending/receiving cell metadata onto an edge list.
-# ==============================================================================
+# build_edge_meta.R -------------------------------------------------------
+# Join sending/receiving cell metadata onto an edge list.
+# Internal helper used by .create_NICHESObject_single() and
+# add_cell_meta().
 
 #' Join cell metadata onto an edge list to produce edge.meta
 #'
-#' Takes an edge list (with columns \code{edge}, \code{SendingCell},
+#' Internal. Takes an edge list (with columns \code{edge}, \code{SendingCell},
 #' \code{ReceivingCell}) and a keyed cell metadata table, and produces the
 #' \code{edge.meta} table by joining sending and receiving cell metadata onto
 #' each edge.
@@ -23,9 +23,9 @@
 #' @param cell.meta    A \code{data.table} keyed on \code{cell}.
 #' @return A keyed \code{data.table} containing the edge list plus
 #'   \code{Sending.*}, \code{Receiving.*}, and \code{Joint.*} columns.
-#' @export
+#' @noRd
 #' @import data.table
-build_edge_meta <- function(edge.list.dt, cell.meta) {
+.build_edge_meta <- function(edge.list.dt, cell.meta) {
   meta.cols <- setdiff(colnames(cell.meta), "cell")
   edge.meta <- copy(edge.list.dt)
   if (length(meta.cols) == 0L) return(edge.meta)

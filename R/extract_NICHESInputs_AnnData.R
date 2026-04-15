@@ -1,30 +1,29 @@
-# ============================================================================
+# extract_NICHESInputs_AnnData.R ------------------------------------------
 # Internal helpers for parsing .h5ad (AnnData HDF5) files via rhdf5.
-# No Python, no conda, no basilisk — pure C HDF5 bindings.
+# No Python, no conda, no basilisk -- pure C HDF5 bindings.
 #
 # h5ad layout (AnnData spec):
-#   /X                      — main matrix (dense or sparse CSR/CSC)
-#   /layers/<name>          — named layers (same format as X)
-#   /obs/_index             — cell barcodes (obs_names)
-#   /obs/<col>              — cell metadata columns
-#   /var/_index             — gene names (var_names)
-#   /uns                    — unstructured metadata (ignored)
+#   /X                      -- main matrix (dense or sparse CSR/CSC)
+#   /layers/<name>          -- named layers (same format as X)
+#   /obs/_index             -- cell barcodes (obs_names)
+#   /obs/<col>              -- cell metadata columns
+#   /var/_index             -- gene names (var_names)
+#   /uns                    -- unstructured metadata (ignored)
 #
 # All matrices in h5ad are stored obs x vars = cells x genes.
 # All functions below return data in genes x cells convention (NICHESv2 standard).
 #
 # Sparse matrix HDF5 layout (CSR or CSC):
-#   <group>/data    — non-zero values
-#   <group>/indices — row (CSC) or col (CSR) indices, 0-based
-#   <group>/indptr  — col (CSC) or row (CSR) pointers, 0-based
+#   <group>/data    -- non-zero values
+#   <group>/indices -- row (CSC) or col (CSR) indices, 0-based
+#   <group>/indptr  -- col (CSC) or row (CSR) pointers, 0-based
 #   attrs: encoding-type = "csr_matrix" | "csc_matrix"
 #          shape          = [n_obs, n_vars]
 #
 # Dense matrix HDF5 layout:
-#   <dataset>       — 2D array stored C-order (row-major) as [n_obs, n_vars]
+#   <dataset>       -- 2D array stored C-order (row-major) as [n_obs, n_vars]
 #   attrs: encoding-type = "array"  (may be absent in old files)
-#   rhdf5 reverses dim order on read → R matrix is [n_vars, n_obs] = genes x cells
-# ============================================================================
+#   rhdf5 reverses dim order on read -> R matrix is [n_vars, n_obs] = genes x cells
 
 #' @noRd
 .h5ad_attrs <- function(file, path) {
@@ -105,7 +104,7 @@
 
   if (enc %in% c("csr_matrix", "csc_matrix")) {
     mat <- .h5ad_read_sparse(file, path)   # obs x vars (cells x genes)
-    return(methods::as(Matrix::t(mat), "dgCMatrix"))  # → vars x obs
+    return(methods::as(Matrix::t(mat), "dgCMatrix"))  # -> vars x obs
   }
 
   # Dense array. rhdf5 reverses C-order HDF5 dims on read:
@@ -148,7 +147,7 @@
       codes.0 <- as.integer(rhdf5::h5read(file, paste0(path, "/codes")))
       na.mask <- (codes.0 == -1L)
       codes.0[na.mask] <- 0L          # prevent 0-index into cats
-      vals    <- cats[codes.0 + 1L]   # 0-based → 1-based
+      vals    <- cats[codes.0 + 1L]   # 0-based -> 1-based
       vals[na.mask] <- NA_character_
       result[[cn]] <- vals
     } else {
@@ -168,14 +167,12 @@
   df
 }
 
-# ============================================================================
-# Exported function
-# ============================================================================
+## Exported function ----
 
 #' Extract inputs for create_NICHESObject from an AnnData (.h5ad) file
 #'
 #' Reads a \code{.h5ad} file using \pkg{rhdf5} (no Python, no conda, no
-#' basilisk — pure C HDF5 bindings, compatible with R \eqn{\geq} 4.2) and
+#' basilisk -- pure C HDF5 bindings, compatible with R \eqn{\geq} 4.2) and
 #' returns the count matrix and cell metadata as a named list ready to pass
 #' directly to \code{\link{create_NICHESObject}}.
 #'
@@ -245,7 +242,7 @@ extract_NICHESInputs_AnnData <- function(file,
                                           obs.cols = NULL,
                                           verbose  = TRUE) {
 
-  # ── dependency check ─────────────────────────────────────────────────────────
+  # -- dependency check ---------------------------------------------------------
   if (!requireNamespace("rhdf5", quietly = TRUE)) {
     stop(
       "Package 'rhdf5' is required but is not installed.\n",
@@ -254,7 +251,7 @@ extract_NICHESInputs_AnnData <- function(file,
     )
   }
 
-  # ── validate file ─────────────────────────────────────────────────────────────
+  # -- validate file -------------------------------------------------------------
   if (!file.exists(file)) {
     stop("File not found: ", file)
   }
@@ -265,13 +262,13 @@ extract_NICHESInputs_AnnData <- function(file,
     )
   }
 
-  # ── read dimension names (used for orientation check and naming) ───────────
+  # -- read dimension names (used for orientation check and naming) -----------
   obs.names <- .h5ad_obs_names(file)   # cell barcodes
   var.names <- .h5ad_var_names(file)   # gene names
   n.obs     <- length(obs.names)
   n.vars    <- length(var.names)
 
-  # ── validate requested layer ─────────────────────────────────────────────────
+  # -- validate requested layer -------------------------------------------------
   available.layers <- .h5ad_available_layers(file)
   if (!layer %in% available.layers) {
     stop(
@@ -281,13 +278,13 @@ extract_NICHESInputs_AnnData <- function(file,
     )
   }
 
-  # ── read matrix → genes x cells ──────────────────────────────────────────────
+  # -- read matrix -> genes x cells ----------------------------------------------
   mat.path  <- if (layer == "X") "X" else paste0("layers/", layer)
   count.mtx <- .h5ad_read_matrix(file, mat.path, n.obs, n.vars)
   rownames(count.mtx) <- var.names
   colnames(count.mtx) <- obs.names
 
-  # ── read cell metadata ────────────────────────────────────────────────────────
+  # -- read cell metadata --------------------------------------------------------
   meta.data <- .h5ad_read_obs(file, obs.names)
 
   if (!is.null(obs.cols)) {
@@ -302,7 +299,7 @@ extract_NICHESInputs_AnnData <- function(file,
     meta.data <- meta.data[, obs.cols, drop = FALSE]
   }
 
-  # ── messages ─────────────────────────────────────────────────────────────────
+  # -- messages -----------------------------------------------------------------
   if (verbose) {
     n.cols <- ncol(meta.data)
     shown  <- head(colnames(meta.data), 5L)

@@ -1,15 +1,13 @@
-# ==============================================================================
-# FILE:    load_LRM_database.R
-# PURPOSE: Load a ligand-receptor pair database, either from a built-in
-#          shorthand ("fantom5", "omnipath") or from a user-supplied
-#          data.frame. Always returns a standardised data.frame with at least
-#          two columns: "ligand" and "receptor".
+# load_LRM_database.R -----------------------------------------------------
+# Load a ligand-receptor pair database, either from a built-in
+# shorthand ("fantom5", "omnipath") or from a user-supplied
+# data.frame. Always returns a standardised data.frame with at least
+# two columns: "ligand" and "receptor".
 #
 # FUNCTIONS:
-#   load_LRM_database()  — main function
+#   load_LRM_database()  -- main function
 #
 # DEPS: data.table
-# ==============================================================================
 
 
 # ==============================================================================
@@ -33,7 +31,7 @@
 #'     (DOI: 10.1126/sciadv.aaw3851).
 #'   }
 #'   \item{\code{"omnipath"}}{
-#'     OmniPath ligand-receptor extra interactions (Türei et al. 2021).
+#'     OmniPath ligand-receptor extra interactions (Turei et al. 2021).
 #'     Requires internet access and the \pkg{OmnipathR} package.
 #'     Install with: \code{BiocManager::install("OmnipathR")}.
 #'     Supported species: \code{"human"}, \code{"mouse"}, \code{"rat"}.
@@ -51,7 +49,7 @@
 #'   containing ligand and receptor gene symbols.
 #' @param species       Species for built-in databases. One of \code{"human"}
 #'   (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
-#'   (FANTOM5 only — OmniPath does not support pig). Ignored silently when
+#'   (FANTOM5 only -- OmniPath does not support pig). Ignored silently when
 #'   \code{db} is a \code{data.frame}.
 #' @param ligand.col    Column name for ligand symbols when \code{db} is a
 #'   \code{data.frame}. Default: \code{"ligand"}.
@@ -65,7 +63,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Built-in databases — species must match your count matrix gene symbols
+#' # Built-in databases -- species must match your count matrix gene symbols
 #' lrm <- load_LRM_database("fantom5", species = "human")
 #' lrm <- load_LRM_database("fantom5", species = "rat")
 #' lrm <- load_LRM_database("omnipath", species = "mouse")
@@ -85,7 +83,7 @@ load_LRM_database <- function(db,
                                receptor.col = "receptor",
                                verbose      = TRUE) {
 
-  # ── Dispatch on type ────────────────────────────────────────────────────────
+  # -- Dispatch on type --------------------------------------------------------
   if (is.character(db) && length(db) == 1L) {
     db.name <- tolower(db)
 
@@ -110,7 +108,7 @@ load_LRM_database <- function(db,
     )
   }
 
-  # ── Final cleaning: remove NA rows, reset rownames ─────────────────────────
+  # -- Final cleaning: remove NA rows, reset rownames -------------------------
   result <- result[!is.na(result$ligand) & !is.na(result$receptor), , drop = FALSE]
   rownames(result) <- NULL
 
@@ -118,9 +116,7 @@ load_LRM_database <- function(db,
 }
 
 
-# ==============================================================================
-# INTERNAL LOADERS
-# ==============================================================================
+## INTERNAL LOADERS ----
 
 #' @noRd
 .load_fantom5 <- function(species, verbose) {

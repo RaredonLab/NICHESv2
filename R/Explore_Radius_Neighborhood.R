@@ -20,7 +20,7 @@
 #'   \code{(r.max - r.min) / 50} (50 evenly spaced evaluation points).
 #' @param n.sample integer(1) or NULL. Number of cells to randomly sample for
 #'   the neighbourhood estimate. Default 2000. Set to \code{NULL} to use all
-#'   cells — not recommended for large datasets.
+#'   cells -- not recommended for large datasets.
 #' @param seed integer(1) or NULL. Random seed for reproducible sampling.
 #'   Default 42.
 #' @param n.cores integer(1). Number of parallel workers (socket cluster) for
@@ -49,7 +49,7 @@ Explore_Radius_Neighborhood <- function(
   show.plot = TRUE
 ) {
 
-  # ── 1. Validate coord ───────────────────────────────────────────────────────
+  # -- 1. Validate coord -------------------------------------------------------
   if (!is.data.frame(coord)) {
     stop(
       "coord must be a data.frame with row names as cell barcodes and ",
@@ -67,7 +67,7 @@ Explore_Radius_Neighborhood <- function(
     stop("coord must contain at least 2 cells.")
   }
 
-  # ── 2. Sampling ─────────────────────────────────────────────────────────────
+  # -- 2. Sampling -------------------------------------------------------------
   if (is.null(n.sample)) {
     warning(
       "n.sample = NULL: neighbourhood sizes will be estimated from ALL ",
@@ -82,7 +82,7 @@ Explore_Radius_Neighborhood <- function(
       stop("n.sample must be a positive integer.")
     }
     if (n.sample >= n.cells) {
-      # Requested more than available — silently use all cells.
+      # Requested more than available -- silently use all cells.
       sample.idx <- seq_len(n.cells)
     } else {
       if (!is.null(seed)) set.seed(as.integer(seed))
@@ -91,11 +91,11 @@ Explore_Radius_Neighborhood <- function(
   }
   n.sample.actual <- length(sample.idx)
 
-  # ── 3. Coordinate matrices ──────────────────────────────────────────────────
+  # -- 3. Coordinate matrices --------------------------------------------------
   coords.mat    <- as.matrix(coord[, 1:2, drop = FALSE])
   sample.coords <- coords.mat[sample.idx, , drop = FALSE]
 
-  # ── 4. Auto-compute radius defaults from bounding box ──────────────────────
+  # -- 4. Auto-compute radius defaults from bounding box ----------------------
   x.range   <- range(coords.mat[, 1L])
   y.range   <- range(coords.mat[, 2L])
   bbox.diag <- sqrt(diff(x.range)^2 + diff(y.range)^2)
@@ -103,7 +103,7 @@ Explore_Radius_Neighborhood <- function(
   if (is.null(r.min)) r.min <- bbox.diag * 0.01
   if (is.null(r.max)) r.max <- bbox.diag * 0.20
 
-  # ── 5. Validate radius parameters ──────────────────────────────────────────
+  # -- 5. Validate radius parameters ------------------------------------------
   if (!is.numeric(r.min) || length(r.min) != 1L || is.na(r.min) || r.min < 0) {
     stop("r.min must be a single non-negative numeric value.")
   }
@@ -129,7 +129,7 @@ Explore_Radius_Neighborhood <- function(
     )
   }
 
-  # ── 6. Build radius sequence ────────────────────────────────────────────────
+  # -- 6. Build radius sequence ------------------------------------------------
   r.seq   <- seq(r.min, r.max, by = r.step)
   n.radii <- length(r.seq)
 
@@ -140,7 +140,7 @@ Explore_Radius_Neighborhood <- function(
     )
   }
 
-  # ── 7. Single frNN query at r.max ───────────────────────────────────────────
+  # -- 7. Single frNN query at r.max -------------------------------------------
   # Query sampled cells against ALL cells within r.max.
   # frNN returns distances sorted ascending (sort = TRUE), enabling
   # fast O(log k) threshold counting via findInterval() below.
@@ -159,10 +159,10 @@ Explore_Radius_Neighborhood <- function(
     dists.clean[[i]] <- ds[ids != sample.idx[i]]
   }
 
-  # ── 8. Count neighbors at each radius ──────────────────────────────────────
+  # -- 8. Count neighbors at each radius --------------------------------------
   # For each sampled cell and radius r: count of distances <= r.
   # findInterval(r, d) on a sorted d gives exactly this in O(log k).
-  # Result: n.sample × n.radii integer matrix.
+  # Result: n.sample x n.radii integer matrix.
 
   n.workers <- min(as.integer(n.cores), n.radii)
 
@@ -182,7 +182,7 @@ Explore_Radius_Neighborhood <- function(
     )
 
     chunk.mats <- parallel::parLapply(cl, r.chunks, function(r.chunk) {
-      # Returns n.sample × length(r.chunk) integer matrix
+      # Returns n.sample x length(r.chunk) integer matrix
       t(vapply(
         dists.clean,
         function(d) vapply(r.chunk, function(r) findInterval(r, d), integer(1L)),
@@ -200,7 +200,7 @@ Explore_Radius_Neighborhood <- function(
     ))
   }
 
-  # ── 9. Summarise across sampled cells ──────────────────────────────────────
+  # -- 9. Summarise across sampled cells --------------------------------------
   result.dt <- data.table::data.table(
     radius           = r.seq,
     mean.neighbors   = colMeans(count.mat),
@@ -208,7 +208,7 @@ Explore_Radius_Neighborhood <- function(
     median.neighbors = apply(count.mat, 2L, median)
   )
 
-  # ── 10. Plot ────────────────────────────────────────────────────────────────
+  # -- 10. Plot ----------------------------------------------------------------
   if (show.plot) {
     p <- ggplot2::ggplot(
       result.dt,

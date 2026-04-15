@@ -1,14 +1,12 @@
-# ==============================================================================
-# FILE:    compute_PseudoBulk_Connectivity.R
-# PURPOSE: Compute pseudobulk cell-type-to-cell-type ligand-receptor
-#          connectivity. Returns a lightweight data.table (not a NICHESObject)
-#          summarising average signal from each cell type to each other type.
+# compute_PseudoBulk_Connectivity.R ---------------------------------------
+# Compute pseudobulk cell-type-to-cell-type ligand-receptor
+# connectivity. Returns a lightweight data.table (not a NICHESObject)
+# summarising average signal from each cell type to each other type.
 #
 # FUNCTIONS:
-#   compute_PseudoBulk_Connectivity()  — main function
+#   compute_PseudoBulk_Connectivity()  -- main function
 #
 # DEPS: data.table (>= 1.14), Matrix (>= 1.5), parallel
-# ==============================================================================
 
 
 # ==============================================================================
@@ -16,17 +14,17 @@
 #'
 #' @description
 #' Computes ligand-receptor signal scores between all ordered cell type pairs
-#' using per-type mean expression profiles (pseudobulk). Covers all T² directed
-#' type-to-type crossings including autocrine (A → A).
+#' using per-type mean expression profiles (pseudobulk). Covers all T^2 directed
+#' type-to-type crossings including autocrine (A -> A).
 #'
 #' Unlike \code{create_NICHESObject()}, this function does \strong{not} build
 #' a \code{NICHESObject}. It returns a compact \code{data.table} directly
 #' suitable for heatmap or network visualisation of type-level communication.
-#' This is intentional — the pseudobulk output is type-level rather than
+#' This is intentional -- the pseudobulk output is type-level rather than
 #' cell-level and does not benefit from the full NICHESObject slot structure.
 #'
 #' @section Output schema:
-#' One row per (type-pair × non-zero LRM):
+#' One row per (type-pair x non-zero LRM):
 #' \describe{
 #'   \item{\code{SendingType}}{Sending cell type label.}
 #'   \item{\code{ReceivingType}}{Receiving cell type label.}
@@ -35,11 +33,11 @@
 #'   \item{\code{receptor}}{Receptor gene or complex.}
 #'   \item{\code{score}}{Raw LR signal (product or minimum of mean expressions).}
 #'   \item{\code{score.norm}}{Score normalised proportionally per type-pair edge
-#'     (sums to 1.0 across all LRMs for a given sending–receiving pair), or equal
+#'     (sums to 1.0 across all LRMs for a given sending-receiving pair), or equal
 #'     to \code{score} when \code{normalize.method = "none"}.}
 #' }
 #'
-#' @param count.mtx      Gene × cell expression matrix (sparse or dense).
+#' @param count.mtx      Gene x cell expression matrix (sparse or dense).
 #'   Row names = gene symbols; column names = cell barcodes.
 #' @param meta.data      \code{data.frame} with row names = cell barcodes.
 #'   Must contain the column named by \code{cell.type.col}.
@@ -56,7 +54,7 @@
 #'   \code{"minimum"}.
 #' @param normalize.method Normalisation for \code{score.norm}:
 #'   \code{"prop"} (default, proportional per type-pair) or \code{"none"}.
-#' @param n.cores        CPU cores. Default 1. Socket cluster — works on all
+#' @param n.cores        CPU cores. Default 1. Socket cluster -- works on all
 #'   platforms.
 #' @param verbose        Print progress messages. Default \code{TRUE}.
 #'
@@ -96,9 +94,7 @@ compute_PseudoBulk_Connectivity <- function(count.mtx,
   normalize.method <- match.arg(normalize.method)
   n.cores          <- as.integer(n.cores)
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 1 ── Input validation
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 1: Input validation ----
 
   if (!is.matrix(count.mtx) && !inherits(count.mtx, "sparseMatrix"))
     stop("[compute_PseudoBulk_Connectivity] 'count.mtx' must be a matrix or sparseMatrix.")
@@ -116,9 +112,7 @@ compute_PseudoBulk_Connectivity <- function(count.mtx,
       cell.type.col
     ))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Cell alignment
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 2: Cell alignment ----
 
   shared.cells <- intersect(rownames(meta.data), colnames(count.mtx))
   if (length(shared.cells) == 0L)
@@ -126,28 +120,26 @@ compute_PseudoBulk_Connectivity <- function(count.mtx,
 
   if (length(shared.cells) < ncol(count.mtx) && verbose)
     message(sprintf(
-      "[compute_PseudoBulk_Connectivity] %d cell(s) in count.mtx not in meta.data — excluded.",
+      "[compute_PseudoBulk_Connectivity] %d cell(s) in count.mtx not in meta.data -- excluded.",
       ncol(count.mtx) - length(shared.cells)
     ))
   if (length(shared.cells) < nrow(meta.data) && verbose)
     message(sprintf(
-      "[compute_PseudoBulk_Connectivity] %d cell(s) in meta.data not in count.mtx — excluded.",
+      "[compute_PseudoBulk_Connectivity] %d cell(s) in meta.data not in count.mtx -- excluded.",
       nrow(meta.data) - length(shared.cells)
     ))
 
   count.mtx <- count.mtx[, shared.cells, drop = FALSE]
   meta.data  <- meta.data[shared.cells, , drop = FALSE]
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Build pseudobulk edge list and mean-expression matrix
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 3: Build pseudobulk edge list and mean-expression matrix ----
 
   if (verbose) message("[compute_PseudoBulk_Connectivity] Building type-pair edge list ...")
 
   el.raw <- create_Edgelist_PseudoBulk(meta.data     = meta.data,
                                         cell.type.col = cell.type.col)
 
-  # Per-type mean expression: genes × cell_types dense matrix.
+  # Per-type mean expression: genes x cell_types dense matrix.
   # Column order follows the sorted type labels in attr(el.raw, "cell.names")
   # so colnames() matches the from/to values in el.raw exactly.
   cell.types.ordered <- attr(el.raw, "cell.names")
@@ -160,9 +152,7 @@ compute_PseudoBulk_Connectivity <- function(count.mtx,
   }))
   colnames(pb.mtx) <- cell.types.ordered
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4 ── Score LRM pairs across all type-pair edges
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 4: Score LRM pairs across all type-pair edges ----
 
   if (verbose) message("[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...")
 
@@ -176,9 +166,7 @@ compute_PseudoBulk_Connectivity <- function(count.mtx,
     n.cores      = n.cores
   )
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Assemble and normalise output data.table
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 5: Assemble and normalise output data.table ----
 
   result <- elr$edges[, .(
     SendingType   = from,
