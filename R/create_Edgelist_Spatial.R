@@ -1,15 +1,13 @@
-# ==============================================================================
-# FILE:    create_Edgelist_Spatial.R
-# PURPOSE: Build a spatial neighbourhood edge list from 2-D cell coordinates.
-#          Supports mutual k-nearest-neighbour (kNN) and fixed-radius modes.
-#          Uses kd-tree indexing to avoid O(n²) full distance matrix computation.
-#          Autocrine (self-loop) edges are always appended for every cell.
+# create_Edgelist_Spatial.R -----------------------------------------------
+# Build a spatial neighbourhood edge list from 2-D cell coordinates.
+# Supports mutual k-nearest-neighbour (kNN) and fixed-radius modes.
+# Uses kd-tree indexing to avoid O(n^2) full distance matrix computation.
+# Autocrine (self-loop) edges are always appended for every cell.
 #
 # FUNCTIONS:
-#   create_Edgelist_Spatial()  — main function
+#   create_Edgelist_Spatial()  -- main function
 #
 # DEPS: RANN (>= 2.6), dbscan (>= 1.1), data.table (>= 1.14), parallel
-# ==============================================================================
 
 
 # ==============================================================================
@@ -20,15 +18,15 @@
 #' Two computation modes are available for inter-cell edges:
 #'
 #' \itemize{
-#'   \item \strong{kNN mode} — finds \code{k} nearest neighbours per cell via a
-#'     kd-tree (\code{RANN::nn2}). Only \emph{mutual} edges are retained (A→B
-#'     kept only if B→A also exists). Non-mutual edges are discarded.
-#'   \item \strong{Radius mode} — finds all cells within Euclidean distance
+#'   \item \strong{kNN mode} -- finds \code{k} nearest neighbours per cell via a
+#'     kd-tree (\code{RANN::nn2}). Only \emph{mutual} edges are retained (A->B
+#'     kept only if B->A also exists). Non-mutual edges are discarded.
+#'   \item \strong{Radius mode} -- finds all cells within Euclidean distance
 #'     \code{rad} via a kd-tree (\code{dbscan::frNN}). Edges are inherently
 #'     symmetric.
 #' }
 #'
-#' Autocrine self-loop edges (A→A, \code{weight = 0}) are always appended for
+#' Autocrine self-loop edges (A->A, \code{weight = 0}) are always appended for
 #' every cell in both modes.
 #'
 #' @param coord   \code{data.frame}. First column = x, second column = y.
@@ -55,10 +53,10 @@
 #' @details
 #' \strong{Parameter resolution (priority):}
 #' \enumerate{
-#'   \item Both NULL / invalid → default \code{k = 4}.
-#'   \item Both valid → radius mode; user notified.
-#'   \item Only \code{rad} valid → radius mode.
-#'   \item Only \code{k} valid → kNN mode (mutual edges only).
+#'   \item Both NULL / invalid -> default \code{k = 4}.
+#'   \item Both valid -> radius mode; user notified.
+#'   \item Only \code{rad} valid -> radius mode.
+#'   \item Only \code{k} valid -> kNN mode (mutual edges only).
 #' }
 #'
 #' @examples
@@ -74,9 +72,7 @@ create_Edgelist_Spatial <- function(coord,
                                      rad     = NULL,
                                      n.cores = 1L) {
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 1 ── Input validation
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 1: Input validation ----
 
   if (!is.data.frame(coord))
     stop("[create_Edgelist_Spatial] 'coord' must be a data.frame.")
@@ -107,9 +103,7 @@ create_Edgelist_Spatial <- function(coord,
   if (n.cells < 2L)
     stop("[create_Edgelist_Spatial] 'coord' must contain at least 2 cells.")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Mode resolution
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 2: Mode resolution ----
 
   .is_valid_k <- function(x)
     !is.null(x) && is.numeric(x) && length(x) == 1L &&
@@ -127,7 +121,7 @@ create_Edgelist_Spatial <- function(coord,
     k          <- 4L
     use.radius <- FALSE
   } else if (k.valid && rad.valid) {
-    message("[create_Edgelist_Spatial] Both 'k' and 'rad' valid — switching to radius mode.")
+    message("[create_Edgelist_Spatial] Both 'k' and 'rad' valid -- switching to radius mode.")
     use.radius <- TRUE
   } else if (rad.valid) {
     use.radius <- TRUE
@@ -136,14 +130,12 @@ create_Edgelist_Spatial <- function(coord,
     use.radius <- FALSE
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Socket cluster setup (all platforms)
+  ## SECTION 3: Socket cluster setup (all platforms) ----
   #
   # parallel::makeCluster spawns independent worker processes via sockets.
   # Unlike mclapply (fork-based, Unix only), socket clusters work on Windows,
   # macOS, and Linux without OS-specific guards or font-rendering instability.
   # on.exit() guarantees stopCluster() is called even if the function errors.
-  # ════════════════════════════════════════════════════════════════════════════
 
   if (n.cores > 1L) {
     cl <- parallel::makeCluster(n.cores)
@@ -151,9 +143,7 @@ create_Edgelist_Spatial <- function(coord,
     parallel::clusterEvalQ(cl, library(data.table))
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4A ── Radius mode (dbscan::frNN)
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 4A -- Radius mode (dbscan::frNN) ----
 
   if (use.radius) {
 
@@ -179,9 +169,7 @@ create_Edgelist_Spatial <- function(coord,
     }
     edge.dt <- rbindlist(Filter(Negate(is.null), edge.lst))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4B ── kNN mode (RANN::nn2, mutual edges only)
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 4B -- kNN mode (RANN::nn2, mutual edges only) ----
 
   } else {
 
@@ -220,9 +208,7 @@ create_Edgelist_Spatial <- function(coord,
     edge.dt[, to   := cell.names[to]]
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Append autocrine edges & attach coordinates
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 5: Append autocrine edges & attach coordinates ----
 
   autocrine.dt <- data.table(from = cell.names, to = cell.names, weight = 0)
   edge.dt      <- rbindlist(list(edge.dt, autocrine.dt), use.names = TRUE)

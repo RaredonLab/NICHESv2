@@ -1,22 +1,18 @@
-# ==============================================================================
-# FILE:    NICHESObject_class.R
-# PURPOSE: S3 class definition for NICHESObject — the central data structure
-#          of the NICHESv2 package. Defines the 14-slot specification and all
-#          S3 methods: print, summary, dim, length, [, and is_NICHESObject.
+# NICHESObject_class.R ----------------------------------------------------
+# S3 class definition for NICHESObject -- the central data structure
+# of the NICHESv2 package. Defines the 14-slot specification and all
+# S3 methods: print, summary, dim, length, [, and is_NICHESObject.
 #
 # DEPS: data.table
-# ==============================================================================
 
 
-# ==============================================================================
-# LOW-LEVEL CONSTRUCTOR (internal)
+## LOW-LEVEL CONSTRUCTOR (internal) ----
 #
 # Creates a validated NICHESObject from its 14 constituent slots. Called by
-# create_NICHESObject() — end users should never call this directly.
+# create_NICHESObject() -- end users should never call this directly.
 #
 # All slot-level validation lives here so that every NICHESObject, regardless
 # of how it was built, satisfies the invariants.
-# ==============================================================================
 
 #' @noRd
 .new_NICHESObject <- function(
@@ -36,7 +32,7 @@
     segmentation           = NULL
 ) {
 
-  # ── Slot-type invariants ───────────────────────────────────────────────────
+  # -- Slot-type invariants ---------------------------------------------------
   stopifnot(
     is.character(cell.list),
     is.data.table(cell.data),
@@ -50,7 +46,7 @@
     is.data.table(LRM.meta)
   )
 
-  # ── Required column invariants ─────────────────────────────────────────────
+  # -- Required column invariants ---------------------------------------------
   .require_cols <- function(dt, cols, slot.name) {
     missing <- setdiff(cols, colnames(dt))
     if (length(missing) > 0L)
@@ -88,9 +84,7 @@
 }
 
 
-# ==============================================================================
-# PUBLIC IDENTITY CHECK
-# ==============================================================================
+## PUBLIC IDENTITY CHECK ----
 
 #' Test whether an object is a NICHESObject
 #'
@@ -100,12 +94,9 @@
 is_NICHESObject <- function(x) inherits(x, "NICHESObject")
 
 
-# ==============================================================================
-# S3 METHODS
-# ==============================================================================
+## S3 METHODS ----
 
-# ------------------------------------------------------------------------------
-#' @export
+## ' @export ----
 print.NICHESObject <- function(x, ...) {
   n.cells.nonempty <- uniqueN(x$cell.data$cell)
   n.genes.valid    <- uniqueN(x$cell.data$gene)
@@ -118,7 +109,7 @@ print.NICHESObject <- function(x, ...) {
     "none"
   }
 
-  cat("── NICHESObject ────────────────────────────────────────────\n")
+  cat("-- NICHESObject --------------------------------------------\n")
   cat(sprintf("  Cells        : %d  (%d non-empty)\n",
               length(x$cell.list), n.cells.nonempty))
   cat(sprintf("  Genes        : %d  (%d valid)\n",
@@ -129,27 +120,26 @@ print.NICHESObject <- function(x, ...) {
               length(x$LRM.list), n.lrms.valid))
   cat(sprintf("  Segmentation : %s\n", seg.status))
   cat("\n  Slot summary:\n")
-  cat("    $cell.list     — character vector of cell barcodes\n")
-  cat("    $cell.data     — (cell, gene, score, score.norm) [sparse]\n")
-  cat("    $cell.meta     — per-cell metadata\n")
-  cat("    $edge.list     — (edge, SendingCell, ReceivingCell)\n")
-  cat("    $edge.data     — (edge, LRM, score, score.norm) [sparse]\n")
-  cat("    $edge.meta     — per-edge metadata with Sending/Receiving/Joint cols\n")
-  cat("    $neighborhood.* — reserved (NULL)\n")
-  cat("    $gene.list     — character vector of gene names\n")
-  cat("    $gene.meta     — per-gene metadata\n")
-  cat("    $LRM.list      — character vector of 'ligand|receptor' pairs\n")
-  cat("    $LRM.meta      — per-LRM metadata\n")
-  cat("    $segmentation  — sf object of cell polygons, or NULL\n")
-  cat("────────────────────────────────────────────────────────────\n")
+  cat("    $cell.list     -- character vector of cell barcodes\n")
+  cat("    $cell.data     -- (cell, gene, score, score.norm) [sparse]\n")
+  cat("    $cell.meta     -- per-cell metadata\n")
+  cat("    $edge.list     -- (edge, SendingCell, ReceivingCell)\n")
+  cat("    $edge.data     -- (edge, LRM, score, score.norm) [sparse]\n")
+  cat("    $edge.meta     -- per-edge metadata with Sending/Receiving/Joint cols\n")
+  cat("    $neighborhood.* -- reserved (NULL)\n")
+  cat("    $gene.list     -- character vector of gene names\n")
+  cat("    $gene.meta     -- per-gene metadata\n")
+  cat("    $LRM.list      -- character vector of 'ligand|receptor' pairs\n")
+  cat("    $LRM.meta      -- per-LRM metadata\n")
+  cat("    $segmentation  -- sf object of cell polygons, or NULL\n")
+  cat("------------------------------------------------------------\n")
   invisible(x)
 }
 
 
-# ------------------------------------------------------------------------------
 #' @export
 summary.NICHESObject <- function(object, ...) {
-  cat("── NICHESObject Summary ────────────────────────────────────\n")
+  cat("-- NICHESObject Summary ------------------------------------\n")
 
   # Cell overview
   n.cells <- length(object$cell.list)
@@ -196,13 +186,12 @@ summary.NICHESObject <- function(object, ...) {
     cat("\n  Segmentation: none\n")
   }
 
-  cat("────────────────────────────────────────────────────────────\n")
+  cat("------------------------------------------------------------\n")
   invisible(object)
 }
 
 
-# ------------------------------------------------------------------------------
-#' Dimensions of a NICHESObject.
+## ' Dimensions of a NICHESObject. ----
 #'
 #' Returns a named integer vector: \code{cells}, \code{genes}, \code{edges},
 #' \code{LRMs}.
@@ -217,7 +206,6 @@ dim.NICHESObject <- function(x) {
 }
 
 
-# ------------------------------------------------------------------------------
 #' Number of cells in a NICHESObject.
 #' @export
 length.NICHESObject <- function(x) length(x$cell.list)
@@ -250,13 +238,13 @@ length.NICHESObject <- function(x) length(x$cell.list)
   new.cell.data <- x$cell.data[cell %in% keep.cells]
   new.cell.meta <- x$cell.meta[cell %in% keep.cells]
 
-  # Filter edge slots — keep only edges where BOTH endpoints are in keep.cells
+  # Filter edge slots -- keep only edges where BOTH endpoints are in keep.cells
   keep.edges <- x$edge.list[SendingCell %in% keep.cells & ReceivingCell %in% keep.cells, edge]
   new.edge.list <- x$edge.list[edge %in% keep.edges]
   new.edge.data <- x$edge.data[edge %in% keep.edges]
   new.edge.meta <- x$edge.meta[edge %in% keep.edges]
 
-  # Filter segmentation if present — keep only polygons for retained cells
+  # Filter segmentation if present -- keep only polygons for retained cells
   new.segmentation <- if (!is.null(x$segmentation)) {
     x$segmentation[x$segmentation$cell %in% keep.cells, ]
   } else {

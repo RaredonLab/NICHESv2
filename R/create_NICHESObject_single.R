@@ -1,11 +1,15 @@
-# ==============================================================================
-# FILE:    create_NICHESObject.R
-# PURPOSE: Top-level constructor for the NICHESObject S3 class. Orchestrates
-#          the full pipeline: edge list construction → (optional smoothing) →
-#          LR scoring → slot assembly. Two analysis modes are supported:
+# create_NICHESObject_single.R --------------------------------------------
+# Single-partition implementation of create_NICHESObject(). The public
+# dispatcher in create_NICHESObject.R routes to this function (or to
+# .create_NICHESObject_by_sample()) depending on whether sample.col
+# is supplied.
 #
-#   "spatial" — physical kNN or radius neighbourhood from x/y coordinates
-#   "sampled" — NICHES v1-style stratified random sampling of cell barcodes
+#          Orchestrates the full pipeline: edge list construction ->
+#          (optional smoothing) -> LR scoring -> slot assembly. Two analysis
+#          modes are supported:
+#
+#   "spatial" - physical kNN or radius neighbourhood from x/y coordinates
+#   "sampled" - NICHES v1-style stratified random sampling of cell barcodes
 #               within each directed type pair crossing; optional PCA-based
 #               neighbourhood smoothing of expression before scoring
 #
@@ -14,46 +18,24 @@
 #   rather than a full NICHESObject.
 #
 # FUNCTIONS:
-#   create_NICHESObject()  — main function
-#   (add_cell_meta() now lives in its own file, R/add_cell_meta.R)
+#   .create_NICHESObject_single()  - internal single-partition implementation
 #
 # DEPS: data.table (>= 1.14), Matrix (>= 1.5)
-# ==============================================================================
 
 
-#' Create a NICHESObject from Single-Cell Data
+#' Single-partition implementation of create_NICHESObject
 #'
 #' @description
-#' The primary entry point for NICHESv2. Supports two analysis modes:
+#' Internal. Implements the full NICHESObject construction pipeline for one
+#' partition of cells. Called by the public dispatcher
+#' \code{create_NICHESObject()} (or, for sample-aware construction, by
+#' \code{.create_NICHESObject_by_sample()}).
 #'
-#' \describe{
-#'   \item{\code{"spatial"}}{Edges defined by physical proximity using kNN or
-#'     radius in x/y space. Requires \code{x} and \code{y} in \code{meta.data}.}
-#'   \item{\code{"sampled"}}{NICHES v1-style type-stratified sampling. Requires
-#'     \code{cell.type.col}. Optional PCA-based neighbourhood smoothing via
-#'     \code{smooth = TRUE}.}
-#' }
-#'
-#' For pseudobulk (type-averaged) connectivity use
-#' \code{\link{compute_PseudoBulk_Connectivity}} — it returns a plain
-#' \code{data.table}, not a \code{NICHESObject}.
-#'
-#' @section Smoothing (\code{smooth = TRUE}, sampled mode only):
-#' \enumerate{
-#'   \item Temporary log1p-normalised matrix computed → truncated PCA via
-#'     \code{irlba} (\code{n.pcs} components).
-#'   \item \code{smooth.k} nearest neighbours found per sampled cell in PC space
-#'     via \code{RANN::nn2}.
-#'   \item Smoothed value = mean of \strong{raw counts} across k+1 cells.
-#'   \item Smoothed columns replace originals before scoring. Original barcodes
-#'     and the NICHESObject schema are unchanged.
-#'   \item PCA embedding is discarded immediately — never stored.
-#' }
-#'
-#' @param count.mtx   Gene × cell matrix. Row names = genes; col names = cells.
+#' @param count.mtx   Gene x cell matrix. Row names = genes; col names = cells.
 #' @param meta.data   \code{data.frame}, row names = cell barcodes.
 #' @param LRM.db      \code{"fantom5"}, \code{"omnipath"}, or a data.frame.
 #' @param mode        \code{"spatial"} (default) or \code{"sampled"}.
+#' @param species     Species code passed through to \code{load_LRM_database()}.
 #' @param cell.type.col Column in \code{meta.data} with cell type labels.
 #'   Required for \code{mode = "sampled"}.
 #' @param ligand.col  Default \code{"ligand"}.
@@ -72,18 +54,10 @@
 #' @param method      \code{"product"} (default) or \code{"minimum"}.
 #' @param normalize.method \code{"prop"} (default) or \code{"none"}.
 #' @param gene.meta   Optional data.frame with \code{"gene"} column.
-#' @param n.cores     CPU cores. Default 1. Socket cluster — all platforms.
+#' @param n.cores     CPU cores. Default 1. Socket cluster -- all platforms.
 #' @param verbose     Default \code{TRUE}.
 #'
 #' @return \code{NICHESObject} with \code{attr(obj, "mode")} set.
-#'
-#' @seealso \code{\link{compute_PseudoBulk_Connectivity}},
-#'   \code{\link{compute_CellToCell}},
-#'   \code{\link{create_Edgelist_Spatial}},
-#'   \code{\link{create_Edgelist_SamplingByType}},
-#'   \code{\link{load_LRM_database}},
-#'   \code{\link{Aggregate_CellToCell_Edges}},
-#'   \code{\link{CellToCell_InSitu}}
 #'
 #' @noRd
 .create_NICHESObject_single <- function(count.mtx,
@@ -115,9 +89,7 @@
   smooth.k         <- as.integer(smooth.k)
   n.pcs            <- as.integer(n.pcs)
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 1 ── Validate core inputs
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 1: Validate core inputs ----
 
   if (!is.matrix(count.mtx) && !inherits(count.mtx, "sparseMatrix"))
     stop("[create_NICHESObject] 'count.mtx' must be a matrix or sparseMatrix.")
@@ -161,18 +133,16 @@
     stop("[create_NICHESObject] No shared cells between 'meta.data' and 'count.mtx'.")
 
   if (length(shared.cells) < ncol(count.mtx) && verbose)
-    message(sprintf("[create_NICHESObject] %d cell(s) in count.mtx not in meta.data — excluded.",
+    message(sprintf("[create_NICHESObject] %d cell(s) in count.mtx not in meta.data -- excluded.",
                     ncol(count.mtx) - length(shared.cells)))
   if (length(shared.cells) < nrow(meta.data) && verbose)
-    message(sprintf("[create_NICHESObject] %d cell(s) in meta.data not in count.mtx — excluded.",
+    message(sprintf("[create_NICHESObject] %d cell(s) in meta.data not in count.mtx -- excluded.",
                     nrow(meta.data) - length(shared.cells)))
 
   count.mtx <- count.mtx[, shared.cells, drop = FALSE]
   meta.data  <- meta.data[shared.cells, , drop = FALSE]
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Build edge list (mode-dependent)
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 2: Build edge list (mode-dependent) ----
 
   if (verbose) message(sprintf(
     "[create_NICHESObject] Building edge list (mode = '%s') ...", mode
@@ -190,14 +160,12 @@
                                               max.cells     = max.cells)
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Prepare scoring matrix
+  ## SECTION 3: Prepare scoring matrix ----
   #
   # Spatial and sampled (smooth = FALSE): original count.mtx passed directly.
   # Sampled (smooth = TRUE): sampled barcode columns are replaced with their
   #   PCA-neighbourhood-averaged raw counts before scoring. The PCA is computed
   #   from a temporary normalised matrix and discarded immediately.
-  # ════════════════════════════════════════════════════════════════════════════
 
   if (mode == "sampled" && smooth) {
     if (verbose) message(sprintf(
@@ -205,20 +173,18 @@
       smooth.k, n.pcs
     ))
     sampled.barcodes <- unique(c(el.raw$from, el.raw$to))
-    score.mtx <- smooth_expression(count.mtx = count.mtx,
-                                   barcodes  = sampled.barcodes,
-                                   k         = smooth.k,
-                                   n.pcs     = n.pcs)
+    score.mtx <- .smooth_expression(count.mtx = count.mtx,
+                                    barcodes  = sampled.barcodes,
+                                    k         = smooth.k,
+                                    n.pcs     = n.pcs)
   } else {
     score.mtx <- count.mtx
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4 ── Compute LR scores
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 4: Compute LR scores ----
 
   if (verbose) message("[create_NICHESObject] Computing LR scores ...")
-  
+
   # Resolve string shorthand to a data.frame before scoring (handles species)
   if(is.character(LRM.db)){
     LRM.db <- load_LRM_database(
@@ -229,10 +195,10 @@
       verbose = verbose
     )
   }
-  
+
   # `elr` = edge-LR result. Plain 2-element list from compute_CellToCell():
-  #   $edges   — non-zero (edge × LRM) scores (from, to, ligand, receptor, LRM, score [, coords])
-  #   $lr.meta — one row per valid LR pair (ligand, receptor, LRM, + extras from LRM.db)
+  #   $edges   - non-zero (edge x LRM) scores (from, to, ligand, receptor, LRM, score [, coords])
+  #   $lr.meta - one row per valid LR pair (ligand, receptor, LRM, + extras from LRM.db)
   # Unpacked into $edge.data (Section 9) and $LRM.meta (Section 12) below.
   elr <- compute_CellToCell(
     count.mtx    = score.mtx,
@@ -244,30 +210,22 @@
     n.cores      = n.cores
   )
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Build $cell.list and $gene.list (always from original matrix)
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 5: Build $cell.list and $gene.list (always from original matrix) ----
 
   cell.list <- shared.cells
   gene.list <- rownames(count.mtx)
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 6 ── Build $cell.data (always from original count.mtx)
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 6: Build $cell.data (always from original count.mtx) ----
 
   if (verbose) message("[create_NICHESObject] Building cell.data ...")
-  cell.data <- build_cell_data(count.mtx, normalize.method)
+  cell.data <- .build_cell_data(count.mtx, normalize.method)
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 7 ── Build $cell.meta
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 7: Build $cell.meta ----
 
   cell.meta <- as.data.table(meta.data, keep.rownames = "cell")
   setkeyv(cell.meta, "cell")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 8 ── Build $edge.list
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 8: Build $edge.list ----
 
   edge.list.dt <- data.table(
     edge          = paste(el.raw$from, el.raw$to, sep = "|"),
@@ -276,9 +234,7 @@
   )
   setkeyv(edge.list.dt, "edge")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 9 ── Build $edge.data
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 9: Build $edge.data ----
 
   if (verbose) message("[create_NICHESObject] Building edge.data ...")
 
@@ -295,16 +251,12 @@
   }
   setkeyv(edge.data, c("edge", "LRM"))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 10 ── Build $edge.meta
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 10: Build $edge.meta ----
 
   if (verbose) message("[create_NICHESObject] Building edge.meta ...")
-  edge.meta <- build_edge_meta(edge.list.dt, cell.meta)
+  edge.meta <- .build_edge_meta(edge.list.dt, cell.meta)
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 11 ── Build $gene.meta
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 11: Build $gene.meta ----
 
   if (!is.null(gene.meta)) {
     gene.meta.dt <- as.data.table(gene.meta)
@@ -321,9 +273,7 @@
     setkeyv(gene.meta.dt, "gene")
   }
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 12 ── Build $LRM.list and $LRM.meta
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 12: Build $LRM.list and $LRM.meta ----
 
   LRM.meta.dt <- copy(elr$lr.meta)
   LRM.list    <- LRM.meta.dt$LRM
@@ -331,9 +281,7 @@
   setcolorder(LRM.meta.dt, c("LRM", "ligand", "receptor", other.cols))
   setkeyv(LRM.meta.dt, "LRM")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 13 ── Assemble and return NICHESObject
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 13: Assemble and return NICHESObject ----
 
   obj <- .new_NICHESObject(
     cell.list              = cell.list,
@@ -365,5 +313,3 @@
 
   obj
 }
-
-

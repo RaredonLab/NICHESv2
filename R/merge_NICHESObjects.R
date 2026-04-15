@@ -1,7 +1,7 @@
 #' Merge multiple NICHESObjects into one
 #'
-#' Combines a list of NICHESObjects — or any number passed as individual
-#' arguments — into a single NICHESObject by concatenating all per-cell and
+#' Combines a list of NICHESObjects -- or any number passed as individual
+#' arguments -- into a single NICHESObject by concatenating all per-cell and
 #' per-edge data. This is the complement to the \code{sample.col} splitting
 #' that \code{\link{create_NICHESObject}} performs: it can be used to merge
 #' objects that were produced independently and then need to be analysed
@@ -23,25 +23,25 @@
 #' all objects. If the same barcode string appears in two or more objects the
 #' function stops with a clear error. Prepend a sample-specific prefix before
 #' constructing the objects (e.g. \code{paste0(sample.id, "_", barcode)}) to
-#' avoid collisions — Seurat does this automatically via \code{RenameCells()}.
+#' avoid collisions -- Seurat does this automatically via \code{RenameCells()}.
 #'
 #' \strong{Gene / LRM union.} When gene or LRM lists differ across objects,
 #' their union is taken. Genes absent in one object are implicitly zero in
-#' \code{$cell.data} (which is sparse — zero rows are never stored).
+#' \code{$cell.data} (which is sparse -- zero rows are never stored).
 #'
 #' \strong{Slot-by-slot strategy:}
 #' \itemize{
 #'   \item \code{$cell.list}, \code{$cell.data}, \code{$edge.list},
-#'         \code{$edge.data} — simple concatenation.
-#'   \item \code{$cell.meta}, \code{$edge.meta} — concatenated with
+#'         \code{$edge.data} -- simple concatenation.
+#'   \item \code{$cell.meta}, \code{$edge.meta} -- concatenated with
 #'         \code{fill = TRUE}; extra columns in some objects become \code{NA}
 #'         in others.
-#'   \item \code{$gene.list}, \code{$LRM.list} — union.
-#'   \item \code{$gene.meta}, \code{$LRM.meta} — concatenated, deduplicated
+#'   \item \code{$gene.list}, \code{$LRM.list} -- union.
+#'   \item \code{$gene.meta}, \code{$LRM.meta} -- concatenated, deduplicated
 #'         by key (first occurrence kept).
-#'   \item \code{$segmentation} — merged via \code{sf::rbind()} when all
+#'   \item \code{$segmentation} -- merged via \code{sf::rbind()} when all
 #'         objects have it; \code{NULL} with a warning when only some do.
-#'   \item Neighborhood slots — always \code{NULL} (reserved).
+#'   \item Neighborhood slots -- always \code{NULL} (reserved).
 #' }
 #'
 #' @return A single \code{NICHESObject}.
@@ -82,20 +82,16 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
          call. = FALSE)
   }
 
-  # ----------------------------------------------------------
-  # 0. Length guard
-  # ----------------------------------------------------------
+  ## 0. Length guard ----
   if (length(obj.list) == 0L)
-    stop("obj.list is empty — nothing to merge.", call. = FALSE)
+    stop("obj.list is empty -- nothing to merge.", call. = FALSE)
 
   if (length(obj.list) == 1L) {
-    if (verbose) message("Only one object supplied — returning it unchanged.")
+    if (verbose) message("Only one object supplied -- returning it unchanged.")
     return(obj.list[[1L]])
   }
 
-  # ----------------------------------------------------------
-  # 1. All inputs must be NICHESObjects
-  # ----------------------------------------------------------
+  ## 1. All inputs must be NICHESObjects ----
   not.niches <- !vapply(obj.list, is_NICHESObject, logical(1L))
   if (any(not.niches)) {
     bad.idx <- which(not.niches)
@@ -105,9 +101,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
     ), call. = FALSE)
   }
 
-  # ----------------------------------------------------------
-  # 2. Mode compatibility — hard error on mismatch
-  # ----------------------------------------------------------
+  ## 2. Mode compatibility -- hard error on mismatch ----
   modes <- vapply(obj.list,
                   function(x) attr(x, "mode") %||% NA_character_,
                   character(1L))
@@ -121,9 +115,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
   # unname() prevents a named vector propagating into attr(obj, "mode")
   merged.mode <- unname(modes[1L])
 
-  # ----------------------------------------------------------
-  # 3. Barcode collision check — hard error
-  # ----------------------------------------------------------
+  ## 3. Barcode collision check -- hard error ----
   all.barcodes <- unlist(lapply(obj.list, function(x) x$cell.list),
                          use.names = FALSE)
   dup.mask <- duplicated(all.barcodes)
@@ -142,54 +134,40 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
     ), call. = FALSE)
   }
 
-  # ----------------------------------------------------------
-  # 4. $cell.list — concatenate (already validated unique)
-  # ----------------------------------------------------------
+  ## 4. $cell.list -- concatenate (already validated unique) ----
   merged.cell.list <- all.barcodes
 
-  # ----------------------------------------------------------
-  # 5. $cell.data — rbindlist, re-key
-  # ----------------------------------------------------------
+  ## 5. $cell.data -- rbindlist, re-key ----
   merged.cell.data <- rbindlist(lapply(obj.list, function(x) x$cell.data),
                                 use.names = TRUE, fill = FALSE)
   if (nrow(merged.cell.data) > 0L)
     setkeyv(merged.cell.data, c("cell", "gene"))
 
-  # ----------------------------------------------------------
-  # 6. $cell.meta — rbindlist with fill, re-key
-  # ----------------------------------------------------------
+  ## 6. $cell.meta -- rbindlist with fill, re-key ----
   merged.cell.meta <- rbindlist(lapply(obj.list, function(x) x$cell.meta),
                                 use.names = TRUE, fill = TRUE)
   if (nrow(merged.cell.meta) > 0L)
     setkeyv(merged.cell.meta, "cell")
 
-  # ----------------------------------------------------------
-  # 7. $edge.list — rbindlist, re-key
-  # ----------------------------------------------------------
+  ## 7. $edge.list -- rbindlist, re-key ----
   merged.edge.list <- rbindlist(lapply(obj.list, function(x) x$edge.list),
                                 use.names = TRUE, fill = FALSE)
   if (nrow(merged.edge.list) > 0L)
     setkeyv(merged.edge.list, "edge")
 
-  # ----------------------------------------------------------
-  # 8. $edge.data — rbindlist, re-key
-  # ----------------------------------------------------------
+  ## 8. $edge.data -- rbindlist, re-key ----
   merged.edge.data <- rbindlist(lapply(obj.list, function(x) x$edge.data),
                                 use.names = TRUE, fill = FALSE)
   if (nrow(merged.edge.data) > 0L)
     setkeyv(merged.edge.data, c("edge", "LRM"))
 
-  # ----------------------------------------------------------
-  # 9. $edge.meta — rbindlist with fill, re-key
-  # ----------------------------------------------------------
+  ## 9. $edge.meta -- rbindlist with fill, re-key ----
   merged.edge.meta <- rbindlist(lapply(obj.list, function(x) x$edge.meta),
                                 use.names = TRUE, fill = TRUE)
   if (nrow(merged.edge.meta) > 0L)
     setkeyv(merged.edge.meta, "edge")
 
-  # ----------------------------------------------------------
-  # 10. $gene.list — union; warn if lists differ
-  # ----------------------------------------------------------
+  ## 10. $gene.list -- union; warn if lists differ ----
   gene.lists       <- lapply(obj.list, function(x) x$gene.list)
   merged.gene.list <- Reduce(union, gene.lists)
   if (verbose) {
@@ -205,9 +183,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
       ))
   }
 
-  # ----------------------------------------------------------
-  # 11. $gene.meta — rbindlist + deduplicate by gene (keep first)
-  # ----------------------------------------------------------
+  ## 11. $gene.meta -- rbindlist + deduplicate by gene (keep first) ----
   merged.gene.meta <- unique(
     rbindlist(lapply(obj.list, function(x) x$gene.meta),
               use.names = TRUE, fill = TRUE),
@@ -215,9 +191,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
   )
   if (nrow(merged.gene.meta) > 0L) setkeyv(merged.gene.meta, "gene")
 
-  # ----------------------------------------------------------
-  # 12. $LRM.list — union; warn if lists differ
-  # ----------------------------------------------------------
+  ## 12. $LRM.list -- union; warn if lists differ ----
   lrm.lists       <- lapply(obj.list, function(x) x$LRM.list)
   merged.LRM.list <- Reduce(union, lrm.lists)
   if (verbose) {
@@ -231,9 +205,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
       ))
   }
 
-  # ----------------------------------------------------------
-  # 13. $LRM.meta — rbindlist + deduplicate by LRM (keep first)
-  # ----------------------------------------------------------
+  ## 13. $LRM.meta -- rbindlist + deduplicate by LRM (keep first) ----
   merged.LRM.meta <- unique(
     rbindlist(lapply(obj.list, function(x) x$LRM.meta),
               use.names = TRUE, fill = TRUE),
@@ -241,9 +213,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
   )
   if (nrow(merged.LRM.meta) > 0L) setkeyv(merged.LRM.meta, "LRM")
 
-  # ----------------------------------------------------------
-  # 14. $segmentation — sf::rbind if ALL non-NULL; warn if partial
-  # ----------------------------------------------------------
+  ## 14. $segmentation -- sf::rbind if ALL non-NULL; warn if partial ----
   seg.list   <- lapply(obj.list, function(x) x$segmentation)
   has.seg    <- !vapply(seg.list, is.null, logical(1L))
   merged.seg <- NULL
@@ -268,9 +238,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
     )
   }
 
-  # ----------------------------------------------------------
-  # 15. sample.col attribute — propagate if consistent
-  # ----------------------------------------------------------
+  ## 15. sample.col attribute -- propagate if consistent ----
   sample.cols <- vapply(obj.list,
                         function(x) attr(x, "sample.col") %||% NA_character_,
                         character(1L))
@@ -281,15 +249,13 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
       merged.sample.col <- non.na
     } else if (verbose) {
       warning(
-        "Objects have inconsistent 'sample.col' attributes — dropping from merged object.",
+        "Objects have inconsistent 'sample.col' attributes -- dropping from merged object.",
         call. = FALSE
       )
     }
   }
 
-  # ----------------------------------------------------------
-  # 16. Assemble via .new_NICHESObject()
-  # ----------------------------------------------------------
+  ## 16. Assemble via .new_NICHESObject() ----
   merged.obj <- .new_NICHESObject(
     cell.list              = merged.cell.list,
     cell.data              = merged.cell.data,

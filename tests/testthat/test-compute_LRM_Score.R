@@ -5,7 +5,7 @@ test_that("compute_LRM_Score: simple single-gene ligand and receptor (product)",
   rownames(count.mtx) <- paste0("g", 1:20)
   colnames(count.mtx) <- paste0("c", 1:10)
 
-  scores <- compute_LRM_Score(
+  scores <- NICHESv2:::.compute_LRM_Score(
     lig.str       = "g1",
     rec.str       = "g2",
     count.mtx     = count.mtx,
@@ -28,7 +28,7 @@ test_that("compute_LRM_Score: minimum method takes element-wise pmin", {
   rownames(count.mtx) <- paste0("g", 1:10)
   colnames(count.mtx) <- paste0("c", 1:6)
 
-  scores <- compute_LRM_Score(
+  scores <- NICHESv2:::.compute_LRM_Score(
     lig.str = "g1", rec.str = "g2",
     count.mtx = count.mtx,
     sending.cells = c("c1","c2"),
@@ -49,7 +49,7 @@ test_that("compute_LRM_Score: complex ligand (underscore-joined) combines compon
   rownames(count.mtx) <- paste0("g", 1:6)
   colnames(count.mtx) <- paste0("c", 1:5)
 
-  scores <- compute_LRM_Score(
+  scores <- NICHESv2:::.compute_LRM_Score(
     lig.str = "g1_g2",   # complex ligand
     rec.str = "g3",
     count.mtx = count.mtx,
@@ -69,7 +69,7 @@ test_that("compute_LRM_Score: zeros in input produce zero scores under product",
   rownames(count.mtx) <- c("g1","g2")
   colnames(count.mtx) <- c("c1","c2")
 
-  scores <- compute_LRM_Score(
+  scores <- NICHESv2:::.compute_LRM_Score(
     lig.str = "g1", rec.str = "g2",
     count.mtx = count.mtx,
     sending.cells = c("c1","c2"),
@@ -84,8 +84,8 @@ test_that("compute_LRM_Score: default method is 'product'", {
   rownames(count.mtx) <- c("g1","g2")
   colnames(count.mtx) <- c("c1","c2")
 
-  default <- compute_LRM_Score("g1","g2", count.mtx, "c1","c2")
-  product <- compute_LRM_Score("g1","g2", count.mtx, "c1","c2", method = "product")
+  default <- NICHESv2:::.compute_LRM_Score("g1","g2", count.mtx, "c1","c2")
+  product <- NICHESv2:::.compute_LRM_Score("g1","g2", count.mtx, "c1","c2", method = "product")
   expect_equal(default, product)
 })
 
@@ -93,6 +93,6 @@ test_that("compute_LRM_Score: invalid method errors via match.arg", {
   count.mtx <- matrix(1:4, nrow = 2L,
                       dimnames = list(c("g1","g2"), c("c1","c2")))
   expect_error(
-    compute_LRM_Score("g1","g2", count.mtx, "c1","c2", method = "garbage")
+    NICHESv2:::.compute_LRM_Score("g1","g2", count.mtx, "c1","c2", method = "garbage")
   )
 })

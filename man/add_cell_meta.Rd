@@ -13,10 +13,10 @@ add_cell_meta(niches.obj, new.meta, rebuild.edge.meta = TRUE)
 \code{"cell"} column matching barcodes in \code{niches.obj$cell.list}.}
 
 \item{rebuild.edge.meta}{Logical. If \code{TRUE} (default), regenerates
-\code{niches.obj$edge.meta} via \code{\link{build_edge_meta}} so the
-new metadata columns appear on each edge. Set to \code{FALSE} to skip
-the rebuild (useful when adding many columns in batch — call once
-manually at the end).}
+\code{niches.obj$edge.meta} via the internal \code{.build_edge_meta()}
+helper so the new metadata columns appear on each edge. Set to
+\code{FALSE} to skip the rebuild (useful when adding many columns in
+batch -- call once manually at the end).}
 }
 \value{
 Updated \code{NICHESObject}.
@@ -26,7 +26,4 @@ Joins new metadata onto an existing NICHESObject's \code{$cell.meta} table
 and (by default) rebuilds \code{$edge.meta} so the new columns are
 propagated as \code{Sending.*} / \code{Receiving.*} / \code{Joint.*}
 columns on every edge.
-}
-\seealso{
-\code{\link{build_edge_meta}}
 }

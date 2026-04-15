@@ -1,20 +1,16 @@
-# ==============================================================================
-# FILE:    create_NICHESObject_by_sample.R
-# PURPOSE: Internal branch implementation of create_NICHESObject() for the
-#          sample.col split/loop/merge path.
+# create_NICHESObject_by_sample.R -----------------------------------------
+# Internal branch implementation of create_NICHESObject() for the
+# sample.col split/loop/merge path.
 #
 # This function is NOT exported. It is one of two branch implementations of
 # the public create_NICHESObject() dispatcher; the other is
 # .create_NICHESObject_single(), which lives in create_NICHESObject_single.R.
-# ==============================================================================
 
 
-# ==============================================================================
-# .create_NICHESObject_by_sample()
+## .create_NICHESObject_by_sample() ----
 # Unexported. Splits meta.data by sample.col, calls .create_NICHESObject_single
 # on each partition sequentially (inner function already parallelises via
 # n.cores socket cluster), then merges via merge_NICHESObjects().
-# ==============================================================================
 
 #' @noRd
 .create_NICHESObject_by_sample <- function(count.mtx,
@@ -54,7 +50,7 @@
     ))
   }
 
-  # Sequential outer loop — .create_NICHESObject_single() already uses n.cores
+  # Sequential outer loop -- .create_NICHESObject_single() already uses n.cores
   obj.list <- vector("list", n.samples)
   names(obj.list) <- as.character(sample.values)
 
@@ -65,13 +61,13 @@
       message(sprintf("[create_NICHESObject] [%d/%d] Processing %s = \"%s\" ...",
                       i, n.samples, sample.col, s))
 
-    # Subset using rownames — meta.data stays a plain data.frame throughout
+    # Subset using rownames -- meta.data stays a plain data.frame throughout
     sample.barcodes  <- rownames(meta.data)[meta.data[[sample.col]] == s]
     sample.meta.data <- meta.data[sample.barcodes, , drop = FALSE]
 
     if (length(sample.barcodes) < 2L) {
       warning(sprintf(
-        "[create_NICHESObject] Sample \"%s\" has fewer than 2 cells — skipping.",
+        "[create_NICHESObject] Sample \"%s\" has fewer than 2 cells -- skipping.",
         s
       ), call. = FALSE)
       obj.list[[i]] <- NULL

@@ -5,7 +5,7 @@ test_that("smooth_expression: returns matrix of same dimensions as input", {
   rownames(count.mtx) <- paste0("g", 1:50)
   colnames(count.mtx) <- paste0("c", 1:30)
 
-  out <- smooth_expression(count.mtx,
+  out <- NICHESv2:::.smooth_expression(count.mtx,
                            barcodes = c("c1","c2","c3"),
                            k = 5L, n.pcs = 10L)
   expect_equal(dim(out), dim(count.mtx))
@@ -21,7 +21,7 @@ test_that("smooth_expression: non-target columns unchanged", {
   colnames(count.mtx) <- paste0("c", 1:25)
 
   target.barcodes <- c("c1","c2")
-  out <- smooth_expression(count.mtx, barcodes = target.barcodes,
+  out <- NICHESv2:::.smooth_expression(count.mtx, barcodes = target.barcodes,
                            k = 3L, n.pcs = 8L)
 
   untouched <- setdiff(colnames(count.mtx), target.barcodes)
@@ -40,7 +40,7 @@ test_that("smooth_expression: errors when matrix too small for any PCA component
   tiny <- Matrix::Matrix(matrix(5, nrow = 1L), sparse = TRUE)
   rownames(tiny) <- "g1"; colnames(tiny) <- "c1"
   expect_error(
-    smooth_expression(tiny, barcodes = "c1", k = 1L, n.pcs = 5L),
+    NICHESv2:::.smooth_expression(tiny, barcodes = "c1", k = 1L, n.pcs = 5L),
     "Not enough cells or genes"
   )
 })
@@ -55,7 +55,7 @@ test_that("smooth_expression: handles cells with zero library size without crash
   count.mtx[, "c5"] <- 0
 
   expect_no_error({
-    out <- smooth_expression(count.mtx, barcodes = c("c1","c2"),
+    out <- NICHESv2:::.smooth_expression(count.mtx, barcodes = c("c1","c2"),
                              k = 3L, n.pcs = 5L)
   })
   expect_equal(dim(out), dim(count.mtx))
@@ -68,7 +68,7 @@ test_that("smooth_expression: smoothed values are bounded by row min/max of inpu
   rownames(count.mtx) <- paste0("g", 1:15)
   colnames(count.mtx) <- paste0("c", 1:20)
 
-  out <- smooth_expression(count.mtx, barcodes = "c1",
+  out <- NICHESv2:::.smooth_expression(count.mtx, barcodes = "c1",
                            k = 4L, n.pcs = 5L)
 
   # The smoothed column for c1 should equal the rowMeans of some 5 columns
@@ -92,6 +92,6 @@ test_that("smooth_expression: defaults k=9, n.pcs=30 are accepted", {
   # irlba warns on small matrices when n.pcs is a large fraction of min(dim);
   # harmless here — this test only asserts that the defaults are accepted.
   expect_no_error(
-    suppressWarnings(smooth_expression(count.mtx, barcodes = c("c1","c2")))
+    suppressWarnings(NICHESv2:::.smooth_expression(count.mtx, barcodes = c("c1","c2")))
   )
 })

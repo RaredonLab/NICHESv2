@@ -9,12 +9,11 @@
 #' @param new.meta   A \code{data.frame} or \code{data.table} with a
 #'   \code{"cell"} column matching barcodes in \code{niches.obj$cell.list}.
 #' @param rebuild.edge.meta Logical. If \code{TRUE} (default), regenerates
-#'   \code{niches.obj$edge.meta} via \code{\link{build_edge_meta}} so the
-#'   new metadata columns appear on each edge. Set to \code{FALSE} to skip
-#'   the rebuild (useful when adding many columns in batch — call once
-#'   manually at the end).
+#'   \code{niches.obj$edge.meta} via the internal \code{.build_edge_meta()}
+#'   helper so the new metadata columns appear on each edge. Set to
+#'   \code{FALSE} to skip the rebuild (useful when adding many columns in
+#'   batch -- call once manually at the end).
 #' @return Updated \code{NICHESObject}.
-#' @seealso \code{\link{build_edge_meta}}
 #' @export
 #' @import data.table
 add_cell_meta <- function(niches.obj, new.meta, rebuild.edge.meta = TRUE) {
@@ -29,7 +28,7 @@ add_cell_meta <- function(niches.obj, new.meta, rebuild.edge.meta = TRUE) {
   niches.obj$cell.meta <- new.meta[niches.obj$cell.meta, on = "cell"]
 
   if (rebuild.edge.meta)
-    niches.obj$edge.meta <- build_edge_meta(niches.obj$edge.list,
-                                            niches.obj$cell.meta)
+    niches.obj$edge.meta <- .build_edge_meta(niches.obj$edge.list,
+                                             niches.obj$cell.meta)
   niches.obj
 }
