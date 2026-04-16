@@ -1,8 +1,14 @@
 # data.R ------------------------------------------------------------------
-# Documentation for the user-facing example datasets bundled with NICHESv2.
-# The .rda files themselves live in data/ and are produced by
-# data-raw/build_NICHESv2_example.R. This file contains the roxygen-only
-# doc pages that make ?NICHESv2_inputs and ?NICHESv2_example resolve.
+# Documentation for all user-facing datasets bundled with NICHESv2.
+#
+# Synthetic example data (.rda files in data/) are produced by
+# data-raw/build_NICHESv2_example.R.
+#
+# FANTOM5 LR databases (.rda files in data/) are produced by
+# data-raw/build_ncomms8866.R. NOTE: the original unfiltered table is
+# stored in data/ncomms8866_orig.rda as the R object 'ncomms8866'.
+# The four species-specific tables are in data/ncomms8866_<species>.rda.
+# All five are accessed by the user via load_LRM_database("fantom5", ...).
 #
 # DEPS: none (documentation only)
 
@@ -44,16 +50,20 @@
 #' @seealso \code{\link{NICHESv2_example}} for the prebuilt
 #'   \code{NICHESObject} constructed from these inputs.
 #'
+#' @docType data
+#' @name NICHESv2_inputs
+#' @keywords datasets
+#'
 #' @examples
 #' data(NICHESv2_inputs)
 #' str(NICHESv2_inputs, max.level = 1)
 #' dim(NICHESv2_inputs$count.mtx)
 #' table(NICHESv2_inputs$meta.data$celltype)
 #' head(NICHESv2_inputs$LRM.db)
-"NICHESv2_inputs"
+NULL
 
 
-## NICHESv2_example ------------------------------------------------------
+## NICHESv2_example -------------------------------------------------------
 
 #' Example prebuilt NICHESObject
 #'
@@ -90,9 +100,230 @@
 #'   \code{\link{create_NICHESObject}} for the constructor that produces
 #'   this object.
 #'
+#' @docType data
+#' @name NICHESv2_example
+#' @keywords datasets
+#'
 #' @examples
 #' data(NICHESv2_example)
 #' print(NICHESv2_example)
 #' dim(NICHESv2_example)
 #' length(NICHESv2_example)
-"NICHESv2_example"
+NULL
+
+
+## ncomms8866 family ------------------------------------------------------
+#
+# Five FANTOM5 ligand-receptor tables from:
+#   Ramilowski et al. (2015) Nature Communications 6, 7866.
+#   doi:10.1038/ncomms8866
+#
+# Species-specific tables were derived using the methodology described in:
+#   Raredon et al. (2019) Science Advances, doi:10.1126/sciadv.aaw3851
+#
+# The recommended user interface for all five tables is:
+#   load_LRM_database("fantom5", species = "human" | "mouse" | "rat" | "pig")
+# Direct data() access is discouraged because file and object names differ
+# for the original table (file: ncomms8866_orig.rda, object: ncomms8866).
+
+
+#' FANTOM5 ligand-receptor database -- original unfiltered table
+#'
+#' The complete, unfiltered set of human ligand-receptor pairs from the
+#' FANTOM5 consortium as published by Ramilowski et al. (2015). This is
+#' the source table from which the four species-specific variants
+#' (\code{\link{ncomms8866_human}}, \code{\link{ncomms8866_mouse}},
+#' \code{\link{ncomms8866_rat}}, \code{\link{ncomms8866_pig}}) are derived.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair and
+#' the following key columns:
+#' \describe{
+#'   \item{\code{Ligand.ApprovedSymbol}}{HGNC-approved gene symbol for the
+#'     ligand (character).}
+#'   \item{\code{Receptor.ApprovedSymbol}}{HGNC-approved gene symbol for the
+#'     receptor (character).}
+#' }
+#' Additional annotation columns from the original publication are retained.
+#'
+#' @source Ramilowski, J.A. et al. (2015). A draft network of
+#'   ligand-receptor-mediated multicellular signalling in human.
+#'   \emph{Nature Communications}, \strong{6}, 7866.
+#'   \doi{10.1038/ncomms8866}
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{ncomms8866_human}}, \code{\link{ncomms8866_mouse}},
+#'   \code{\link{ncomms8866_rat}}, \code{\link{ncomms8866_pig}} for the
+#'   species-specific filtered tables.
+#'
+#' @docType data
+#' @name ncomms8866
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("fantom5", species = "human")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+#' FANTOM5 ligand-receptor database -- human
+#'
+#' Human ligand-receptor pairs from the FANTOM5 consortium (Ramilowski et
+#' al., 2015), filtered and formatted for direct use by
+#' \code{\link{load_LRM_database}}. This is the table loaded when
+#' \code{load_LRM_database("fantom5", species = "human")} is called.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair and
+#' the following key columns:
+#' \describe{
+#'   \item{\code{Ligand.ApprovedSymbol}}{HGNC-approved gene symbol for the
+#'     ligand (character).}
+#'   \item{\code{Receptor.ApprovedSymbol}}{HGNC-approved gene symbol for the
+#'     receptor (character).}
+#' }
+#' Additional annotation columns from the original publication are retained.
+#'
+#' @source Ramilowski, J.A. et al. (2015). A draft network of
+#'   ligand-receptor-mediated multicellular signalling in human.
+#'   \emph{Nature Communications}, \strong{6}, 7866.
+#'   \doi{10.1038/ncomms8866}
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{ncomms8866}}, \code{\link{ncomms8866_mouse}},
+#'   \code{\link{ncomms8866_rat}}, \code{\link{ncomms8866_pig}}.
+#'
+#' @docType data
+#' @name ncomms8866_human
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("fantom5", species = "human")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+#' FANTOM5 ligand-receptor database -- mouse
+#'
+#' Mouse ortholog-mapped ligand-receptor pairs derived from the human
+#' FANTOM5 table (Ramilowski et al., 2015) using the methodology of
+#' Raredon et al. (2019). This is the table loaded when
+#' \code{load_LRM_database("fantom5", species = "mouse")} is called.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair and
+#' the following key columns:
+#' \describe{
+#'   \item{\code{Ligand.ApprovedSymbol}}{Mouse gene symbol for the
+#'     ligand (character).}
+#'   \item{\code{Receptor.ApprovedSymbol}}{Mouse gene symbol for the
+#'     receptor (character).}
+#' }
+#' Additional annotation columns are retained where ortholog mapping was
+#' possible.
+#'
+#' @source Ramilowski, J.A. et al. (2015). A draft network of
+#'   ligand-receptor-mediated multicellular signalling in human.
+#'   \emph{Nature Communications}, \strong{6}, 7866.
+#'   \doi{10.1038/ncomms8866}
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{ncomms8866}}, \code{\link{ncomms8866_human}},
+#'   \code{\link{ncomms8866_rat}}, \code{\link{ncomms8866_pig}}.
+#'
+#' @docType data
+#' @name ncomms8866_mouse
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("fantom5", species = "mouse")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+#' FANTOM5 ligand-receptor database -- rat
+#'
+#' Rat ortholog-mapped ligand-receptor pairs derived from the human
+#' FANTOM5 table (Ramilowski et al., 2015) using the methodology of
+#' Raredon et al. (2019). This is the table loaded when
+#' \code{load_LRM_database("fantom5", species = "rat")} is called.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair and
+#' the following key columns:
+#' \describe{
+#'   \item{\code{Ligand.ApprovedSymbol}}{Rat gene symbol for the
+#'     ligand (character).}
+#'   \item{\code{Receptor.ApprovedSymbol}}{Rat gene symbol for the
+#'     receptor (character).}
+#' }
+#' Additional annotation columns are retained where ortholog mapping was
+#' possible.
+#'
+#' @source Ramilowski, J.A. et al. (2015). A draft network of
+#'   ligand-receptor-mediated multicellular signalling in human.
+#'   \emph{Nature Communications}, \strong{6}, 7866.
+#'   \doi{10.1038/ncomms8866}
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{ncomms8866}}, \code{\link{ncomms8866_human}},
+#'   \code{\link{ncomms8866_mouse}}, \code{\link{ncomms8866_pig}}.
+#'
+#' @docType data
+#' @name ncomms8866_rat
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("fantom5", species = "rat")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+#' FANTOM5 ligand-receptor database -- pig
+#'
+#' Pig ortholog-mapped ligand-receptor pairs derived from the human
+#' FANTOM5 table (Ramilowski et al., 2015) using the methodology of
+#' Raredon et al. (2019). This is the table loaded when
+#' \code{load_LRM_database("fantom5", species = "pig")} is called.
+#' Note: pig is supported by FANTOM5 only; OmniPath does not provide
+#' pig ligand-receptor data.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair and
+#' the following key columns:
+#' \describe{
+#'   \item{\code{Ligand.ApprovedSymbol}}{Pig gene symbol for the
+#'     ligand (character).}
+#'   \item{\code{Receptor.ApprovedSymbol}}{Pig gene symbol for the
+#'     receptor (character).}
+#' }
+#' Additional annotation columns are retained where ortholog mapping was
+#' possible.
+#'
+#' @source Ramilowski, J.A. et al. (2015). A draft network of
+#'   ligand-receptor-mediated multicellular signalling in human.
+#'   \emph{Nature Communications}, \strong{6}, 7866.
+#'   \doi{10.1038/ncomms8866}
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{ncomms8866}}, \code{\link{ncomms8866_human}},
+#'   \code{\link{ncomms8866_mouse}}, \code{\link{ncomms8866_rat}}.
+#'
+#' @docType data
+#' @name ncomms8866_pig
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("fantom5", species = "pig")
+#' head(db)
+#' nrow(db)
+#' }
+NULL

@@ -1,5 +1,5 @@
 # NICHESv2 — Package Design & Status
-# Updated: 2026-04-10
+# Updated: 2026-04-16
 
 ================================================================================
 CONVENTIONS (no exceptions)
@@ -202,13 +202,16 @@ Internal helpers in dedicated files:
 PACKAGE INFRASTRUCTURE
 ================================================================================
 
-Imports: data.table(>=1.14), Matrix(>=1.5), RANN(>=2.6), dbscan(>=1.1),
-         ggplot2(>=3.4), irlba(>=2.3.0), scales(:: only), parallel
+Imports: data.table(>=1.14), Matrix(>=1.5), methods, RANN(>=2.6), dbscan(>=1.1),
+         ggplot2(>=3.4), irlba(>=2.3.0), scales, parallel
 Suggests: OmnipathR, sf, testthat(>=3.0), withr, SeuratObject, rhdf5
 
 Bundled data (data/):
+  ncomms8866_orig.rda — FANTOM5 original unfiltered table; R object name is
+    ncomms8866 (file and object names differ). data(ncomms8866) fails with
+    LazyData: false. Access via load_LRM_database("fantom5", ...) only.
   ncomms8866_human/mouse/rat/pig.rda — FANTOM5 LR pairs, species-converted
-  per Raredon et al. 2019. Loaded via utils::data().
+    per Raredon et al. 2019. Loaded internally via utils::data().
 
 Tests (all passing):
   test-compute_CellToCell.R               test-create_Edgelist_Spatial.R
@@ -308,6 +311,12 @@ globalVariables pattern for data.table NSE:
   explicit :: (head, setNames, as, median, quantile, sd) need @importFrom
   tags in NICHESv2-package.R.
   
+FANTOM5 original file vs object name mismatch:
+  data/ncomms8866_orig.rda contains the R object ncomms8866. Because
+  LazyData: false, data("ncomms8866") will fail (looks for ncomms8866.rda).
+  Never call data(ncomms8866) in examples or code. Always use
+  load_LRM_database("fantom5", species = ...) as the access interface.
+  
 S3 method source vs test file naming:
   S3 methods (print, summary, dim, length, [) are defined in
   R/NICHESObject_class.R — NOT a file called NICHESObject_methods.R.
@@ -346,8 +355,8 @@ Intentional skips (3):
   - irlba-absent path
   - Replaced placeholder in test-compute_PseudoBulk_Connectivity.R
 
-R CMD check status: 0 errors | 3 warnings | 3 notes
-  (warnings and N2/N3 are Pass 3 work — see PENDING DECISIONS)
+R CMD check status: 0 errors | 0 warnings | 1 note
+  (N1: timestamp/network issue on dev machine — unfixable in code, ignore)
 
 
 ================================================================================
@@ -373,11 +382,3 @@ PENDING DECISIONS
    four-part validation pipeline previously sketched) until advisor
    decision is resolved. Dataset choice (own Visium vs. public benchmark)
    consequently also paused.
-
-6. Pass 3 (CRAN docs) — 3 warnings to fix:
-   W1: @importFrom methods as + @importFrom scales <fns> in NICHESv2-package.R
-   W2: Document 5 bundled FANTOM5 datasets in R/data-ncomms8866.R
-   W3: Fix NICHESv2_example / NICHESv2_inputs .Rd mismatch (missing @name tag)
-   Plus: utils::globalVariables() for all data.table NSE names; @importFrom
-   for utils::head, stats::median/quantile/sd/setNames, methods::as;
-   add dev.R and omnipathr-log to .Rbuildignore.

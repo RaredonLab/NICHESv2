@@ -21,5 +21,13 @@ devtools::test(filter = "NICHESObject_methods") # 28 PASSED
 
 devtools::test()
 
+devtools::document()
+devtools::check()
+
 check_result <- capture.output(devtools::check())
 writeLines(check_result, "./working-scripts-NW/check_log.txt")
+
+
+devtools::load_all()
+lapply(c("ncomms8866_orig","ncomms8866_human","ncomms8866_mouse","ncomms8866_pig","ncomms8866_rat"),
+       function(nm) { d <- get(nm); cat(nm, ":", nrow(d), "rows\n"); print(names(d)); cat("\n") })
