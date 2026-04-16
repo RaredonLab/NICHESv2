@@ -77,12 +77,6 @@ create_Edgelist_SamplingByType(meta.data, cell.type.col, seed=42L, max.cells)
   → data.table(from|to) with barcodes; attrs: mode="sampled"
 
 — SCORING —
-compute_LRM_Score(lig.str, rec.str, count.mtx,
-                  sending.cells, receiv.cells, method="product")
-  Single LR pair → numeric vector of length n.edges
-  method: "product" | "minimum"; supports gene complexes via "_"
-  FILE: R/compute_LRM_Score.R
-
 compute_CellToCell(count.mtx, edge.list, LRM.db, ligand.col, receptor.col,
                    method, n.cores)
   → plain named list: $edges | $lr.meta
@@ -108,22 +102,6 @@ create_NICHESObject(count.mtx, meta.data, LRM.db,
   .create_NICHESObject_by_sample() depending on sample.col.
   → NICHESObject
   FILE: R/create_NICHESObject.R (dispatcher only — single function in this file)
-
-— OBJECT DATA HELPERS (newly extracted, exported) —
-build_cell_data(count.mtx, normalize.method="prop")
-  Sparse count matrix → long-format cell|gene|score|score.norm data.table.
-  FILE: R/build_cell_data.R
-
-build_edge_meta(edge.list.dt, cell.meta)
-  Joins cell metadata onto edge list. Adds Sending.*, Receiving.*, Joint.*
-  columns (Joint only for character/factor cols).
-  FILE: R/build_edge_meta.R
-
-smooth_expression(count.mtx, barcodes, k=9L, n.pcs=30L)
-  PCA + kNN smoothing. Replaces target columns with neighborhood-averaged
-  raw counts. Note: irlba::irlba(..., fastpath=FALSE) and NO center
-  argument — never change.
-  FILE: R/smooth_expression.R
 
 — OBJECT EXTENSIONS —
 add_neighborhoods(niches.obj, edge.filter.mode, remove.autocrine,
@@ -196,6 +174,28 @@ Internal branch implementations of create_NICHESObject() (each in its own file):
 h5ad internal helpers (in R/extract_NICHESInputs_AnnData.R, unexported):
   .h5ad_attrs, .h5ad_encoding, .h5ad_obs_names, .h5ad_var_names,
   .h5ad_available_layers, .h5ad_read_sparse, .h5ad_read_matrix, .h5ad_read_obs
+  
+Internal helpers in dedicated files:
+  .compute_LRM_Score(lig.str, rec.str, count.mtx,
+                  sending.cells, receiv.cells, method="product")
+  Single LR pair → numeric vector of length n.edges
+  method: "product" | "minimum"; supports gene complexes via "_"
+  FILE: R/compute_LRM_Score.R
+  
+  .build_cell_data(count.mtx, normalize.method="prop")
+  Sparse count matrix → long-format cell|gene|score|score.norm data.table.
+  FILE: R/build_cell_data.R
+
+  .build_edge_meta(edge.list.dt, cell.meta)
+  Joins cell metadata onto edge list. Adds Sending.*, Receiving.*, Joint.*
+  columns (Joint only for character/factor cols).
+  FILE: R/build_edge_meta.R
+
+  .smooth_expression(count.mtx, barcodes, k=9L, n.pcs=30L)
+  PCA + kNN smoothing. Replaces target columns with neighborhood-averaged
+  raw counts. Note: irlba::irlba(..., fastpath=FALSE) and NO center
+  argument — never change.
+  FILE: R/smooth_expression.R
 
 
 ================================================================================
@@ -219,10 +219,8 @@ Tests (all passing):
   test-CellToCell_InSitu.R
   test-extract_NICHESInputs_Seurat.R
   test-extract_NICHESInputs_AnnData.R
-  test-compute_LRM_Score.R                (NEW)
-  test-build_cell_data.R                  (NEW)
-  test-build_edge_meta.R                  (NEW)
-  test-smooth_expression.R                (NEW)
+  test-compute_LRM_Score.R                (NEW, now use NICHESv2::: to call internal functions)
+  test-smooth_expression.R                (NEW, now use NICHESv2::: to call internal functions)
 
   TODO: test-extract_neighborhoods.R, test-add_neighborhoods.R, test-add_cell_meta.R
 
@@ -287,12 +285,8 @@ h5ad matrix orientation:
   n_obs] in R, already genes x cells. Sparse matrices must be transposed
   explicitly after reconstruction.
 
-is_NICHESObject vs .is_NICHESObject:
-  Both names exist in the codebase. Real definition is in
-  R/NICHESObject_class.R as is_NICHESObject (no dot). The dot-prefix
-  variant in utils.R is an alias or duplicate. Call sites are inconsistent
-  (some use the dot, some don't). Cosmetic inconsistency, NOT a bug.
-  Future cleanup: standardize to one name.
+Style B section markers (## Title ---- and # filename ----):
+  These are RStudio-foldable. Don't 'fix' them back to banner blocks during future edits.
 
 smooth = TRUE has zero test coverage:
   The smoothing branch in create_NICHESObject() is not exercised by any
@@ -327,11 +321,4 @@ PENDING DECISIONS
 
 6. Potential package rename from NICHESv2.
 
-7. Helper function policy needs revisiting:
-   The current helper-extraction outcome (4 small exported functions) may
-   not be the optimal end state. Worth reconsidering whether build_cell_data
-   and build_edge_meta really belong in the public API, or whether they
-   should be re-internalized once their value as standalone API surface is
-   evaluated.
-
-8. Standardize on is_NICHESObject vs .is_NICHESObject (cosmetic).
+7. Pass 2 (CRAN docs): add @keywords internal + @details paragraph to advisor-experimental exports: extract_neighborhoods, create_Edgelist_Spatial, create_Edgelist_PseudoBulk, create_Edgelist_SamplingByType. Each needs a sentence explaining why it's exported despite not being part of the main user workflow.

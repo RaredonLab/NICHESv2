@@ -26,7 +26,7 @@ devtools::document()
 # 2. Load the package into your session (no install needed)
 # =============================================================================
 
-devtools::load_all()
+devtools::load_all(".")
 
 # =============================================================================
 # 3. Run the test suite

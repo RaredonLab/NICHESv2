@@ -15,43 +15,61 @@ compute_CellToCell(
 )
 }
 \arguments{
-\item{count.mtx}{Gene x cell (or gene x type for pseudobulk) expression
-matrix (sparse or dense). Row names = gene symbols; column names = cell
-barcodes or cell type labels matching \code{edge.list$from} / \code{$to}.}
+\item{count.mtx}{Gene x cell (or gene x type for pseudobulk)
+expression matrix (sparse \code{dgCMatrix} or dense). Row names = gene
+symbols; column names = cell barcodes or cell type labels matching
+\code{edge.list$from} / \code{$to}.}
 
-\item{edge.list}{\code{data.table} from \code{create_Edgelist_Spatial()},
-\code{create_Edgelist_PseudoBulk()}, or
-\code{create_Edgelist_SamplingByType()}; or any data.frame with \code{from}
-and \code{to} columns whose values match \code{colnames(count.mtx)}.}
+\item{edge.list}{\code{data.table} from
+\code{\link{create_Edgelist_Spatial}},
+\code{\link{create_Edgelist_PseudoBulk}}, or
+\code{\link{create_Edgelist_SamplingByType}}; or any \code{data.frame}
+with \code{from} and \code{to} columns whose values match
+\code{colnames(count.mtx)}. Coordinate columns
+(\code{x.from}, \code{y.from}, \code{x.to}, \code{y.to}), when
+present, are propagated to the output.}
 
-\item{LRM.db}{LR pair table (data.frame) \strong{or} a character string:
-\code{"fantom5"} or \code{"omnipath"} (loaded via \code{load_LRM_database()}).}
+\item{LRM.db}{LR pair table (\code{data.frame} or \code{data.table})
+\strong{or} a character string (\code{"fantom5"} or \code{"omnipath"})
+loaded via \code{\link{load_LRM_database}}. When a string is passed,
+\code{ligand.col} and \code{receptor.col} are silently overridden to
+the canonical \code{"ligand"} and \code{"receptor"}.}
 
-\item{ligand.col}{Column name for ligand symbols in \code{LRM.db}.
-Default: \code{"ligand"}.}
+\item{ligand.col}{Character. Column name for ligand symbols in
+\code{LRM.db}. Default \code{"ligand"}. Ignored when \code{LRM.db} is
+a built-in database name.}
 
-\item{receptor.col}{Column name for receptor symbols in \code{LRM.db}.
-Default: \code{"receptor"}.}
+\item{receptor.col}{Character. Column name for receptor symbols in
+\code{LRM.db}. Default \code{"receptor"}. Ignored when \code{LRM.db}
+is a built-in database name.}
 
-\item{method}{Scoring method. \code{"product"} (default) or
-\code{"minimum"}. See Complex scoring section.}
+\item{method}{Per-edge LR scoring method. \code{"product"}
+(default) multiplies sender ligand expression by receiver receptor
+expression; \code{"minimum"} takes the elementwise minimum across all
+ligand and receptor components. See the Complex scoring section.}
 
-\item{n.cores}{CPU cores for parallel LRM-chunk processing. Default 1.
-Uses socket clusters (\code{parallel::makeCluster}) -- works on Windows,
-macOS, and Linux without OS restrictions.}
+\item{n.cores}{Integer. CPU cores for parallel LRM-chunk
+processing. Default \code{1L}. See the Parallelization section.}
 }
 \value{
 A plain named list with two elements:
 \describe{
-  \item{\code{$edges}}{data.table: \code{from}, \code{to}, \code{ligand},
-    \code{receptor}, \code{LRM} (\code{"ligand|receptor"}), \code{score},
-    plus \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to} when the
-    input \code{edge.list} carries coordinates (spatial only). One row per
-    non-zero (edge x LRM). Keyed on \code{(from, to, LRM)}.}
-  \item{\code{$lr.meta}}{data.table: \code{ligand}, \code{receptor},
-    \code{LRM}, plus any extra columns from \code{LRM.db}. Keyed on
+  \item{\code{$edges}}{\code{data.table}: \code{from}, \code{to},
+    \code{ligand}, \code{receptor}, \code{LRM}
+    (\code{"ligand|receptor"}), \code{score}. Additional columns
+    \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to} appear
+    \strong{only when} the input \code{edge.list} carries coordinates
+    (i.e.\ for spatial edge lists). One row per non-zero
+    (edge x LRM) combination -- silent pairs are omitted for
+    sparsity. Keyed on \code{(from, to, LRM)}.}
+  \item{\code{$lr.meta}}{\code{data.table}: \code{ligand},
+    \code{receptor}, \code{LRM}, plus any extra annotation columns
+    present in \code{LRM.db} (e.g.\ \code{pathway}). One row per valid
+    LRM pair after gene-availability filtering. Keyed on
     \code{(ligand, receptor)}.}
 }
+Both elements are \code{data.table}s so downstream joins on
+\code{from}/\code{to}/\code{LRM} are O(log n).
 }
 \description{
 Universal scoring engine for all NICHESv2 edge modes. For each edge and each
@@ -66,10 +84,14 @@ Supports \strong{multi-gene complexes}: a ligand or receptor represented as
 are combined via the chosen method (product or minimum) \emph{across all
 ligand and receptor components together}.
 
-Built-in LRM databases can be loaded by name:
+Built-in LRM databases can be loaded by name (see
+\code{\link{load_LRM_database}}):
 \itemize{
-  \item \code{"fantom5"}  -- Ramilowski et al. 2015 (requires \pkg{OmnipathR})
-  \item \code{"omnipath"} -- OmniPath intercell network (requires \pkg{OmnipathR})
+  \item \code{"fantom5"}  -- Ramilowski et al. 2015. Bundled with
+    NICHESv2 (human, mouse, rat, pig). No internet or extra packages
+    required.
+  \item \code{"omnipath"} -- OmniPath intercell network (Turei et al.
+    2021). Requires the \pkg{OmnipathR} package and internet access.
 }
 }
 \section{Complex scoring example}{
@@ -80,10 +102,69 @@ With \code{method = "minimum"}:
 \deqn{score = \min(\text{expr}_{send}(COL1A1),\ \text{expr}_{send}(COL1A2),\ \text{expr}_{recv}(ITGB1))}
 }
 
+\section{Direct vs wrapped use}{
+
+Most users should call \code{\link{create_NICHESObject}}, which invokes
+\code{compute_CellToCell()} internally and assembles the result into a
+full \code{NICHESObject}. Call this function directly when you only need
+the raw \code{(edge, LRM, score)} table -- for example, to score a
+custom edge list (e.g.\ a CCC graph from another method) without
+building the surrounding object, or to integrate the score table into
+a non-NICHESv2 downstream pipeline.
+}
+
+\section{Parallelization}{
+
+Work is partitioned across LRM pairs into \code{n.cores} chunks and
+processed by a socket cluster (\code{parallel::makeCluster}), which
+works identically on Windows, macOS, and Linux. Each worker has its
+\code{data.table} thread count throttled to 1 to prevent OpenMP
+contention with the outer parallelism. The cluster is torn down via
+\code{on.exit(stopCluster(cl))} so it is released even if scoring
+errors midway.
+}
+
+\examples{
+\donttest{
+data(NICHESv2_inputs)
+
+# Build a spatial kNN edge list (coord must have row names = barcodes)
+coord <- data.frame(
+  x = NICHESv2_inputs$meta.data$x,
+  y = NICHESv2_inputs$meta.data$y,
+  row.names = rownames(NICHESv2_inputs$meta.data)
+)
+edge.list <- create_Edgelist_Spatial(coord = coord, k = 5L, n.cores = 1L)
+
+# Score every edge x LRM pair (returns a plain 2-element list)
+result <- compute_CellToCell(
+  count.mtx    = NICHESv2_inputs$count.mtx,
+  edge.list    = edge.list,
+  LRM.db       = NICHESv2_inputs$LRM.db,
+  ligand.col   = "ligand",
+  receptor.col = "receptor",
+  method       = "product",
+  n.cores      = 1L
+)
+
+str(result, max.level = 1)   # $edges and $lr.meta
+head(result$edges)           # one row per non-zero (edge, LRM)
+head(result$lr.meta)         # one row per valid LRM pair
+
+# Spatial edge lists carry coordinates -- they propagate to $edges
+setdiff(c("x.from", "y.from", "x.to", "y.to"), colnames(result$edges))
+# character(0) -- all four coordinate columns are present
+}
+
+}
 \seealso{
-\code{\link{create_Edgelist_Spatial}},
+\code{\link{create_NICHESObject}} for the wrapped pipeline that
+    assembles a full \code{NICHESObject};
+  \code{\link{create_Edgelist_Spatial}},
   \code{\link{create_Edgelist_PseudoBulk}},
-  \code{\link{create_Edgelist_SamplingByType}},
-  \code{\link{create_NICHESObject}},
-  \code{\link{load_LRM_database}}
+  \code{\link{create_Edgelist_SamplingByType}} for the edge-list
+    constructors;
+  \code{\link{load_LRM_database}} for the LR-database loader;
+  \code{\link{compute_PseudoBulk_Connectivity}} for type-averaged
+    connectivity in one call.
 }

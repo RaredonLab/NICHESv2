@@ -20,6 +20,23 @@
 #' @return The input \code{NICHESObject} with the three neighborhood slots
 #'   populated. Attribute \code{"edge.filter.mode"} is set on the object.
 #'
+#' @examples
+#' \donttest{
+#' data(NICHESv2_example)
+#'
+#' # Default neighborhood: edges where BOTH endpoints lie in the same
+#' # neighborhood as the central cell
+#' obj.nb <- add_neighborhoods(NICHESv2_example)
+#'
+#' length(obj.nb$neighborhood.cell.list)   # one entry per cell
+#' head(obj.nb$neighborhood.meta)          # n.neighbors and n.edges per cell
+#'
+#' # Inspect one cell's neighborhood
+#' first.cell <- names(obj.nb$neighborhood.cell.list)[1]
+#' obj.nb$neighborhood.cell.list[[first.cell]]
+#' obj.nb$neighborhood.edge.list[[first.cell]]
+#' }
+#'
 #' @export
 add_neighborhoods <- function(niches.obj,
                               edge.filter.mode = "both_in_neighborhood",

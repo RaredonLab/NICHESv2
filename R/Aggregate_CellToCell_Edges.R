@@ -53,10 +53,18 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' agg <- Aggregate_CellToCell_Edges(niches.obj, stat = "mean")
+#' \donttest{
+#' data(NICHESv2_example)
+#'
+#' agg <- Aggregate_CellToCell_Edges(NICHESv2_example, stat = "mean")
+#'
+#' # Per-cell sending and receiving signal -- one row per (cell, LRM)
 #' head(agg$sending)
 #' head(agg$receiving)
+#'
+#' # Both tables are full cell x LRM grids (zero-filled for silent pairs)
+#' nrow(agg$sending) == length(NICHESv2_example$cell.list) *
+#'                      length(NICHESv2_example$LRM.list)
 #' }
 #'
 #' @export

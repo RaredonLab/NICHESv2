@@ -37,6 +37,24 @@
 #'   }
 #'   Returned invisibly when \code{show.plot = TRUE}.
 #'
+#' @examples
+#' \donttest{
+#' data(NICHESv2_inputs)
+#'
+#' # Build a coord data.frame from the example metadata
+#' coord <- NICHESv2_inputs$meta.data[, c("x", "y")]
+#' rownames(coord) <- rownames(NICHESv2_inputs$meta.data)
+#'
+#' # Sweep radius across the bounding box; small dataset -> use all 80 cells
+#' radius.curve <- Explore_Radius_Neighborhood(
+#'   coord     = coord,
+#'   n.sample  = 80L,
+#'   n.cores   = 1L,
+#'   show.plot = FALSE
+#' )
+#' head(radius.curve)
+#' }
+#'
 #' @export
 Explore_Radius_Neighborhood <- function(
   coord,

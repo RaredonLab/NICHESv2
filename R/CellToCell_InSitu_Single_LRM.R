@@ -16,45 +16,96 @@
 #' in a \code{NICHESObject}:
 #'
 #' \enumerate{
-#'   \item \strong{Background layer} -- all spatial edges, grey, thin, low alpha.
-#'   \item \strong{Signal layer} -- edges with non-zero score for the requested
-#'     LRM, coloured and alpha-scaled by score via \code{scale_color_viridis_c()}.
+#'   \item \strong{Background layer} -- all spatial edges, grey, thin, low
+#'     alpha. Provides spatial context.
+#'   \item \strong{Signal layer} -- edges with non-zero score for the
+#'     requested LRM, coloured and alpha-scaled by score via
+#'     \code{scale_color_viridis_c()}.
 #' }
 #'
-#' Coordinates are read from \code{$cell.meta} (columns \code{x} and \code{y}).
-#' Edge endpoints are resolved by joining \code{$edge.list} against
-#' \code{$cell.meta}.
+#' Coordinates are read from \code{$cell.meta} (columns \code{x} and
+#' \code{y}). Edge endpoints are resolved by joining \code{$edge.list}
+#' against \code{$cell.meta}. Returns a \code{ggplot} object that can be
+#' further customised with additional layers, themes, or labels before
+#' being printed or saved.
 #'
-#' @param niches.obj     A \code{NICHESObject} with \code{x} and \code{y} in
-#'   \code{$cell.meta}.
-#' @param LRM            Character. LRM pair in \code{"ligand|receptor"} format,
-#'   matching a value in \code{$LRM.list} (e.g. \code{"MIF|CD74"}).
-#' @param value.col      Character. Which score column to use for colour and
-#'   alpha mapping. One of \code{"score"} (raw, default) or
-#'   \code{"score.norm"} (per-edge proportional normalisation).
-#' @param scale.upper    Numeric or \code{NULL}. Upper limit of the colour and
-#'   alpha scale. \code{NULL} (default) uses the 90th percentile of non-zero
-#'   values for this LRM. Values above the limit are squished to the top colour.
+#' @section Direct vs batch use:
+#' Call this function directly to visualise a single LRM pair and obtain
+#' the live \code{ggplot} object -- useful when you want to add custom
+#' layers (annotations, highlighting, faceting), modify the theme, or
+#' embed the plot in a larger figure (e.g.\ via \pkg{patchwork} or
+#' \pkg{cowplot}). Use \code{\link{CellToCell_InSitu}} when you need to
+#' generate many PNGs in one batch -- it iterates over LRM pairs, writes
+#' files to disk, and parallelises across cores.
+#'
+#' @param niches.obj     A \code{NICHESObject} with \code{x} and \code{y}
+#'   columns in \code{$cell.meta}.
+#' @param LRM            Character. LRM pair in \code{"ligand|receptor"}
+#'   format, matching a value in \code{niches.obj$LRM.list}
+#'   (e.g.\ \code{"MIF|CD74"}).
+#' @param value.col      Character. Score column to map to the colour and
+#'   alpha aesthetics. \code{"score"} (default) shows raw signal magnitude
+#'   and is the right choice for absolute comparisons. \code{"score.norm"}
+#'   shows per-edge proportional signal (sums to 1 across LRMs within an
+#'   edge) and is the right choice for highlighting which LRM dominates
+#'   the communication budget at each edge.
+#' @param scale.upper    Numeric or \code{NULL}. Upper limit of the colour
+#'   and alpha scale; values above are squished to the top colour.
+#'   \code{NULL} (default) auto-computes the 90th percentile of non-zero
+#'   values for this LRM, which produces a visually balanced individual
+#'   plot but means colour values are \strong{not comparable} across
+#'   plots. To compare across LRMs, set this manually to a fixed numeric
+#'   value.
 #' @param bg.color       Background edge colour. Default \code{"grey40"}.
 #' @param bg.linewidth   Background edge line width. Default \code{0.05}.
 #' @param bg.alpha       Background edge alpha. Default \code{0.1}.
 #' @param sig.linewidth  Signal edge line width. Default \code{0.4}.
-#' @param sig.alpha      Maximum signal edge alpha (applied to the highest-value
-#'   edges). Lower-value edges scale down to near-zero alpha. Default \code{0.8}.
+#' @param sig.alpha      Maximum signal edge alpha (applied to the
+#'   highest-value edges). Lower-value edges scale down to near-zero
+#'   alpha. Default \code{0.8}.
 #' @param viridis.option Viridis palette letter (\code{"A"}-\code{"H"}).
 #'   Default \code{"C"} (plasma).
-#' @param title          Plot title. Defaults to \code{"ligand|receptor Connectivity"}.
-#' @param precomputed.bg Optional pre-built background edge \code{data.table}
-#'   (with columns \code{edge}, \code{SendingCell}, \code{ReceivingCell},
-#'   \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to}) as returned by
-#'   \code{CellToCell_InSitu}'s internal pre-computation step. When supplied,
-#'   Section 3 (coordinate joining) is skipped, giving a significant speedup
-#'   during batch plotting. End users calling this function directly should
-#'   leave this \code{NULL} (the default).
+#' @param title          Plot title. Default \code{NULL}, which produces
+#'   \code{"ligand|receptor Connectivity"}.
+#' @param precomputed.bg Optional pre-built background edge
+#'   \code{data.table} (with columns \code{edge}, \code{SendingCell},
+#'   \code{ReceivingCell}, \code{x.from}, \code{y.from}, \code{x.to},
+#'   \code{y.to}). Used internally by \code{\link{CellToCell_InSitu}} to
+#'   skip the per-call coordinate join during batch plotting. End users
+#'   calling this function directly should leave this \code{NULL} (the
+#'   default).
 #'
-#' @return A \code{ggplot} object.
+#' @return A \code{ggplot} object. The plot is fully composed (data,
+#'   scales, theme, fixed coordinate ratio) and is suitable for direct
+#'   printing, saving via \code{ggplot2::ggsave()}, or further
+#'   modification with the standard \code{+} layer-addition syntax.
 #'
-#' @seealso \code{\link{CellToCell_InSitu}}
+#' @seealso
+#'   \code{\link{CellToCell_InSitu}} for batch plotting of many LRM pairs
+#'     in one call;
+#'   \code{\link{NICHESv2_example}} for an example object suitable for
+#'     plotting;
+#'   \code{\link{Aggregate_CellToCell_Edges}} for non-graphical per-cell
+#'     summaries of the same edge data.
+#'
+#' @examples
+#' \donttest{
+#' data(NICHESv2_example)
+#'
+#' # Pick an LRM pair to visualise (the first one in $LRM.list)
+#' lrm.to.plot <- NICHESv2_example$LRM.list[1]
+#'
+#' p <- CellToCell_InSitu_Single_LRM(
+#'   niches.obj = NICHESv2_example,
+#'   LRM        = lrm.to.plot,
+#'   value.col  = "score"
+#' )
+#' print(p)
+#'
+#' # The returned ggplot can be customised further with the standard
+#' # ggplot2 '+' syntax -- add layers, modify the title, change the theme:
+#' p + ggplot2::labs(subtitle = "Customised after the call")
+#' }
 #'
 #' @export
 CellToCell_InSitu_Single_LRM <- function(niches.obj,

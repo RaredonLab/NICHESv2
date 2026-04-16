@@ -2,10 +2,50 @@
 % Please edit documentation in R/NICHESObject_class.R
 \name{length.NICHESObject}
 \alias{length.NICHESObject}
-\title{Number of cells in a NICHESObject.}
+\title{Number of Cells in a NICHESObject}
 \usage{
 \method{length}{NICHESObject}(x)
 }
+\arguments{
+\item{x}{A \code{NICHESObject}.}
+}
+\value{
+Integer scalar: number of cells.
+}
 \description{
-Number of cells in a NICHESObject.
+Returns the number of cells in a \code{NICHESObject}, identical to
+\code{length(x$cell.list)}. Provided so that \code{length(obj)} works
+the way most users expect for a per-cell collection.
+}
+\examples{
+\donttest{
+set.seed(1L)
+count.mtx <- Matrix::sparseMatrix(
+  i = sample(6L, 30L, replace = TRUE),
+  j = sample(8L, 30L, replace = TRUE),
+  x = as.numeric(rpois(30L, lambda = 3) + 1L),
+  dims = c(6L, 8L),
+  dimnames = list(paste0("Gene", 1:6), paste0("Cell", 1:8))
+)
+meta.data <- data.frame(
+  x = runif(8L), y = runif(8L),
+  row.names = paste0("Cell", 1:8)
+)
+LRM.db <- data.frame(
+  ligand   = c("Gene1", "Gene3"),
+  receptor = c("Gene2", "Gene4")
+)
+obj <- create_NICHESObject(
+  count.mtx = count.mtx, meta.data = meta.data, LRM.db = LRM.db,
+  mode = "spatial", ligand.col = "ligand", receptor.col = "receptor",
+  k = 3L, n.cores = 1L, verbose = FALSE
+)
+
+length(obj)   # 8
+}
+
+}
+\seealso{
+\code{\link{dim.NICHESObject}} for cell, gene, edge, and LRM
+  counts together.
 }

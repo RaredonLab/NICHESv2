@@ -2,7 +2,7 @@
 % Please edit documentation in R/NICHESObject_class.R
 \name{is_NICHESObject}
 \alias{is_NICHESObject}
-\title{Test whether an object is a NICHESObject}
+\title{Test Whether an Object Is a NICHESObject}
 \usage{
 is_NICHESObject(x)
 }
@@ -10,8 +10,16 @@ is_NICHESObject(x)
 \item{x}{Any R object.}
 }
 \value{
-Logical scalar.
+Logical scalar: \code{TRUE} if \code{x} inherits from class
+  \code{"NICHESObject"}, otherwise \code{FALSE}.
 }
 \description{
-Test whether an object is a NICHESObject
+Convenience wrapper around \code{inherits(x, "NICHESObject")}. Useful in
+downstream pipelines that need to validate inputs before calling slot-aware
+helpers.
+}
+\examples{
+is_NICHESObject(list())   # FALSE
+is_NICHESObject(1:10)     # FALSE
+
 }

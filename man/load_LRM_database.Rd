@@ -19,7 +19,7 @@ containing ligand and receptor gene symbols.}
 
 \item{species}{Species for built-in databases. One of \code{"human"}
 (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
-(FANTOM5 only — OmniPath does not support pig). Ignored silently when
+(FANTOM5 only -- OmniPath does not support pig). Ignored silently when
 \code{db} is a \code{data.frame}.}
 
 \item{ligand.col}{Column name for ligand symbols when \code{db} is a
@@ -54,7 +54,7 @@ names.
     (DOI: 10.1126/sciadv.aaw3851).
   }
   \item{\code{"omnipath"}}{
-    OmniPath ligand-receptor extra interactions (Türei et al. 2021).
+    OmniPath ligand-receptor extra interactions (Turei et al. 2021).
     Requires internet access and the \pkg{OmnipathR} package.
     Install with: \code{BiocManager::install("OmnipathR")}.
     Supported species: \code{"human"}, \code{"mouse"}, \code{"rat"}.
@@ -71,18 +71,26 @@ functions in NICHESv2 handle complexes automatically.
 }
 
 \examples{
-\dontrun{
-# Built-in databases — species must match your count matrix gene symbols
-lrm <- load_LRM_database("fantom5", species = "human")
-lrm <- load_LRM_database("fantom5", species = "rat")
-lrm <- load_LRM_database("omnipath", species = "mouse")
+# FANTOM5 ships bundled with the package -- always available, no internet.
+\donttest{
+lrm.human <- load_LRM_database("fantom5", species = "human")
+lrm.rat   <- load_LRM_database("fantom5", species = "rat")
+head(lrm.human)
 
-# User-supplied table (species argument ignored)
+# User-supplied table -- species argument is ignored. Column names are
+# remapped to canonical "ligand" / "receptor".
 my.db <- data.frame(
   Ligand   = c("MIF", "VEGFA", "Cxcl12_Pf4"),
   Receptor = c("CD74", "KDR",  "Ackr3")
 )
-lrm <- load_LRM_database(my.db, ligand.col = "Ligand", receptor.col = "Receptor")
+lrm.user <- load_LRM_database(my.db,
+                              ligand.col   = "Ligand",
+                              receptor.col = "Receptor")
+}
+
+# OmniPath requires the OmnipathR package and internet access; not run.
+\dontrun{
+lrm.op <- load_LRM_database("omnipath", species = "mouse")
 }
 
 }

@@ -35,10 +35,36 @@
 #'
 #' @return The input \code{NICHESObject} with \code{$segmentation} populated.
 #'
+#' @seealso \code{\link{NICHESv2_example}} for an example object whose
+#'   \code{$segmentation} slot is \code{NULL} and ready to receive an
+#'   attached \code{sf} object; \code{\link{merge_NICHESObjects}} which
+#'   uses \code{sf::rbind()} to combine \code{$segmentation} slots across
+#'   merged objects.
+#'
 #' @examples
 #' \dontrun{
-#' # Build your sf object using your platform-specific script, then attach:
-#' niches.obj <- add_segmentation(niches.obj, cell.data.sf)
+#' # NICHESv2 expects 'seg.sf' to be an sf data.frame with:
+#' #   * a 'cell' column matching niches.obj$cell.list
+#' #   * an sf geometry column of polygons (one per cell)
+#' # The exact construction is platform-specific (Visium HD, Xenium, MERFISH,
+#' # CosMx, etc.). The skeleton below shows the required shape:
+#'
+#' library(sf)
+#' data(NICHESv2_example)
+#'
+#' # Replace 'polygon.list' with polygons from your segmentation pipeline:
+#' polygon.list <- lapply(NICHESv2_example$cell.list, function(cell) {
+#'   # ... your platform-specific polygon extraction ...
+#'   st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+#'                          ncol = 2, byrow = TRUE)))
+#' })
+#'
+#' seg.sf <- st_sf(
+#'   cell     = NICHESv2_example$cell.list,
+#'   geometry = st_sfc(polygon.list)
+#' )
+#'
+#' niches.obj <- add_segmentation(NICHESv2_example, seg.sf)
 #' }
 #'
 #' @export

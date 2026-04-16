@@ -40,3 +40,21 @@ This function calls \code{\link{extract_neighborhoods}} internally.
 If the neighborhood slots are already populated, they are overwritten
 with a message.
 }
+\examples{
+\donttest{
+data(NICHESv2_example)
+
+# Default neighborhood: edges where BOTH endpoints lie in the same
+# neighborhood as the central cell
+obj.nb <- add_neighborhoods(NICHESv2_example)
+
+length(obj.nb$neighborhood.cell.list)   # one entry per cell
+head(obj.nb$neighborhood.meta)          # n.neighbors and n.edges per cell
+
+# Inspect one cell's neighborhood
+first.cell <- names(obj.nb$neighborhood.cell.list)[1]
+obj.nb$neighborhood.cell.list[[first.cell]]
+obj.nb$neighborhood.edge.list[[first.cell]]
+}
+
+}

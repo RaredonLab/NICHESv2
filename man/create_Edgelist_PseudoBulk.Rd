@@ -28,19 +28,30 @@ cell type labels).
 \description{
 Constructs a directed edge list covering all ordered cell type pairs for
 pseudobulk non-spatial analysis. Each edge represents a directed
-type-to-type communication channel (e.g., \code{"ATI"} → \code{"gCap"}).
-All T² directed pairs are included, encompassing both cross-type and
+type-to-type communication channel (e.g., \code{"ATI"} -> \code{"gCap"}).
+All T^2 directed pairs are included, encompassing both cross-type and
 autocrine (same-type) edges.
 
 The output edge list is intended to be passed to \code{create_NICHESObject()}
 with \code{mode = "pseudobulk"}, where the per-type mean expression matrix is
 computed and paired with this edge list for scoring. Do not pass individual
-cell barcodes as \code{count.mtx} column names when using this edge list —
+cell barcodes as \code{count.mtx} column names when using this edge list --
 the column names must be cell type labels.
 }
 \details{
-Cell types are sorted alphabetically before enumeration so the output order
-is deterministic regardless of the order they appear in \code{meta.data}.
+This function is a low-level primitive: it builds the pseudobulk
+type-to-type edge list that \code{\link{compute_PseudoBulk_Connectivity}}
+consumes internally. Most users should call
+\code{compute_PseudoBulk_Connectivity()}, which invokes this function,
+computes per-type mean expression, scores every type pair, and returns
+a single \code{data.table} in one step.
+\code{create_Edgelist_PseudoBulk()} is exposed for power users who
+want to inspect the type-pair enumeration directly or feed the edges
+into a custom scoring pipeline.
+
+Cell types are sorted alphabetically before enumeration so the output
+order is deterministic regardless of the order they appear in
+\code{meta.data}.
 }
 \examples{
 meta <- data.frame(
@@ -55,3 +66,4 @@ el <- create_Edgelist_PseudoBulk(meta, cell.type.col = "cell.type")
   \code{\link{create_Edgelist_SamplingByType}},
   \code{\link{create_Edgelist_Spatial}}
 }
+\keyword{internal}

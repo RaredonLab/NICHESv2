@@ -67,15 +67,24 @@
 #'   \code{\link{compute_CellToCell}}
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
+#' data(NICHESv2_inputs)
+#'
+#' # Type-level connectivity using the bundled inputs (3 cell types: A/B/C)
 #' pb <- compute_PseudoBulk_Connectivity(
-#'   count.mtx     = count.mtx,
-#'   meta.data     = meta.data,
-#'   LRM.db        = "omnipath",
-#'   cell.type.col = "cell.type"
+#'   count.mtx     = NICHESv2_inputs$count.mtx,
+#'   meta.data     = NICHESv2_inputs$meta.data,
+#'   LRM.db        = NICHESv2_inputs$LRM.db,
+#'   cell.type.col = "celltype",
+#'   n.cores       = 1L,
+#'   verbose       = FALSE
 #' )
-#' # Quick heatmap of total signal per type pair
-#' agg <- pb[, .(total.score = sum(score)), by = .(SendingType, ReceivingType)]
+#' head(pb)
+#'
+#' # Total signal per directed type pair -- the input to a heatmap or chord plot
+#' agg <- pb[, list(total.score = sum(score)),
+#'           by = list(SendingType, ReceivingType)]
+#' agg
 #' }
 #'
 #' @export
