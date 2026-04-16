@@ -113,6 +113,11 @@
 #' @keywords internal
 #' @import data.table
 #' @import ggplot2
+#' @importFrom data.table .
+#' @importFrom methods as
+#' @importFrom scales squish
+#' @importFrom stats median quantile sd setNames
+#' @importFrom utils head
 "_PACKAGE"
 
 

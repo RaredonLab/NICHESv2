@@ -50,3 +50,36 @@
 
 #' @noRd
 `%||%` <- function(x, y) if (is.null(x)) y else x
+
+
+## Suppress R CMD check NOTEs for NSE column names ----
+# These names are used as bare symbols inside data.table j-expressions and
+# dplyr-style verbs throughout the package. They are not missing globals;
+# declaring them here is the CRAN-recommended pattern.
+utils::globalVariables(c(
+  # data.table j-expression alias (.(col1, col2) == list(col1, col2))
+  ".",
+  
+  # edge-table columns
+  "edge", "from", "to",
+  "SendingCell", "ReceivingCell",
+  "SendingType", "ReceivingType",
+  
+  # LRM / score columns
+  "LRM", "ligand", "receptor",
+  "score", "score.norm", "score.stat",
+  
+  # cell / spatial columns
+  "cell", "x", "y",
+  "x.from", "y.from", "x.to", "y.to",
+  
+  # neighborhood columns
+  "neighbor", "radius",
+  "mean.neighbors", "sd.neighbors",
+  
+  # summary stat columns (used as column *names*, not functions)
+  "median", "sd",
+  
+  # plot internals
+  ".plot.val"
+))

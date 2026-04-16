@@ -17,11 +17,13 @@ Depends: R (>= 4.1.0)
 Imports:
     data.table (>= 1.14.0),
     Matrix (>= 1.5.0),
+    methods,
     RANN (>= 2.6.1),
     dbscan (>= 1.1.0),
     ggplot2 (>= 3.4.0),
     irlba (>= 2.3.0),
-    parallel
+    parallel,
+    scales
 Suggests:
     SeuratObject,
     rhdf5,
