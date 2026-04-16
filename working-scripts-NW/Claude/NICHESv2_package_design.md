@@ -227,7 +227,9 @@ Tests (all passing):
 
   TODO: test-extract_neighborhoods.R, test-add_neighborhoods.R, test-add_cell_meta.R
 
-Fixtures: inst/testdata/generate_testdata.R — re-run ONLY when schema changes.
+Fixtures: data-raw/build_NICHESv2_example.R — re-run when schema or bundled
+  data changes. Produces data/NICHESv2_inputs.rda and data/NICHESv2_example.rda.
+  No inst/ folder; inst/testdata/ was deleted.
 
 Intentional skips (3): full-batch InSitu (>5 LRMs), irlba-absent path,
   replaced placeholder in test-compute_PseudoBulk_Connectivity.R

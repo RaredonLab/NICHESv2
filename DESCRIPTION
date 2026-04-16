@@ -1,15 +1,22 @@
 Package: NICHESv2
 Type: Package
 Title: Spatial Cell-to-Cell Ligand-Receptor Communication Analysis
-Version: 0.1.0
-Authors@R: person(given="NICHESv2", family="Authors", role=c("aut","cre"), email="niches@example.com")
+Version: 0.0.9000
+Authors@R: c(
+    person("Nuoya", "Wang",
+           email = "nuoya.wang@yale.edu",
+           role  = c("aut", "cre")),
+    person("Micha Sam Brickman", "Raredon",
+           role  = "aut"))
 Description: Computes ligand-receptor (LR) signalling scores between spatially
     neighbouring cells in single-cell spatial transcriptomics data. Returns a
-    NICHESObject (13-slot S3 class) with per-cell aggregation, batch in situ
+    NICHESObject (14-slot S3 class) with per-cell aggregation, batch in situ
     visualisation, and flexible downstream analysis. Supports single-gene and
     multi-gene complex ligands/receptors (underscore-delimited). Built-in
     loaders for FANTOM5 and OmniPath LR databases.
 License: MIT + file LICENSE
+URL: https://github.com/RaredonLab/NICHESv2
+BugReports: https://github.com/RaredonLab/NICHESv2/issues
 Encoding: UTF-8
 LazyData: false
 RoxygenNote: 7.3.2
