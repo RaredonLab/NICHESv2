@@ -293,6 +293,61 @@ smooth = TRUE has zero test coverage:
   current test. A bug at the call site (line 208 of
   create_NICHESObject_single.R) sat undetected through Pass 1 because of
   this. Add at least one minimal test before relying on this code path.
+  
+[.NICHESObject attribute propagation bug:
+  [.NICHESObject does not copy attr(x,"mode") or attr(x,"sample.col") to
+  the subsetted result. Fix before CRAN: add
+    attr(result, "mode")       <- attr(x, "mode")
+    attr(result, "sample.col") <- attr(x, "sample.col")
+  to R/NICHESObject_methods.R before the return statement.
+
+globalVariables pattern for data.table NSE:
+  All data.table column names used with NSE must be declared via
+  utils::globalVariables() in NICHESv2-package.R to suppress R CMD check
+  "no visible binding" notes. Similarly, base R functions used without
+  explicit :: (head, setNames, as, median, quantile, sd) need @importFrom
+  tags in NICHESv2-package.R.
+  
+S3 method source vs test file naming:
+  S3 methods (print, summary, dim, length, [) are defined in
+  R/NICHESObject_class.R — NOT a file called NICHESObject_methods.R.
+  The test file test-NICHESObject_methods.R is named after the behavior
+  under test (methods), not the source file. Both names are correct and
+  intentional.
+  
+================================================================================
+TEST SUITE STATUS
+================================================================================
+
+Full rewrite completed. All test files pass under both devtools::test() and
+R CMD check. Coverage: ~220 test_that blocks across 20 files.
+
+File structure (all in tests/testthat/):
+  helper-testutils.R              — keep (make_grid_coord utility)
+  test-compute_LRM_Score.R        test-create_Edgelist_Spatial.R
+  test-smooth_expression.R        test-create_Edgelist_PseudoBulk.R
+  test-extract_neighborhoods.R    test-create_Edgelist_SamplingByType.R
+  test-add_neighborhoods.R        test-compute_CellToCell.R
+  test-merge_NICHESObjects.R      test-compute_PseudoBulk_Connectivity.R
+  test-Explore_Radius_Neighborhood.R  test-create_NICHESObject.R
+  test-extract_NICHESInputs_Seurat.R  test-load_LRM_database.R
+  test-extract_NICHESInputs_AnnData.R test-add_cell_meta.R
+  test-add_segmentation.R         test-Aggregate_CellToCell_Edges.R
+  test-CellToCell_InSitu.R        test-NICHESObject_methods.R
+
+Fixture strategy:
+  - data(NICHESv2_example): add_cell_meta, add_segmentation,
+    Aggregate_CellToCell_Edges, CellToCell_InSitu, NICHESObject_methods
+  - Inline synthesis: all other files
+  - helper-testdata.R and inst/testdata/ DELETED
+
+Intentional skips (3):
+  - Full-batch InSitu (> 5 LRMs)
+  - irlba-absent path
+  - Replaced placeholder in test-compute_PseudoBulk_Connectivity.R
+
+R CMD check status: 0 errors | 3 warnings | 3 notes
+  (warnings and N2/N3 are Pass 3 work — see PENDING DECISIONS)
 
 
 ================================================================================
@@ -319,6 +374,10 @@ PENDING DECISIONS
    decision is resolved. Dataset choice (own Visium vs. public benchmark)
    consequently also paused.
 
-6. Potential package rename from NICHESv2.
-
-7. Pass 2 (CRAN docs): add @keywords internal + @details paragraph to advisor-experimental exports: extract_neighborhoods, create_Edgelist_Spatial, create_Edgelist_PseudoBulk, create_Edgelist_SamplingByType. Each needs a sentence explaining why it's exported despite not being part of the main user workflow.
+6. Pass 3 (CRAN docs) — 3 warnings to fix:
+   W1: @importFrom methods as + @importFrom scales <fns> in NICHESv2-package.R
+   W2: Document 5 bundled FANTOM5 datasets in R/data-ncomms8866.R
+   W3: Fix NICHESv2_example / NICHESv2_inputs .Rd mismatch (missing @name tag)
+   Plus: utils::globalVariables() for all data.table NSE names; @importFrom
+   for utils::head, stats::median/quantile/sd/setNames, methods::as;
+   add dev.R and omnipathr-log to .Rbuildignore.

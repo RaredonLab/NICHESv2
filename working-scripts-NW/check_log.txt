@@ -10,11 +10,11 @@ Setting env vars:
 • CXX20FLAGS: -Wall -pedantic
 ── R CMD build ──────────────────────────────────────────────────────────────────────────────────────
      checking for file ‘/Users/nw426/Documents/GitHub/NICHESv2-NW/DESCRIPTION’ ...  ✔  checking for file ‘/Users/nw426/Documents/GitHub/NICHESv2-NW/DESCRIPTION’
-  ─  preparing ‘NICHESv2’: (473ms)
-   checking DESCRIPTION meta-information ...  ✔  checking DESCRIPTION meta-information
+  ─  preparing ‘NICHESv2’: (629ms)
+     checking DESCRIPTION meta-information ...  ✔  checking DESCRIPTION meta-information
   ─  checking for LF line-endings in source and make files and shell scripts
   ─  checking for empty or unneeded directories
-  ─  looking to see if a ‘data/datalist’ file should be added
+─  looking to see if a ‘data/datalist’ file should be added
   ─  building ‘NICHESv2_0.1.0.tar.gz’
      Warning: invalid uid value replaced by that for user 'nobody'
    Warning: invalid gid value replaced by that for user 'nobody'
@@ -27,7 +27,7 @@ Setting env vars:
 • _R_CHECK_PACKAGES_USED_IGNORE_UNUSED_IMPORTS_: FALSE
 • NOT_CRAN                                     : true
 ── R CMD check ──────────────────────────────────────────────────────────────────────────────────────
-  ─  using log directory ‘/private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpDIO0lm/filec797461a9e1f/NICHESv2.Rcheck’
+  ─  using log directory ‘/private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzpX0jW/filedaa81c8b046f/NICHESv2.Rcheck’
 ─  using R version 4.3.3 (2024-02-29)
 -  ─  using platform: aarch64-apple-darwin20 (64-bit)
 ─  R was compiled by
@@ -41,40 +41,40 @@ Setting env vars:
 ─  this is package ‘NICHESv2’ version ‘0.1.0’
 ─  package encoding: UTF-8
    checking package namespace information ...-  ✔  checking package namespace information
-   checking package dependencies ...\|/  ✔  checking package dependencies (415ms)
+   checking package dependencies ...\|/  ✔  checking package dependencies (421ms)
 -  ✔  checking if this is a source package
 ✔  checking if there is a namespace
 \     checking for executable files ...|/  ✔  checking for executable files
 -  ✔  checking for hidden files and directories
-\     checking for portable file names ...|  ✔  checking for portable file names
-/  ✔  checking for sufficient/correct file permissions
--     checking whether package ‘NICHESv2’ can be installed ...\|/-\|/-\|  ✔  checking whether package ‘NICHESv2’ can be installed (1.9s)
-   checking installed package size .../  ✔  checking installed package size
+   checking for portable file names ...\  ✔  checking for portable file names
+|  ✔  checking for sufficient/correct file permissions
+/     checking whether package ‘NICHESv2’ can be installed ...-\|/-\|/-\  ✔  checking whether package ‘NICHESv2’ can be installed (1.9s)
+|     checking installed package size .../  ✔  checking installed package size
 -     checking package directory ...\  ✔  checking package directory
-   checking for future file timestamps ...|/  N  checking for future file timestamps
+   checking for future file timestamps ...|/  N  checking for future file timestamps (366ms)
    unable to verify current time
 -     checking DESCRIPTION meta-information ...\|  ✔  checking DESCRIPTION meta-information
    checking top-level files .../  N  checking top-level files
    Non-standard files/directories found at top level:
-     ‘bashscript.sh’ ‘dev.R’ ‘omnipathr-log’
+     ‘dev.R’ ‘omnipathr-log’
 ✔  checking for left-over files
 ✔  checking index information
    checking package subdirectories ...-  ✔  checking package subdirectories
    checking R files for non-ASCII characters ...\  ✔  checking R files for non-ASCII characters
    checking R files for syntax errors ...|  ✔  checking R files for syntax errors
-   checking whether the package can be loaded .../-  ✔  checking whether the package can be loaded (346ms)
+   checking whether the package can be loaded .../-  ✔  checking whether the package can be loaded (359ms)
    checking whether the package can be loaded with stated dependencies ...\|  ✔  checking whether the package can be loaded with stated dependencies
    checking whether the package can be unloaded cleanly .../-  ✔  checking whether the package can be unloaded cleanly
-\     checking whether the namespace can be loaded with stated dependencies ...|/  ✔  checking whether the namespace can be loaded with stated dependencies
-   checking whether the namespace can be unloaded cleanly ...-\  ✔  checking whether the namespace can be unloaded cleanly (355ms)
-|/     checking startup messages can be suppressed ...-\  ✔  checking startup messages can be suppressed (714ms)
-   checking dependencies in R code ...|/-\|  W  checking dependencies in R code (1s)
+   checking whether the namespace can be loaded with stated dependencies ...\|  ✔  checking whether the namespace can be loaded with stated dependencies
+   checking whether the namespace can be unloaded cleanly .../-  ✔  checking whether the namespace can be unloaded cleanly (347ms)
+\|     checking startup messages can be suppressed .../-  ✔  checking startup messages can be suppressed (714ms)
+   checking dependencies in R code ...\|/-\|  W  checking dependencies in R code (1.1s)
    '::' or ':::' imports not declared from:
      ‘methods’ ‘scales’
-   checking S3 generic/method consistency .../-  ✔  checking S3 generic/method consistency (393ms)
+   checking S3 generic/method consistency .../-  ✔  checking S3 generic/method consistency (400ms)
    checking replacement functions ...\|  ✔  checking replacement functions
    checking foreign function calls .../-  ✔  checking foreign function calls
-   checking R code for possible problems ...\|/-\|/-\|/-\|/-\|  N  checking R code for possible problems (3.6s)
+   checking R code for possible problems ...\|/-\|/-\|/-\|/-\|/  N  checking R code for possible problems (3.7s)
    .build_cell_data: no visible binding for global variable ‘score.norm’
    .build_cell_data: no visible binding for global variable ‘score’
    .build_cell_data: no visible binding for global variable ‘cell’
@@ -116,7 +116,7 @@ Setting env vars:
    CellToCell_InSitu: no visible binding for global variable ‘SendingCell’
    CellToCell_InSitu: no visible binding for global variable
      ‘ReceivingCell’
-CellToCell_InSitu_Single_LRM: no visible/     CellToCell_InSitu_Single_LRM: no visible global function definition for
+CellToCell_InSitu_Single_LRM: no visible-     CellToCell_InSitu_Single_LRM: no visible global function definition for
      ‘head’
    CellToCell_InSitu_Single_LRM: no visible global function definition for
      ‘.’
@@ -163,7 +163,7 @@ CellToCell_InSitu_Single_LRM: no visible/     CellToCell_InSitu_Single_LRM: 
    [.NICHESObject: no visible binding for global variable ‘ReceivingCell’
    [.NICHESObject: no visible binding for global variable ‘edge’
    compute_CellToCell: no visible binding for global variable ‘LRM’
-compute_CellToCell: no-     compute_CellToCell: no visible binding for global variable ‘ligand’
+compute_CellToCell: no\     compute_CellToCell: no visible binding for global variable ‘ligand’
    compute_CellToCell: no visible binding for global variable ‘receptor’
    compute_CellToCell: no visible global function definition for ‘.’
    compute_CellToCell: no visible binding for global variable ‘from’
@@ -203,7 +203,7 @@ compute_CellToCell: no-     compute_CellToCell: no visible binding for globa
    create_Edgelist_Spatial: no visible binding for global variable ‘to’
    create_Edgelist_Spatial: no visible binding for global variable
      ‘x.from’
-create_Edgelist_Spatial: no visible binding for global \     create_Edgelist_Spatial: no visible binding for global variable
+create_Edgelist_Spatial: no visible binding for global |     create_Edgelist_Spatial: no visible binding for global variable
      ‘y.from’
    create_Edgelist_Spatial: no visible binding for global variable ‘x.to’
    create_Edgelist_Spatial: no visible binding for global variable ‘y.to’
@@ -229,66 +229,45 @@ create_Edgelist_Spatial: no visible binding for global \     create_Edgelist
      importFrom("utils", "head")
    to your NAMESPACE file (and ensure that your DESCRIPTION Imports field
    contains 'methods').
-|     checking Rd files .../-  ✔  checking Rd files
-   checking Rd metadata ...\  ✔  checking Rd metadata
-   checking Rd line widths ...|  ✔  checking Rd line widths
-   checking Rd cross-references .../  ✔  checking Rd cross-references
-   checking for missing documentation entries ...-\  W  checking for missing documentation entries (336ms)
+/     checking Rd files ...-\  ✔  checking Rd files
+|     checking Rd metadata .../  ✔  checking Rd metadata
+   checking Rd line widths ...-  ✔  checking Rd line widths
+   checking Rd cross-references ...\  ✔  checking Rd cross-references
+   checking for missing documentation entries ...|/  W  checking for missing documentation entries (338ms)
    Undocumented data sets:
      ‘ncomms8866_human’ ‘ncomms8866_mouse’ ‘ncomms8866’ ‘ncomms8866_pig’
      ‘ncomms8866_rat’
-|     All user-level objects in a package should have documentation entries.
+-     All user-level objects in a package should have documentation entries.
    See chapter ‘Writing R documentation files’ in the ‘Writing R
    Extensions’ manual.
-   checking for code/documentation mismatches .../-  W  checking for code/documentation mismatches (351ms)
+   checking for code/documentation mismatches ...\|  W  checking for code/documentation mismatches (350ms)
    Variables with usage in documentation object 'NICHESv2_example' but not in code:
      ‘NICHESv2_example’
    
    Variables with usage in documentation object 'NICHESv2_inputs' but not in code:
      ‘NICHESv2_inputs’
    
-\|/     checking Rd \usage sections ...-\|  ✔  checking Rd \usage sections (1.1s)
-   checking Rd contents .../  ✔  checking Rd contents
-   checking for unstated dependencies in examples ...-  ✔  checking for unstated dependencies in examples
-\     checking contents of ‘data’ directory ...|/-\|/-\  ✔  checking contents of ‘data’ directory (1.4s)
-|     checking data for non-ASCII characters .../-\  ✔  checking data for non-ASCII characters (481ms)
+/-\     checking Rd \usage sections ...|/-  ✔  checking Rd \usage sections (1.1s)
+   checking Rd contents ...\  ✔  checking Rd contents
+   checking for unstated dependencies in examples ...|  ✔  checking for unstated dependencies in examples
+/     checking contents of ‘data’ directory ...-\|/-\|  ✔  checking contents of ‘data’ directory (1.4s)
+   checking data for non-ASCII characters .../-\  ✔  checking data for non-ASCII characters (500ms)
 |     checking data for ASCII and uncompressed saves .../  ✔  checking data for ASCII and uncompressed saves
 -     checking examples ...\|/-\|/-\  ✔  checking examples (1.8s)
-|     checking examples with --run-donttest .../-\|/-\|/-\|/  ✔  checking examples with --run-donttest (2.5s)
+|     checking examples with --run-donttest .../-\|/-\|/-\|/  ✔  checking examples with --run-donttest (2.6s)
 -     checking for unstated dependencies in ‘tests’ ...\  ✔  checking for unstated dependencies in ‘tests’
    checking tests ...|  ─  checking tests
-/     Running ‘testthat.R’-\|/-\|/-\|/-\|/-\|/-\|  /  ─  Running ‘testthat.R’ (4.6s)
-E  Some test files failed
--     Running the tests in ‘tests/testthat.R’ failed.
-   Last 13 lines of output:
-     ══ Skipped tests (1) ═══════════════════════════════════════════════════════════
-     • Too many LRM pairs for a full-run InSitu test. (1):
-       'test-CellToCell_InSitu.R:146:3'
-     
-     ══ Failed tests ════════════════════════════════════════════════════════════════
-     ── Error ('test-compute_CellToCell.R:7:3'): compute_CellToCell: returns plain list with edges and lr.meta ──
-     Error in `compute_CellToCell(count.mtx = count.mtx, edge.list = edge.list, 
-         LRM.db = LRM.db)`: [compute_CellToCell] No valid LR pairs remain after gene filtering.
-     Backtrace:
-         ▆
-      1. └─NICHESv2::compute_CellToCell(...) at test-compute_CellToCell.R:7:3
-     
-     [ FAIL 1 | WARN 0 | SKIP 1 | PASS 371 ]
-     Error: Test failures
-     Execution halted
+/     Running ‘testthat.R’-\|/-\|/-\|/-\|/-\|/-\|/  -  ✔  Running ‘testthat.R’ (4.8s)
 \  ✔  checking for non-standard things in the check directory
 ✔  checking for detritus in the temp directory
-|  /     
--     See
-     ‘/private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpDIO0lm/filec797461a9e1f/NICHESv2.Rcheck/00check.log’
+   
+   See
+     ‘/private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzpX0jW/filedaa81c8b046f/NICHESv2.Rcheck/00check.log’
    for details.
    
-\|/      
-── R CMD check results ────────────────────────────────────────────────────────── NICHESv2 0.1.0 ────
-Duration: 25.9s
-
-❯ checking tests ...
-  See below...
+   
+|/-\ ── R CMD check results ────────────────────────────────────────────────────────── NICHESv2 0.1.0 ────
+Duration: 26.7s
 
 ❯ checking dependencies in R code ... WARNING
   '::' or ':::' imports not declared from:
@@ -314,7 +293,7 @@ Duration: 25.9s
 
 ❯ checking top-level files ... NOTE
   Non-standard files/directories found at top level:
-    ‘bashscript.sh’ ‘dev.R’ ‘omnipathr-log’
+    ‘dev.R’ ‘omnipathr-log’
 
 ❯ checking R code for possible problems ... NOTE
   .build_cell_data: no visible binding for global variable ‘score.norm’
@@ -472,304 +451,4 @@ Duration: 25.9s
   to your NAMESPACE file (and ensure that your DESCRIPTION Imports field
   contains 'methods').
 
-── Test failures ────────────────────────────────────────────────────────────────────── testthat ────
-
-> # ==============================================================================
-> # FILE:    tests/testthat.R
-> # PURPOSE: Standard testthat entry point. Run via devtools::test() or
-> #          R CMD check. Generates test fixtures on first run if absent.
-> # ==============================================================================
-> 
-> library(testthat)
-> library(NICHESv2)
-NICHESv2 0.1.0 -- Spatial LR communication analysis. See ?NICHESv2 or vignette('NICHESv2') to get started.
-> 
-> # Auto-generate fixtures if not yet present (convenient for first-time runs)
-> fixture.path <- system.file("testdata", "niches.obj.rds",
-+                              package = "NICHESv2", mustWork = FALSE)
-> if (!nchar(fixture.path) || !file.exists(fixture.path)) {
-+   gen.script <- system.file("testdata", "generate_testdata.R",
-+                              package = "NICHESv2", mustWork = FALSE)
-+   if (nchar(gen.script) && file.exists(gen.script)) {
-+     message("NICHESv2 tests: generating test fixtures ...")
-+     source(gen.script)
-+   }
-+ }
-> 
-> test_check("NICHESv2")
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'sum'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'sum'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'sum'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'sum'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'mean'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'max'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'sum'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'sum'
-[Aggregate_CellToCell_Edges] 80 cells x 15 LRM pairs = 1200 rows each | stat = 'sum'
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 22.4  (value.col = 'score')
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 22.4  (value.col = 'score')
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 22.4  (value.col = 'score')
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 1  (value.col = 'score.norm')
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 5  (value.col = 'score')
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 22.4  (value.col = 'score')
-[CellToCell_InSitu] Output directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea15a0b4d83/selected_LRMs
-[CellToCell_InSitu] 2 LRM pair(s) to plot.
-[CellToCell_InSitu] Plotting with 1 core(s) ...
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 22.4  (value.col = 'score')
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene13|Gene14
-  Non-zero signal edges: 6 / 274  (2.2%)
-  Scale upper limit: 17  (value.col = 'score')
-[CellToCell_InSitu] Done. Saved: 2 | Skipped: 0 | Directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea15a0b4d83/selected_LRMs
-[CellToCell_InSitu] Output directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea13b0b6f17/selected_LRMs
-[CellToCell_InSitu] 1 LRM pair(s) to plot.
-[CellToCell_InSitu] Plotting with 1 core(s) ...
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 22.4  (value.col = 'score')
-[CellToCell_InSitu] Done. Saved: 1 | Skipped: 0 | Directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea13b0b6f17/selected_LRMs
-[CellToCell_InSitu] Output directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea1625e6a89/selected_LRMs
-[CellToCell_InSitu] 1 LRM pair(s) to plot.
-[CellToCell_InSitu] Plotting with 1 core(s) ...
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 1  (value.col = 'score.norm')
-[CellToCell_InSitu] Done. Saved: 1 | Skipped: 0 | Directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea1625e6a89/selected_LRMs
-[CellToCell_InSitu] Output directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea17d225bff/selected_LRMs
-[CellToCell_InSitu] 1 LRM pair(s) to plot.
-[CellToCell_InSitu] Plotting with 1 core(s) ...
-[CellToCell_InSitu_Single_LRM] 274 total edges | LRM: Gene11|Gene12
-  Non-zero signal edges: 5 / 274  (1.8%)
-  Scale upper limit: 5  (value.col = 'score')
-[CellToCell_InSitu] Done. Saved: 1 | Skipped: 0 | Directory: /private/var/folders/jq/t9r4005x07b6pj7jzfcxqcb06z970h/T/RtmpzXNIRn/working_dir/RtmpkEM33L/filecea17d225bff/selected_LRMs
-Step 1/4: Building integer index mapping...
-  4 cells, 5 edges
-Step 2/4: Building adjacency lists...
-  Adjacency lists built
-Step 3/4: Building edge lookup indices...
-  Edge lookup indices built
-Step 4/4: Extracting neighborhoods [mode: central_cell_only]...
-  Running in serial mode...
-  Complete: 0.0 seconds (28976 cells/sec)
-  Avg neighbors/cell: 2.2
-  Avg edges/cell: 2.2
-[add_segmentation] Segmentation attached: 80 polygon(s) for 80 cell(s).
-[add_segmentation] Segmentation attached: 80 polygon(s) for 80 cell(s).
-[add_segmentation] Segmentation attached: 80 polygon(s) for 80 cell(s).
-[add_segmentation] Segmentation attached: 82 polygon(s) for 80 cell(s).
-[add_segmentation] Segmentation attached: 80 polygon(s) for 80 cell(s).
-Loading required package: Matrix
-[compute_CellToCell] Dropping 15 LR pair(s): gene(s) absent from count matrix.
-[compute_CellToCell] 354 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 190 non-zero edge signals.
-[compute_CellToCell] 354 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 190 non-zero edge signals.
-[compute_CellToCell] 354 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 190 non-zero edge signals.
-[compute_CellToCell] 2 edges x 1 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 0 non-zero edge signals.
-[compute_CellToCell] 1 edges x 1 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 1 non-zero edge signals.
-[compute_CellToCell] 1 edges x 1 LR pairs | method = 'minimum' | cores = 1
-[compute_CellToCell] Done. 1 non-zero edge signals.
-[compute_CellToCell] 1 edges x 1 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 1 non-zero edge signals.
-[compute_CellToCell] 1 edges x 1 LR pairs | method = 'minimum' | cores = 1
-[compute_CellToCell] Done. 1 non-zero edge signals.
-[compute_CellToCell] 354 edges x 1 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[compute_CellToCell] 354 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 190 non-zero edge signals.
-[compute_CellToCell] 354 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 190 non-zero edge signals.
-[compute_CellToCell] 354 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 190 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[compute_PseudoBulk_Connectivity] Building type-pair edge list ...
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_PseudoBulk_Connectivity] Computing per-type mean expression ...
-[compute_PseudoBulk_Connectivity] Scoring LRM pairs ...
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[compute_PseudoBulk_Connectivity] Done. 9 type pairs | 15 valid LRMs | 135 non-zero signals.
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[compute_CellToCell] 9 edges x 15 LR pairs | method = 'minimum' | cores = 1
-[compute_CellToCell] Done. 135 non-zero edge signals.
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_PseudoBulk] 3 cell types | 9 directed type-pair edges (including autocrine).
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = 2 | 18 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 99 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = none | 230 sampled directed edges.
-[create_Edgelist_SamplingByType] 3 cell types | seed = 42 | max.cells = 10 | 90 sampled directed edges.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 4 | Cells: 80 | Inter-cell: 216 | Autocrine: 80
-[create_Edgelist_Spatial] Mode: radius | Param: 0.3 | Cells: 80 | Inter-cell: 1866 | Autocrine: 80
-[create_Edgelist_Spatial] Mode: kNN    | Param: 4 | Cells: 80 | Inter-cell: 216 | Autocrine: 80
-[create_Edgelist_Spatial] Mode: kNN    | Param: 4 | Cells: 80 | Inter-cell: 216 | Autocrine: 80
-[create_Edgelist_Spatial] Mode: kNN    | Param: 4 | Cells: 10 | Inter-cell: 28 | Autocrine: 10
-[create_Edgelist_Spatial] Mode: kNN    | Param: 4 | Cells: 80 | Inter-cell: 216 | Autocrine: 80
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 36 | Autocrine: 20
-[compute_CellToCell] 56 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 48 | Autocrine: 20
-[compute_CellToCell] 68 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 25 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 36 | Autocrine: 20
-[compute_CellToCell] 56 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 48 | Autocrine: 20
-[compute_CellToCell] 68 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 25 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 36 | Autocrine: 20
-[compute_CellToCell] 56 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 48 | Autocrine: 20
-[compute_CellToCell] 68 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 25 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 36 | Autocrine: 20
-[compute_CellToCell] 56 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 48 | Autocrine: 20
-[compute_CellToCell] 68 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 25 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 36 | Autocrine: 20
-[compute_CellToCell] 56 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 48 | Autocrine: 20
-[compute_CellToCell] 68 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 25 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 36 | Autocrine: 20
-[compute_CellToCell] 56 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 48 | Autocrine: 20
-[compute_CellToCell] 68 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 25 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 36 | Autocrine: 20
-[compute_CellToCell] 56 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 14 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 20 | Inter-cell: 48 | Autocrine: 20
-[compute_CellToCell] 68 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 25 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 40 | Inter-cell: 82 | Autocrine: 40
-[compute_CellToCell] 122 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 30 non-zero edge signals.
-[create_Edgelist_Spatial] Mode: kNN    | Param: 3 | Cells: 21 | Inter-cell: 50 | Autocrine: 21
-[compute_CellToCell] 71 edges x 2 LR pairs | method = 'product' | cores = 1
-[compute_CellToCell] Done. 35 non-zero edge signals.
-[NICHESv2] Extracted 20 genes x 10 cells from 'filecea175164edc.h5ad', layer 'counts'.
-[NICHESv2] Cell metadata: 1 column(s): cell.type
-[NICHESv2] Extracted 5 genes x 5 cells from assay 'RNA', layer 'counts' (V5 Assay5).
-[NICHESv2] Cell metadata: 3 column(s): orig.ident, nCount_RNA, nFeature_RNA
-[ FAIL 1 | WARN 0 | SKIP 1 | PASS 371 ]
-
-══ Skipped tests (1) ═══════════════════════════════════════════════════════════
-• Too many LRM pairs for a full-run InSitu test. (1):
-  'test-CellToCell_InSitu.R:146:3'
-
-══ Failed tests ════════════════════════════════════════════════════════════════
-── Error ('test-compute_CellToCell.R:7:3'): compute_CellToCell: returns plain list with edges and lr.meta ──
-Error in `compute_CellToCell(count.mtx = count.mtx, edge.list = edge.list, 
-    LRM.db = LRM.db)`: [compute_CellToCell] No valid LR pairs remain after gene filtering.
-Backtrace:
-    ▆
- 1. └─NICHESv2::compute_CellToCell(...) at test-compute_CellToCell.R:7:3
-
-[ FAIL 1 | WARN 0 | SKIP 1 | PASS 371 ]
-Error: Test failures
-Execution halted
-
-1 error ✖ | 3 warnings ✖ | 3 notes ✖
+0 errors ✔ | 3 warnings ✖ | 3 notes ✖

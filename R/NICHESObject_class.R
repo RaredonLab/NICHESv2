@@ -479,7 +479,7 @@ length.NICHESObject <- function(x) length(x$cell.list)
     NULL
   }
 
-  .new_NICHESObject(
+  result <- .new_NICHESObject(
     cell.list              = new.cell.list,
     cell.data              = new.cell.data,
     cell.meta              = new.cell.meta,
@@ -495,4 +495,7 @@ length.NICHESObject <- function(x) length(x$cell.list)
     LRM.meta               = x$LRM.meta,
     segmentation           = new.segmentation
   )
+  attr(result, "mode")       <- attr(x, "mode")
+  attr(result, "sample.col") <- attr(x, "sample.col")
+  result
 }
