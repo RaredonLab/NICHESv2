@@ -25,7 +25,7 @@ A \code{data.table} keyed on \code{(from, to)} with columns:
 \describe{
   \item{\code{from}}{Sending cell barcode (character).}
   \item{\code{to}}{Receiving cell barcode (character).}
-  \item{\code{weight}}{Euclidean distance; 0 for self-loops (numeric).}
+  \item{\code{distance}}{Euclidean distance; 0 for self-loops (numeric).}
   \item{\code{x.from}, \code{y.from}}{Sending cell coordinates (numeric).}
   \item{\code{x.to},   \code{y.to}  }{Receiving cell coordinates (numeric).}
 }
@@ -37,24 +37,34 @@ Constructs a directed edge list representing spatial cell neighbourhoods.
 Two computation modes are available for inter-cell edges:
 
 \itemize{
-  \item \strong{kNN mode} — finds \code{k} nearest neighbours per cell via a
-    kd-tree (\code{RANN::nn2}). Only \emph{mutual} edges are retained (A→B
-    kept only if B→A also exists). Non-mutual edges are discarded.
-  \item \strong{Radius mode} — finds all cells within Euclidean distance
+  \item \strong{kNN mode} -- finds \code{k} nearest neighbours per cell via a
+    kd-tree (\code{RANN::nn2}). Only \emph{mutual} edges are retained (A->B
+    kept only if B->A also exists). Non-mutual edges are discarded.
+  \item \strong{Radius mode} -- finds all cells within Euclidean distance
     \code{rad} via a kd-tree (\code{dbscan::frNN}). Edges are inherently
     symmetric.
 }
 
-Autocrine self-loop edges (A→A, \code{weight = 0}) are always appended for
+Autocrine self-loop edges (A->A, \code{distance = 0}) are always appended for
 every cell in both modes.
 }
 \details{
+This function is a low-level primitive: it builds the spatial edge
+list that \code{\link{create_NICHESObject}} consumes internally. Most
+users should call \code{create_NICHESObject(mode = "spatial", ...)},
+which invokes this function and assembles the result into a full
+\code{NICHESObject} in one step. \code{create_Edgelist_Spatial()} is
+exposed for power users who want to inspect or post-process the edge
+list, benchmark alternative \code{k} or \code{rad} values without
+re-running the scoring step, or feed the edges into a non-NICHESv2
+scoring pipeline.
+
 \strong{Parameter resolution (priority):}
 \enumerate{
-  \item Both NULL / invalid → default \code{k = 4}.
-  \item Both valid → radius mode; user notified.
-  \item Only \code{rad} valid → radius mode.
-  \item Only \code{k} valid → kNN mode (mutual edges only).
+  \item Both NULL / invalid -> default \code{k = 4}.
+  \item Both valid -> radius mode; user notified.
+  \item Only \code{rad} valid -> radius mode.
+  \item Only \code{k} valid -> kNN mode (mutual edges only).
 }
 }
 \examples{
@@ -65,3 +75,4 @@ el <- create_Edgelist_Spatial(co, k = 5)
 el.rad <- create_Edgelist_Spatial(co, rad = 0.2)
 
 }
+\keyword{internal}

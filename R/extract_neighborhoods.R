@@ -43,6 +43,17 @@
 #'   }
 #'   Attributes: \code{"edge.filter.mode"}, \code{"remove.autocrine"}.
 #'
+#' @details
+#' This function is a low-level primitive: it operates on a raw edge list
+#' (a \code{data.table} of \code{(edge, SendingCell, ReceivingCell)} rows)
+#' rather than on a full \code{NICHESObject}. Most users should call
+#' \code{\link{add_neighborhoods}} instead, which extracts neighborhoods
+#' from \code{niches.obj$edge.list} and writes them back into the three
+#' neighborhood slots in one step. \code{extract_neighborhoods()} is
+#' exposed for power users and for testing pipelines that build edge
+#' lists outside the standard \code{create_NICHESObject()} workflow.
+#'
+#' @keywords internal
 #' @export
 extract_neighborhoods <- function(edge.list,
                                   edge.filter.mode = "both_in_neighborhood",

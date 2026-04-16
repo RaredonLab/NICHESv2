@@ -1,15 +1,13 @@
-# ==============================================================================
-# FILE:    create_Edgelist_PseudoBulk.R
-# PURPOSE: Build a type-to-type directed edge list for pseudobulk non-spatial
-#          cell-to-cell communication analysis. Enumerates all T² directed
-#          ordered pairs of cell types (including autocrine type → same type).
-#          No sampling or randomness — the output is fully deterministic.
+# create_Edgelist_PseudoBulk.R --------------------------------------------
+# Build a type-to-type directed edge list for pseudobulk non-spatial
+# cell-to-cell communication analysis. Enumerates all T^2 directed
+# ordered pairs of cell types (including autocrine type -> same type).
+# No sampling or randomness -- the output is fully deterministic.
 #
 # FUNCTIONS:
-#   create_Edgelist_PseudoBulk()  — main function
+#   create_Edgelist_PseudoBulk()  -- main function
 #
 # DEPS: data.table (>= 1.14)
-# ==============================================================================
 
 
 # ==============================================================================
@@ -18,14 +16,14 @@
 #' @description
 #' Constructs a directed edge list covering all ordered cell type pairs for
 #' pseudobulk non-spatial analysis. Each edge represents a directed
-#' type-to-type communication channel (e.g., \code{"ATI"} → \code{"gCap"}).
-#' All T² directed pairs are included, encompassing both cross-type and
+#' type-to-type communication channel (e.g., \code{"ATI"} -> \code{"gCap"}).
+#' All T^2 directed pairs are included, encompassing both cross-type and
 #' autocrine (same-type) edges.
 #'
 #' The output edge list is intended to be passed to \code{create_NICHESObject()}
 #' with \code{mode = "pseudobulk"}, where the per-type mean expression matrix is
 #' computed and paired with this edge list for scoring. Do not pass individual
-#' cell barcodes as \code{count.mtx} column names when using this edge list —
+#' cell barcodes as \code{count.mtx} column names when using this edge list --
 #' the column names must be cell type labels.
 #'
 #' @param meta.data    \code{data.frame} with one row per cell. Row names must
@@ -45,8 +43,19 @@
 #' cell type labels).
 #'
 #' @details
-#' Cell types are sorted alphabetically before enumeration so the output order
-#' is deterministic regardless of the order they appear in \code{meta.data}.
+#' This function is a low-level primitive: it builds the pseudobulk
+#' type-to-type edge list that \code{\link{compute_PseudoBulk_Connectivity}}
+#' consumes internally. Most users should call
+#' \code{compute_PseudoBulk_Connectivity()}, which invokes this function,
+#' computes per-type mean expression, scores every type pair, and returns
+#' a single \code{data.table} in one step.
+#' \code{create_Edgelist_PseudoBulk()} is exposed for power users who
+#' want to inspect the type-pair enumeration directly or feed the edges
+#' into a custom scoring pipeline.
+#'
+#' Cell types are sorted alphabetically before enumeration so the output
+#' order is deterministic regardless of the order they appear in
+#' \code{meta.data}.
 #'
 #' @examples
 #' meta <- data.frame(
@@ -59,12 +68,11 @@
 #'   \code{\link{create_Edgelist_SamplingByType}},
 #'   \code{\link{create_Edgelist_Spatial}}
 #'
+#' @keywords internal
 #' @export
 create_Edgelist_PseudoBulk <- function(meta.data, cell.type.col) {
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 1 ── Input validation
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 1: Input validation ----
 
   if (!is.data.frame(meta.data))
     stop("[create_Edgelist_PseudoBulk] 'meta.data' must be a data.frame.")
@@ -85,13 +93,11 @@ create_Edgelist_PseudoBulk <- function(meta.data, cell.type.col) {
   if (n.types < 2L)
     stop("[create_Edgelist_PseudoBulk] At least 2 distinct cell types are required.")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Build T² directed type-pair edge list
+  ## SECTION 2: Build T^2 directed type-pair edge list ----
   #
-  # All ordered pairs (i, j) for i in cell.types, j in cell.types — including
+  # All ordered pairs (i, j) for i in cell.types, j in cell.types -- including
   # i == j (autocrine: type communicates with itself). This covers all possible
   # type-to-type signalling channels without any sampling or randomness.
-  # ════════════════════════════════════════════════════════════════════════════
 
   edge.dt <- data.table(
     from = rep(cell.types, each  = n.types),
@@ -100,9 +106,7 @@ create_Edgelist_PseudoBulk <- function(meta.data, cell.type.col) {
 
   setkeyv(edge.dt, c("from", "to"))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Attach metadata attributes and report
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 3: Attach metadata attributes and report ----
 
   attr(edge.dt, "mode")       <- "pseudobulk"
   attr(edge.dt, "param")      <- cell.type.col

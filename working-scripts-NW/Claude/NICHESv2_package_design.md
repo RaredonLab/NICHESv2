@@ -77,12 +77,6 @@ create_Edgelist_SamplingByType(meta.data, cell.type.col, seed=42L, max.cells)
   → data.table(from|to) with barcodes; attrs: mode="sampled"
 
 — SCORING —
-compute_LRM_Score(lig.str, rec.str, count.mtx,
-                  sending.cells, receiv.cells, method="product")
-  Single LR pair → numeric vector of length n.edges
-  method: "product" | "minimum"; supports gene complexes via "_"
-  FILE: R/compute_LRM_Score.R
-
 compute_CellToCell(count.mtx, edge.list, LRM.db, ligand.col, receptor.col,
                    method, n.cores)
   → plain named list: $edges | $lr.meta
@@ -108,22 +102,6 @@ create_NICHESObject(count.mtx, meta.data, LRM.db,
   .create_NICHESObject_by_sample() depending on sample.col.
   → NICHESObject
   FILE: R/create_NICHESObject.R (dispatcher only — single function in this file)
-
-— OBJECT DATA HELPERS (newly extracted, exported) —
-build_cell_data(count.mtx, normalize.method="prop")
-  Sparse count matrix → long-format cell|gene|score|score.norm data.table.
-  FILE: R/build_cell_data.R
-
-build_edge_meta(edge.list.dt, cell.meta)
-  Joins cell metadata onto edge list. Adds Sending.*, Receiving.*, Joint.*
-  columns (Joint only for character/factor cols).
-  FILE: R/build_edge_meta.R
-
-smooth_expression(count.mtx, barcodes, k=9L, n.pcs=30L)
-  PCA + kNN smoothing. Replaces target columns with neighborhood-averaged
-  raw counts. Note: irlba::irlba(..., fastpath=FALSE) and NO center
-  argument — never change.
-  FILE: R/smooth_expression.R
 
 — OBJECT EXTENSIONS —
 add_neighborhoods(niches.obj, edge.filter.mode, remove.autocrine,
@@ -196,6 +174,28 @@ Internal branch implementations of create_NICHESObject() (each in its own file):
 h5ad internal helpers (in R/extract_NICHESInputs_AnnData.R, unexported):
   .h5ad_attrs, .h5ad_encoding, .h5ad_obs_names, .h5ad_var_names,
   .h5ad_available_layers, .h5ad_read_sparse, .h5ad_read_matrix, .h5ad_read_obs
+  
+Internal helpers in dedicated files:
+  .compute_LRM_Score(lig.str, rec.str, count.mtx,
+                  sending.cells, receiv.cells, method="product")
+  Single LR pair → numeric vector of length n.edges
+  method: "product" | "minimum"; supports gene complexes via "_"
+  FILE: R/compute_LRM_Score.R
+  
+  .build_cell_data(count.mtx, normalize.method="prop")
+  Sparse count matrix → long-format cell|gene|score|score.norm data.table.
+  FILE: R/build_cell_data.R
+
+  .build_edge_meta(edge.list.dt, cell.meta)
+  Joins cell metadata onto edge list. Adds Sending.*, Receiving.*, Joint.*
+  columns (Joint only for character/factor cols).
+  FILE: R/build_edge_meta.R
+
+  .smooth_expression(count.mtx, barcodes, k=9L, n.pcs=30L)
+  PCA + kNN smoothing. Replaces target columns with neighborhood-averaged
+  raw counts. Note: irlba::irlba(..., fastpath=FALSE) and NO center
+  argument — never change.
+  FILE: R/smooth_expression.R
 
 
 ================================================================================
@@ -219,10 +219,8 @@ Tests (all passing):
   test-CellToCell_InSitu.R
   test-extract_NICHESInputs_Seurat.R
   test-extract_NICHESInputs_AnnData.R
-  test-compute_LRM_Score.R                (NEW)
-  test-build_cell_data.R                  (NEW)
-  test-build_edge_meta.R                  (NEW)
-  test-smooth_expression.R                (NEW)
+  test-compute_LRM_Score.R                (NEW, now use NICHESv2::: to call internal functions)
+  test-smooth_expression.R                (NEW, now use NICHESv2::: to call internal functions)
 
   TODO: test-extract_neighborhoods.R, test-add_neighborhoods.R, test-add_cell_meta.R
 
@@ -287,18 +285,69 @@ h5ad matrix orientation:
   n_obs] in R, already genes x cells. Sparse matrices must be transposed
   explicitly after reconstruction.
 
-is_NICHESObject vs .is_NICHESObject:
-  Both names exist in the codebase. Real definition is in
-  R/NICHESObject_class.R as is_NICHESObject (no dot). The dot-prefix
-  variant in utils.R is an alias or duplicate. Call sites are inconsistent
-  (some use the dot, some don't). Cosmetic inconsistency, NOT a bug.
-  Future cleanup: standardize to one name.
+Style B section markers (## Title ---- and # filename ----):
+  These are RStudio-foldable. Don't 'fix' them back to banner blocks during future edits.
 
 smooth = TRUE has zero test coverage:
   The smoothing branch in create_NICHESObject() is not exercised by any
   current test. A bug at the call site (line 208 of
   create_NICHESObject_single.R) sat undetected through Pass 1 because of
   this. Add at least one minimal test before relying on this code path.
+  
+[.NICHESObject attribute propagation bug:
+  [.NICHESObject does not copy attr(x,"mode") or attr(x,"sample.col") to
+  the subsetted result. Fix before CRAN: add
+    attr(result, "mode")       <- attr(x, "mode")
+    attr(result, "sample.col") <- attr(x, "sample.col")
+  to R/NICHESObject_methods.R before the return statement.
+
+globalVariables pattern for data.table NSE:
+  All data.table column names used with NSE must be declared via
+  utils::globalVariables() in NICHESv2-package.R to suppress R CMD check
+  "no visible binding" notes. Similarly, base R functions used without
+  explicit :: (head, setNames, as, median, quantile, sd) need @importFrom
+  tags in NICHESv2-package.R.
+  
+S3 method source vs test file naming:
+  S3 methods (print, summary, dim, length, [) are defined in
+  R/NICHESObject_class.R — NOT a file called NICHESObject_methods.R.
+  The test file test-NICHESObject_methods.R is named after the behavior
+  under test (methods), not the source file. Both names are correct and
+  intentional.
+  
+================================================================================
+TEST SUITE STATUS
+================================================================================
+
+Full rewrite completed. All test files pass under both devtools::test() and
+R CMD check. Coverage: ~220 test_that blocks across 20 files.
+
+File structure (all in tests/testthat/):
+  helper-testutils.R              — keep (make_grid_coord utility)
+  test-compute_LRM_Score.R        test-create_Edgelist_Spatial.R
+  test-smooth_expression.R        test-create_Edgelist_PseudoBulk.R
+  test-extract_neighborhoods.R    test-create_Edgelist_SamplingByType.R
+  test-add_neighborhoods.R        test-compute_CellToCell.R
+  test-merge_NICHESObjects.R      test-compute_PseudoBulk_Connectivity.R
+  test-Explore_Radius_Neighborhood.R  test-create_NICHESObject.R
+  test-extract_NICHESInputs_Seurat.R  test-load_LRM_database.R
+  test-extract_NICHESInputs_AnnData.R test-add_cell_meta.R
+  test-add_segmentation.R         test-Aggregate_CellToCell_Edges.R
+  test-CellToCell_InSitu.R        test-NICHESObject_methods.R
+
+Fixture strategy:
+  - data(NICHESv2_example): add_cell_meta, add_segmentation,
+    Aggregate_CellToCell_Edges, CellToCell_InSitu, NICHESObject_methods
+  - Inline synthesis: all other files
+  - helper-testdata.R and inst/testdata/ DELETED
+
+Intentional skips (3):
+  - Full-batch InSitu (> 5 LRMs)
+  - irlba-absent path
+  - Replaced placeholder in test-compute_PseudoBulk_Connectivity.R
+
+R CMD check status: 0 errors | 3 warnings | 3 notes
+  (warnings and N2/N3 are Pass 3 work — see PENDING DECISIONS)
 
 
 ================================================================================
@@ -325,13 +374,10 @@ PENDING DECISIONS
    decision is resolved. Dataset choice (own Visium vs. public benchmark)
    consequently also paused.
 
-6. Potential package rename from NICHESv2.
-
-7. Helper function policy needs revisiting:
-   The current helper-extraction outcome (4 small exported functions) may
-   not be the optimal end state. Worth reconsidering whether build_cell_data
-   and build_edge_meta really belong in the public API, or whether they
-   should be re-internalized once their value as standalone API surface is
-   evaluated.
-
-8. Standardize on is_NICHESObject vs .is_NICHESObject (cosmetic).
+6. Pass 3 (CRAN docs) — 3 warnings to fix:
+   W1: @importFrom methods as + @importFrom scales <fns> in NICHESv2-package.R
+   W2: Document 5 bundled FANTOM5 datasets in R/data-ncomms8866.R
+   W3: Fix NICHESv2_example / NICHESv2_inputs .Rd mismatch (missing @name tag)
+   Plus: utils::globalVariables() for all data.table NSE names; @importFrom
+   for utils::head, stats::median/quantile/sd/setNames, methods::as;
+   add dev.R and omnipathr-log to .Rbuildignore.

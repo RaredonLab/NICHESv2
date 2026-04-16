@@ -1,11 +1,10 @@
-# ==============================================================================
-# FILE:    build_cell_data.R
-# PURPOSE: Convert a sparse count matrix to long-format cell.data data.table.
-# ==============================================================================
+# build_cell_data.R -------------------------------------------------------
+# Convert a sparse count matrix to long-format cell.data data.table.
+# Internal helper used by .create_NICHESObject_single().
 
 #' Build the long-format cell.data table from a count matrix
 #'
-#' Converts a gene x cell sparse count matrix into the long-format
+#' Internal. Converts a gene x cell sparse count matrix into the long-format
 #' \code{data.table} stored in \code{NICHESObject$cell.data}, with columns
 #' \code{cell}, \code{gene}, \code{score}, and \code{score.norm}.
 #'
@@ -23,9 +22,9 @@
 #'   \code{score}.
 #' @return A keyed \code{data.table} with columns \code{cell}, \code{gene},
 #'   \code{score}, \code{score.norm}.
-#' @export
+#' @noRd
 #' @import data.table
-build_cell_data <- function(count.mtx, normalize.method = "prop") {
+.build_cell_data <- function(count.mtx, normalize.method = "prop") {
   tsm  <- methods::as(count.mtx, "TsparseMatrix")
   rows <- rownames(count.mtx)
   cols <- colnames(count.mtx)

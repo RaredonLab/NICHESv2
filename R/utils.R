@@ -1,13 +1,9 @@
-# ==============================================================================
-# FILE:    utils.R
-# PURPOSE: Internal helper functions shared across NICHESv2.
-#          Not exported. Prefixed with "." to signal private scope.
-# ==============================================================================
+# utils.R -----------------------------------------------------------------
+# Internal helper functions shared across NICHESv2.
+# Not exported. Prefixed with "." to signal private scope.
 
 
-# ------------------------------------------------------------------------------
-# Complex gene-set parsing
-# ------------------------------------------------------------------------------
+## Complex gene-set parsing ----
 
 #' Split a potentially complex gene string (e.g. "gene1_gene2") into parts.
 #' Returns a character vector of length >= 1.
@@ -24,17 +20,7 @@
 }
 
 
-# ------------------------------------------------------------------------------
-# Object identity checks
-# ------------------------------------------------------------------------------
-
-#' @noRd
-.is_NICHESObject <- function(x) inherits(x, "NICHESObject")
-
-
-# ------------------------------------------------------------------------------
-# Categorical column detection (used for Joint.* columns in edge.meta)
-# ------------------------------------------------------------------------------
+## Categorical column detection (used for Joint.* columns in edge.meta) ----
 
 #' Return the names of columns in a data.table that are character or factor.
 #' Excludes the key columns supplied in \code{exclude}.
@@ -48,9 +34,7 @@
 }
 
 
-# ------------------------------------------------------------------------------
-# Normalisation helpers
-# ------------------------------------------------------------------------------
+## Normalisation helpers ----
 
 #' Proportional normalisation within group.
 #' Divides each value by the group total. Returns 0 when the group total is 0.
@@ -62,11 +46,7 @@
 
 
 
-# ------------------------------------------------------------------------------
-# Null-coalescing operator
-# ------------------------------------------------------------------------------
+## Null-coalescing operator ----
 
 #' @noRd
 `%||%` <- function(x, y) if (is.null(x)) y else x
-
-

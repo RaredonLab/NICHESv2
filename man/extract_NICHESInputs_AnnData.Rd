@@ -37,7 +37,7 @@ A named list:
 }
 \description{
 Reads a \code{.h5ad} file using \pkg{rhdf5} (no Python, no conda, no
-basilisk — pure C HDF5 bindings, compatible with R \eqn{\geq} 4.2) and
+basilisk -- pure C HDF5 bindings, compatible with R \eqn{\geq} 4.2) and
 returns the count matrix and cell metadata as a named list ready to pass
 directly to \code{\link{create_NICHESObject}}.
 }

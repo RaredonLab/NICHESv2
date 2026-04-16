@@ -64,7 +64,7 @@ extract_NICHESInputs_Seurat <- function(seurat.obj,
                                          layer   = "counts",
                                          verbose = TRUE) {
 
-  # ── dependency check ────────────────────────────────────────────────────────
+  # -- dependency check --------------------------------------------------------
   if (!requireNamespace("SeuratObject", quietly = TRUE)) {
     stop(
       "Package 'SeuratObject' is required but is not installed.\n",
@@ -72,7 +72,7 @@ extract_NICHESInputs_Seurat <- function(seurat.obj,
     )
   }
 
-  # ── validate assay ───────────────────────────────────────────────────────────
+  # -- validate assay -----------------------------------------------------------
   available.assays <- names(seurat.obj@assays)
   if (!assay %in% available.assays) {
     stop(
@@ -83,12 +83,12 @@ extract_NICHESInputs_Seurat <- function(seurat.obj,
 
   assay.obj <- seurat.obj@assays[[assay]]
 
-  # ── detect object structure from assay class, not package version ────────────
+  # -- detect object structure from assay class, not package version ------------
   # A V4 Seurat object loaded under SeuratObject >= 5 keeps its Assay class.
   # A V5 object uses Assay5. Always check the object, not the package.
   is.v5 <- inherits(assay.obj, "Assay5")
 
-  # ── extract count matrix ─────────────────────────────────────────────────────
+  # -- extract count matrix -----------------------------------------------------
   if (is.v5) {
     available.layers <- SeuratObject::Layers(assay.obj)
     if (!layer %in% available.layers) {
@@ -113,15 +113,15 @@ extract_NICHESInputs_Seurat <- function(seurat.obj,
     }
   }
 
-  # ── coerce to dgCMatrix (defensive; GetAssayData usually returns dgCMatrix) ─
+  # -- coerce to dgCMatrix (defensive; GetAssayData usually returns dgCMatrix) -
   if (!inherits(count.mtx, "dgCMatrix")) {
     count.mtx <- methods::as(count.mtx, "dgCMatrix")
   }
 
-  # ── extract meta.data exactly as stored; no column additions ─────────────────
+  # -- extract meta.data exactly as stored; no column additions -----------------
   meta.data <- seurat.obj@meta.data
 
-  # ── messages ─────────────────────────────────────────────────────────────────
+  # -- messages -----------------------------------------------------------------
   if (verbose) {
     n.genes <- nrow(count.mtx)
     n.cells <- ncol(count.mtx)

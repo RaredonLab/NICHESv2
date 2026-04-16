@@ -1,13 +1,11 @@
-# ==============================================================================
-# FILE:    CellToCell_InSitu_Single_LRM.R
-# PURPOSE: In situ visualisation of a single LRM pair's signalling across all
-#          spatial edges stored in a NICHESObject.
+# CellToCell_InSitu_Single_LRM.R ------------------------------------------
+# In situ visualisation of a single LRM pair's signalling across all
+# spatial edges stored in a NICHESObject.
 #
 # FUNCTIONS:
-#   CellToCell_InSitu_Single_LRM()  — main plotting function
+#   CellToCell_InSitu_Single_LRM()  -- main plotting function
 #
 # DEPS: ggplot2, data.table, scales
-# ==============================================================================
 
 
 # ==============================================================================
@@ -18,45 +16,96 @@
 #' in a \code{NICHESObject}:
 #'
 #' \enumerate{
-#'   \item \strong{Background layer} — all spatial edges, grey, thin, low alpha.
-#'   \item \strong{Signal layer} — edges with non-zero score for the requested
-#'     LRM, coloured and alpha-scaled by score via \code{scale_color_viridis_c()}.
+#'   \item \strong{Background layer} -- all spatial edges, grey, thin, low
+#'     alpha. Provides spatial context.
+#'   \item \strong{Signal layer} -- edges with non-zero score for the
+#'     requested LRM, coloured and alpha-scaled by score via
+#'     \code{scale_color_viridis_c()}.
 #' }
 #'
-#' Coordinates are read from \code{$cell.meta} (columns \code{x} and \code{y}).
-#' Edge endpoints are resolved by joining \code{$edge.list} against
-#' \code{$cell.meta}.
+#' Coordinates are read from \code{$cell.meta} (columns \code{x} and
+#' \code{y}). Edge endpoints are resolved by joining \code{$edge.list}
+#' against \code{$cell.meta}. Returns a \code{ggplot} object that can be
+#' further customised with additional layers, themes, or labels before
+#' being printed or saved.
 #'
-#' @param niches.obj     A \code{NICHESObject} with \code{x} and \code{y} in
-#'   \code{$cell.meta}.
-#' @param LRM            Character. LRM pair in \code{"ligand|receptor"} format,
-#'   matching a value in \code{$LRM.list} (e.g. \code{"MIF|CD74"}).
-#' @param value.col      Character. Which score column to use for colour and
-#'   alpha mapping. One of \code{"score"} (raw, default) or
-#'   \code{"score.norm"} (per-edge proportional normalisation).
-#' @param scale.upper    Numeric or \code{NULL}. Upper limit of the colour and
-#'   alpha scale. \code{NULL} (default) uses the 90th percentile of non-zero
-#'   values for this LRM. Values above the limit are squished to the top colour.
+#' @section Direct vs batch use:
+#' Call this function directly to visualise a single LRM pair and obtain
+#' the live \code{ggplot} object -- useful when you want to add custom
+#' layers (annotations, highlighting, faceting), modify the theme, or
+#' embed the plot in a larger figure (e.g.\ via \pkg{patchwork} or
+#' \pkg{cowplot}). Use \code{\link{CellToCell_InSitu}} when you need to
+#' generate many PNGs in one batch -- it iterates over LRM pairs, writes
+#' files to disk, and parallelises across cores.
+#'
+#' @param niches.obj     A \code{NICHESObject} with \code{x} and \code{y}
+#'   columns in \code{$cell.meta}.
+#' @param LRM            Character. LRM pair in \code{"ligand|receptor"}
+#'   format, matching a value in \code{niches.obj$LRM.list}
+#'   (e.g.\ \code{"MIF|CD74"}).
+#' @param value.col      Character. Score column to map to the colour and
+#'   alpha aesthetics. \code{"score"} (default) shows raw signal magnitude
+#'   and is the right choice for absolute comparisons. \code{"score.norm"}
+#'   shows per-edge proportional signal (sums to 1 across LRMs within an
+#'   edge) and is the right choice for highlighting which LRM dominates
+#'   the communication budget at each edge.
+#' @param scale.upper    Numeric or \code{NULL}. Upper limit of the colour
+#'   and alpha scale; values above are squished to the top colour.
+#'   \code{NULL} (default) auto-computes the 90th percentile of non-zero
+#'   values for this LRM, which produces a visually balanced individual
+#'   plot but means colour values are \strong{not comparable} across
+#'   plots. To compare across LRMs, set this manually to a fixed numeric
+#'   value.
 #' @param bg.color       Background edge colour. Default \code{"grey40"}.
 #' @param bg.linewidth   Background edge line width. Default \code{0.05}.
 #' @param bg.alpha       Background edge alpha. Default \code{0.1}.
 #' @param sig.linewidth  Signal edge line width. Default \code{0.4}.
-#' @param sig.alpha      Maximum signal edge alpha (applied to the highest-value
-#'   edges). Lower-value edges scale down to near-zero alpha. Default \code{0.8}.
-#' @param viridis.option Viridis palette letter (\code{"A"}–\code{"H"}).
+#' @param sig.alpha      Maximum signal edge alpha (applied to the
+#'   highest-value edges). Lower-value edges scale down to near-zero
+#'   alpha. Default \code{0.8}.
+#' @param viridis.option Viridis palette letter (\code{"A"}-\code{"H"}).
 #'   Default \code{"C"} (plasma).
-#' @param title          Plot title. Defaults to \code{"ligand|receptor Connectivity"}.
-#' @param precomputed.bg Optional pre-built background edge \code{data.table}
-#'   (with columns \code{edge}, \code{SendingCell}, \code{ReceivingCell},
-#'   \code{x.from}, \code{y.from}, \code{x.to}, \code{y.to}) as returned by
-#'   \code{CellToCell_InSitu}'s internal pre-computation step. When supplied,
-#'   Section 3 (coordinate joining) is skipped, giving a significant speedup
-#'   during batch plotting. End users calling this function directly should
-#'   leave this \code{NULL} (the default).
+#' @param title          Plot title. Default \code{NULL}, which produces
+#'   \code{"ligand|receptor Connectivity"}.
+#' @param precomputed.bg Optional pre-built background edge
+#'   \code{data.table} (with columns \code{edge}, \code{SendingCell},
+#'   \code{ReceivingCell}, \code{x.from}, \code{y.from}, \code{x.to},
+#'   \code{y.to}). Used internally by \code{\link{CellToCell_InSitu}} to
+#'   skip the per-call coordinate join during batch plotting. End users
+#'   calling this function directly should leave this \code{NULL} (the
+#'   default).
 #'
-#' @return A \code{ggplot} object.
+#' @return A \code{ggplot} object. The plot is fully composed (data,
+#'   scales, theme, fixed coordinate ratio) and is suitable for direct
+#'   printing, saving via \code{ggplot2::ggsave()}, or further
+#'   modification with the standard \code{+} layer-addition syntax.
 #'
-#' @seealso \code{\link{CellToCell_InSitu}}
+#' @seealso
+#'   \code{\link{CellToCell_InSitu}} for batch plotting of many LRM pairs
+#'     in one call;
+#'   \code{\link{NICHESv2_example}} for an example object suitable for
+#'     plotting;
+#'   \code{\link{Aggregate_CellToCell_Edges}} for non-graphical per-cell
+#'     summaries of the same edge data.
+#'
+#' @examples
+#' \donttest{
+#' data(NICHESv2_example)
+#'
+#' # Pick an LRM pair to visualise (the first one in $LRM.list)
+#' lrm.to.plot <- NICHESv2_example$LRM.list[1]
+#'
+#' p <- CellToCell_InSitu_Single_LRM(
+#'   niches.obj = NICHESv2_example,
+#'   LRM        = lrm.to.plot,
+#'   value.col  = "score"
+#' )
+#' print(p)
+#'
+#' # The returned ggplot can be customised further with the standard
+#' # ggplot2 '+' syntax -- add layers, modify the title, change the theme:
+#' p + ggplot2::labs(subtitle = "Customised after the call")
+#' }
 #'
 #' @export
 CellToCell_InSitu_Single_LRM <- function(niches.obj,
@@ -72,9 +121,7 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
                                           title          = NULL,
                                           precomputed.bg = NULL) {
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 1 ── Input validation
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 1: Input validation ----
 
   if (!is_NICHESObject(niches.obj))
     stop("[CellToCell_InSitu_Single_LRM] 'niches.obj' must be a NICHESObject.")
@@ -108,23 +155,19 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
        !is.finite(scale.upper) || scale.upper <= 0))
     stop("[CellToCell_InSitu_Single_LRM] 'scale.upper' must be a single positive finite number, or NULL.")
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 2 ── Build coordinate lookup table
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 2: Build coordinate lookup table ----
 
   coords <- niches.obj$cell.meta[, .(cell, x, y)]
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 3 ── Build background edge table
+  ## SECTION 3: Build background edge table ----
   #
   # All unique inter-cell edges from $edge.list, with coordinates attached.
   # Autocrine edges (SendingCell == ReceivingCell) are excluded from plotting.
   #
   # When called from CellToCell_InSitu() in batch mode, precomputed.bg is
-  # supplied and this section is skipped entirely — the two coordinate joins
+  # supplied and this section is skipped entirely -- the two coordinate joins
   # are O(n_edges) and identical across all LRMs, so pre-computing them once
   # in the caller and reusing here gives a large speedup for batch jobs.
-  # ════════════════════════════════════════════════════════════════════════════
 
   if (!is.null(precomputed.bg)) {
     all.edges <- precomputed.bg
@@ -147,15 +190,13 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
     nrow(all.edges), LRM
   ))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 4 ── Build signal edge table for this LRM
+  ## SECTION 4: Build signal edge table for this LRM ----
   #
   # Pull both score columns from $edge.data, left-join onto all.edges so every
   # edge appears, fill NA (absent for this LRM) with 0, then derive .plot.val
   # from the requested value.col.
   #
   # scale.upper is resolved here from non-zero .plot.val values if not supplied.
-  # ════════════════════════════════════════════════════════════════════════════
 
   lrm.val  <- LRM   # local capture for data.table scoping
   lr.edges <- niches.obj$edge.data[LRM == lrm.val, .(edge, score, score.norm)]
@@ -185,16 +226,14 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
 
   message(sprintf("  Scale upper limit: %.4g  (value.col = '%s')", scale.upper, value.col))
 
-  # ════════════════════════════════════════════════════════════════════════════
-  # SECTION 5 ── Build plot
-  # ════════════════════════════════════════════════════════════════════════════
+  ## SECTION 5: Build plot ----
 
   plot.title  <- if (!is.null(title)) title else sprintf("%s Connectivity", LRM)
   legend.name <- if (value.col == "score") "Score" else "Score\n(norm)"
 
   p <- ggplot() +
 
-    # Layer 1: background — all edges, fixed grey
+    # Layer 1: background -- all edges, fixed grey
     geom_segment(
       data      = all.edges,
       aes(x = x.from, y = y.from, xend = x.to, yend = y.to),
@@ -204,7 +243,7 @@ CellToCell_InSitu_Single_LRM <- function(niches.obj,
       lineend   = "round"
     ) +
 
-    # Layer 2: signal — non-zero edges coloured AND alpha-scaled by .plot.val
+    # Layer 2: signal -- non-zero edges coloured AND alpha-scaled by .plot.val
     geom_segment(
       data      = sig.edges[.plot.val > 0],
       aes(x = x.from, y = y.from, xend = x.to, yend = y.to,

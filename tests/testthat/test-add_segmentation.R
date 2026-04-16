@@ -1,18 +1,14 @@
 # ==============================================================================
 # FILE:    tests/testthat/test-add_segmentation.R
-#
-# All tests skip automatically if 'sf' is not installed, since sf is in
-# Suggests (optional). Tests build minimal sf objects inline — no changes to
-# generate_testdata.R or re-running it are needed.
+# PURPOSE: Unit tests for add_segmentation().
+#          Uses data(NICHESv2_example) for the full NICHESObject — loaded
+#          inline inside each block to preserve block independence.
+#          All blocks that touch sf objects skip when sf is not installed.
 # ==============================================================================
 
-
-# ------------------------------------------------------------------------------
-# Helper: build a minimal sf object for a given character vector of cell names.
-# Each cell gets a tiny unit square polygon — the geometry is irrelevant for
-# these tests; we only care that the slot is correctly stored and filtered.
-# ------------------------------------------------------------------------------
-
+# File-level helper: builds a minimal sf object (unit-square polygons) for a
+# given character vector of cell names. Geometry values are irrelevant for
+# these tests — only slot population and filtering logic is being tested.
 .make_seg_sf <- function(cells) {
   polys <- lapply(seq_along(cells), function(i) {
     sf::st_polygon(list(matrix(
@@ -30,44 +26,38 @@
   )
 }
 
+# ── Basic attachment ───────────────────────────────────────────────────────────
 
-# ------------------------------------------------------------------------------
-# add_segmentation: basic attachment
-# ------------------------------------------------------------------------------
+test_that("add_segmentation: $segmentation is NULL before attachment", {
+  data(NICHESv2_example)
+  expect_null(NICHESv2_example$segmentation)
+})
 
 test_that("add_segmentation: returns a NICHESObject", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
-  seg.sf  <- .make_seg_sf(niches.obj$cell.list)
-  result  <- add_segmentation(niches.obj, seg.sf)
+  data(NICHESv2_example)
+  seg.sf <- .make_seg_sf(NICHESv2_example$cell.list)
+  result <- add_segmentation(NICHESv2_example, seg.sf)
   expect_true(is_NICHESObject(result))
 })
 
 test_that("add_segmentation: $segmentation is an sf object after attachment", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
-  seg.sf <- .make_seg_sf(niches.obj$cell.list)
-  result <- add_segmentation(niches.obj, seg.sf)
+  data(NICHESv2_example)
+  seg.sf <- .make_seg_sf(NICHESv2_example$cell.list)
+  result <- add_segmentation(NICHESv2_example, seg.sf)
   expect_true(inherits(result$segmentation, "sf"))
 })
 
-test_that("add_segmentation: $segmentation has correct number of rows", {
+test_that("add_segmentation: $segmentation has one row per cell", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
-  seg.sf <- .make_seg_sf(niches.obj$cell.list)
-  result <- add_segmentation(niches.obj, seg.sf)
-  expect_equal(nrow(result$segmentation), length(niches.obj$cell.list))
+  data(NICHESv2_example)
+  seg.sf <- .make_seg_sf(NICHESv2_example$cell.list)
+  result <- add_segmentation(NICHESv2_example, seg.sf)
+  expect_equal(nrow(result$segmentation), length(NICHESv2_example$cell.list))
 })
 
-test_that("add_segmentation: $segmentation is NULL before attachment", {
-  .setup_fixtures()
-  expect_null(niches.obj$segmentation)
-})
-
-
-# ------------------------------------------------------------------------------
-# add_segmentation: input validation errors
-# ------------------------------------------------------------------------------
+# ── Input validation ───────────────────────────────────────────────────────────
 
 test_that("add_segmentation: errors on non-NICHESObject input", {
   skip_if_not_installed("sf")
@@ -80,74 +70,69 @@ test_that("add_segmentation: errors on non-NICHESObject input", {
 
 test_that("add_segmentation: errors if seg.sf is not an sf object", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
+  data(NICHESv2_example)
   expect_error(
-    add_segmentation(niches.obj, data.frame(cell = niches.obj$cell.list)),
+    add_segmentation(NICHESv2_example,
+                     data.frame(cell = NICHESv2_example$cell.list)),
     regexp = "sf object"
   )
 })
 
 test_that("add_segmentation: errors if seg.sf has no 'cell' column", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
-  # Build sf with wrong column name
-  poly  <- sf::st_polygon(list(matrix(c(0,0,1,0,1,1,0,1,0,0), ncol=2, byrow=TRUE)))
+  data(NICHESv2_example)
+  poly   <- sf::st_polygon(list(matrix(c(0,0,1,0,1,1,0,1,0,0),
+                                       ncol = 2, byrow = TRUE)))
   bad.sf <- sf::st_sf(barcode = "x", geometry = sf::st_sfc(poly))
   expect_error(
-    add_segmentation(niches.obj, bad.sf),
+    add_segmentation(NICHESv2_example, bad.sf),
     regexp = "'cell' column"
   )
 })
 
-
-# ------------------------------------------------------------------------------
-# add_segmentation: partial coverage warning
-# ------------------------------------------------------------------------------
+# ── Coverage validation ────────────────────────────────────────────────────────
 
 test_that("add_segmentation: errors when some cells have no polygon", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
-  # Only provide polygons for the first half of cells — this is a hard error
-  half.cells <- niches.obj$cell.list[seq_len(floor(length(niches.obj$cell.list) / 2))]
-  seg.sf     <- .make_seg_sf(half.cells)
+  data(NICHESv2_example)
+  half.cells <- NICHESv2_example$cell.list[
+    seq_len(floor(length(NICHESv2_example$cell.list) / 2))
+  ]
+  seg.sf <- .make_seg_sf(half.cells)
   expect_error(
-    add_segmentation(niches.obj, seg.sf),
+    add_segmentation(NICHESv2_example, seg.sf),
     regexp = "no polygon"
   )
 })
 
 test_that("add_segmentation: warns when seg.sf contains extra cells not in object", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
-  extra.cells <- c(niches.obj$cell.list, "PHANTOM_CELL_1", "PHANTOM_CELL_2")
+  data(NICHESv2_example)
+  extra.cells <- c(NICHESv2_example$cell.list, "PHANTOM_CELL_1", "PHANTOM_CELL_2")
   seg.sf      <- .make_seg_sf(extra.cells)
   expect_warning(
-    add_segmentation(niches.obj, seg.sf),
+    add_segmentation(NICHESv2_example, seg.sf),
     regexp = "not in the NICHESObject"
   )
 })
 
+# ── Subsetting with segmentation ───────────────────────────────────────────────
 
-# ------------------------------------------------------------------------------
-# Subsetting: $segmentation is filtered correctly by [.NICHESObject
-# ------------------------------------------------------------------------------
-
-test_that("subset [: $segmentation is filtered to retained cells only", {
+test_that("add_segmentation: subset [ filters $segmentation to retained cells", {
   skip_if_not_installed("sf")
-  .setup_fixtures()
-  seg.sf  <- .make_seg_sf(niches.obj$cell.list)
-  obj     <- add_segmentation(niches.obj, seg.sf)
-
-  keep    <- niches.obj$cell.list[1:10]
+  data(NICHESv2_example)
+  seg.sf  <- .make_seg_sf(NICHESv2_example$cell.list)
+  obj     <- add_segmentation(NICHESv2_example, seg.sf)
+  keep    <- NICHESv2_example$cell.list[1:10]
   sub.obj <- obj[keep]
-
+  
   expect_equal(nrow(sub.obj$segmentation), 10L)
   expect_true(all(sub.obj$segmentation$cell %in% keep))
 })
 
-test_that("subset [: $segmentation remains NULL when no segmentation attached", {
-  .setup_fixtures()
-  keep    <- niches.obj$cell.list[1:10]
-  sub.obj <- niches.obj[keep]
+test_that("add_segmentation: subset [ leaves $segmentation NULL when none attached", {
+  data(NICHESv2_example)
+  keep    <- NICHESv2_example$cell.list[1:10]
+  sub.obj <- NICHESv2_example[keep]
   expect_null(sub.obj$segmentation)
 })

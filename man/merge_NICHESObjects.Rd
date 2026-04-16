@@ -18,8 +18,8 @@ Default \code{TRUE}.}
 A single \code{NICHESObject}.
 }
 \description{
-Combines a list of NICHESObjects — or any number passed as individual
-arguments — into a single NICHESObject by concatenating all per-cell and
+Combines a list of NICHESObjects -- or any number passed as individual
+arguments -- into a single NICHESObject by concatenating all per-cell and
 per-edge data. This is the complement to the \code{sample.col} splitting
 that \code{\link{create_NICHESObject}} performs: it can be used to merge
 objects that were produced independently and then need to be analysed
@@ -35,25 +35,25 @@ is a hard error because the slot schemas differ (spatial objects carry
 all objects. If the same barcode string appears in two or more objects the
 function stops with a clear error. Prepend a sample-specific prefix before
 constructing the objects (e.g. \code{paste0(sample.id, "_", barcode)}) to
-avoid collisions — Seurat does this automatically via \code{RenameCells()}.
+avoid collisions -- Seurat does this automatically via \code{RenameCells()}.
 
 \strong{Gene / LRM union.} When gene or LRM lists differ across objects,
 their union is taken. Genes absent in one object are implicitly zero in
-\code{$cell.data} (which is sparse — zero rows are never stored).
+\code{$cell.data} (which is sparse -- zero rows are never stored).
 
 \strong{Slot-by-slot strategy:}
 \itemize{
   \item \code{$cell.list}, \code{$cell.data}, \code{$edge.list},
-        \code{$edge.data} — simple concatenation.
-  \item \code{$cell.meta}, \code{$edge.meta} — concatenated with
+        \code{$edge.data} -- simple concatenation.
+  \item \code{$cell.meta}, \code{$edge.meta} -- concatenated with
         \code{fill = TRUE}; extra columns in some objects become \code{NA}
         in others.
-  \item \code{$gene.list}, \code{$LRM.list} — union.
-  \item \code{$gene.meta}, \code{$LRM.meta} — concatenated, deduplicated
+  \item \code{$gene.list}, \code{$LRM.list} -- union.
+  \item \code{$gene.meta}, \code{$LRM.meta} -- concatenated, deduplicated
         by key (first occurrence kept).
-  \item \code{$segmentation} — merged via \code{sf::rbind()} when all
+  \item \code{$segmentation} -- merged via \code{sf::rbind()} when all
         objects have it; \code{NULL} with a warning when only some do.
-  \item Neighborhood slots — always \code{NULL} (reserved).
+  \item Neighborhood slots -- always \code{NULL} (reserved).
 }
 }
 \examples{
