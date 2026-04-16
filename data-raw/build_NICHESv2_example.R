@@ -11,8 +11,7 @@
 #            data(NICHESv2_example)
 #
 # This file is excluded from the package build via .Rbuildignore.
-# Synthesis logic intentionally mirrors inst/testdata/generate_testdata.R so
-# the bundled example data remain deterministic and reproducible.
+# Deterministic seed ensures bundled data are reproducible.
 # ==============================================================================
 
 suppressPackageStartupMessages({

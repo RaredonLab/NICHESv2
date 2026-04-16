@@ -1,175 +1,169 @@
-# NICHESv2 <img src="man/figures/logo.png" align="right" height="120" alt="NICHESv2 logo placeholder"/>
+# NICHESv2
 
-> **Spatial Cell-to-Cell Ligand-Receptor Communication Analysis**
+[![R-CMD-check](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml/badge.svg?branch=dev)](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
-NICHESv2 computes ligand-receptor (LR) signalling scores between spatially
-neighbouring cells in single-cell spatial transcriptomics data.  It returns a
-**`NICHESObject`** — a 13-slot S3 class — with sparse per-cell and per-edge
-expression tables, flexible aggregation, and batch in situ visualisation.
+> **Development version (0.0.9000).** This branch is shared with lab members
+> and collaborators for pre-release testing. A formal 0.1.0 release will
+> accompany the methods paper. Install instructions are below.
+
+Spatial cell-to-cell ligand-receptor communication scoring for single-cell
+transcriptomics data.
 
 ---
 
-## Key features
+## Overview
 
-| Feature | Details |
-|---------|---------|
-| **Multi-gene complexes** | `"COL1A1_COL1A2"` style ligands / receptors handled automatically |
-| **Built-in LR databases** | `"omnipath"` and `"fantom5"` loaded by name |
-| **Sparse output** | Only non-zero signals stored; scales to 100k+ cells |
-| **Per-edge normalisation** | `score.norm` normalised within each directed edge |
-| **Parallel computation** | LR chunks dispatched via `mclapply` on Unix/macOS |
-| **Flexible aggregation** | `Aggregate_CellToCell_Edges()` produces full cell × LRM grids |
-| **In situ visualisation** | Per-LRM segment plots, dark theme, viridis colour scale |
+NICHESv2 computes ligand-receptor (LR) signalling scores between pairs of
+cells and organises results in a memory-efficient, long-format S3 object
+(`NICHESObject`). Three edge-definition modes are supported — spatial
+nearest-neighbour, type-stratified sampling, and pseudo-bulk — so the same
+downstream workflow applies to both spatially resolved and conventional
+scRNA-seq datasets.
+
+Expression data can be supplied as a raw sparse matrix, a Seurat V4/V5
+object, or an AnnData (`.h5ad`) file. Built-in LR database loaders cover
+FANTOM5 (bundled, four species, no internet required) and OmniPath, and
+any user-supplied data frame is also accepted. Multi-gene receptor complexes
+are supported via underscore delimiting (`gene1_gene2`).
 
 ---
 
 ## Installation
 
 ```r
-# Install from local source
-devtools::install("path/to/NICHESv2")
+# 1. Install CRAN dependencies first (avoids timeouts on GitHub install)
+install.packages(c(
+  "data.table", "Matrix", "RANN", "dbscan", "irlba", "ggplot2", "scales"
+))
 
-# Dependencies (installed automatically)
-# data.table, Matrix, RANN, dbscan, ggplot2
+# 2. Install NICHESv2 from the dev branch
+if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+remotes::install_github("RaredonLab/NICHESv2", ref = "dev")
+```
 
-# Optional: built-in LR databases (requires Bioconductor)
+**Optional — install only what you need:**
+
+```r
+# Seurat V4 / V5 input support
+install.packages("SeuratObject")
+
+# AnnData (.h5ad) input support — no Python required
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install("rhdf5")
+
+# OmniPath LR database
 BiocManager::install("OmnipathR")
+
+# Segmentation polygon support (sf geometries)
+install.packages("sf")
 ```
 
 ---
 
 ## Quick start
 
+### Explore the bundled example
+
 ```r
 library(NICHESv2)
 
-# ── Inputs ──────────────────────────────────────────────────────────────────
-# count.mtx : gene × cell sparse matrix (dgCMatrix or matrix)
-#             rownames = gene symbols, colnames = cell barcodes
-# meta.data : data.frame with rownames = cell barcodes
-#             MUST contain columns "x" and "y" (spatial coordinates)
+# Pre-built NICHESObject: 80 synthetic cells, spatial mode, 15 LR pairs
+data(NICHESv2_example)
 
-# ── 1. Build the NICHESObject ────────────────────────────────────────────────
-niches.obj <- create_NICHESObject(
-  count.mtx = count.mtx,
-  meta.data = meta.data,     # must have x, y columns
-  LRM.db    = "omnipath",    # or "fantom5" or your own data.frame
-  k         = 6L,            # 6-nearest-neighbour spatial graph
-  method    = "product"      # or "minimum"
-)
+print(NICHESv2_example)          # slot summary and object attributes
+dim(NICHESv2_example)            # cells x LRMs
 
-# ── 2. Inspect ───────────────────────────────────────────────────────────────
-print(niches.obj)
-summary(niches.obj)
-dim(niches.obj)       # cells / genes / edges / LRMs
+# Aggregate per-edge scores to the cell level
+agg <- Aggregate_CellToCell_Edges(NICHESv2_example, stat = "mean")
+head(agg$sending)                # cell x LRM matrix, sending perspective
+head(agg$receiving)              # cell x LRM matrix, receiving perspective
 
-# ── 3. Aggregate per-cell sending / receiving scores ─────────────────────────
-agg <- Aggregate_CellToCell_Edges(niches.obj, stat = "mean")
-head(agg$sending)
-head(agg$receiving)
-
-# ── 4. Visualise a single LRM pair in situ ────────────────────────────────────
-p <- CellToCell_InSitu_Single_LRM(niches.obj, LRM = "MIF|CD74")
-print(p)
-
-# ── 5. Batch-export PNGs for all LRM pairs ────────────────────────────────────
-CellToCell_InSitu(niches.obj, folder = "niches_plots", n.cores = 4L)
-
-# ── 6. Subset to a cell population ────────────────────────────────────────────
-b.cells <- niches.obj$cell.meta[celltype == "B_cell", cell]
-sub.obj  <- niches.obj[b.cells]
-
-# ── 7. Add cell type annotations after the fact ───────────────────────────────
-new.annot <- data.frame(cell = my.cells, cluster = my.clusters)
-niches.obj <- add_cell_meta(niches.obj, new.annot)
-```
-
----
-
-## Working with a Seurat object
-
-```r
-library(Seurat)
-library(NICHESv2)
-
-# Extract count matrix
-count.mtx <- GetAssayData(seu, assay = "Spatial", slot = "counts")
-
-# Extract metadata — add spatial coordinates if stored separately
-meta.data        <- seu@meta.data
-meta.data$x      <- GetTissueCoordinates(seu)[, "imagerow"]
-meta.data$y      <- GetTissueCoordinates(seu)[, "imagecol"]
-
-niches.obj <- create_NICHESObject(
-  count.mtx = count.mtx,
-  meta.data = meta.data,
-  LRM.db    = "omnipath",
-  k         = 6L
+# Visualise one LR pair in situ
+CellToCell_InSitu_Single_LRM(
+  niches.obj = NICHESv2_example,
+  LRM        = NICHESv2_example$LRM.list[1]
 )
 ```
 
----
-
-## NICHESObject slot reference
-
-| # | Slot | Type | Contents |
-|---|------|------|----------|
-| 1 | `$cell.list` | `character` | Cell barcodes |
-| 2 | `$cell.data` | `data.table` | `(cell, gene, score, score.norm)` — sparse |
-| 3 | `$cell.meta` | `data.table` | Per-cell metadata: `x`, `y`, `celltype`, … |
-| 4 | `$edge.list` | `data.table` | `(edge, SendingCell, ReceivingCell)` |
-| 5 | `$edge.data` | `data.table` | `(edge, LRM, score, score.norm)` — sparse |
-| 6 | `$edge.meta` | `data.table` | Per-edge metadata with `Sending.*`, `Receiving.*`, `Joint.*` cols |
-| 7–9 | `$neighborhood.*` | reserved | `NULL` — populated externally |
-| 10 | `$gene.list` | `character` | Gene names |
-| 11 | `$gene.meta` | `data.table` | Per-gene annotation |
-| 12 | `$LRM.list` | `character` | `"ligand\|receptor"` strings |
-| 13 | `$LRM.meta` | `data.table` | `LRM`, `ligand`, `receptor`, pathway columns, … |
-
----
-
-## Key conventions
-
-| Convention | Rule |
-|-----------|------|
-| Function names | Underscore separator: `create_NICHESObject()` |
-| Variable / argument names | Dot separator: `n.cores`, `bg.color` |
-| Edge IDs | `"SendingCell\|ReceivingCell"` |
-| LRM IDs | `"ligand\|receptor"` |
-| Gene complexes | `"gene1_gene2"` (underscore in database) |
-| Score columns | `score` (raw), `score.norm` (normalised) |
-
----
-
-## Running tests
+### Build a NICHESObject from raw inputs
 
 ```r
-# 1. Generate fixtures (once)
-source("inst/testdata/generate_testdata.R")
+# The same inputs used to construct NICHESv2_example
+data(NICHESv2_inputs)   # named list: $count.mtx, $meta.data, $LRM.db
 
-# 2. Run the full test suite
-devtools::test()
+obj <- create_NICHESObject(
+  count.mtx        = NICHESv2_inputs$count.mtx,
+  meta.data        = NICHESv2_inputs$meta.data,
+  LRM.db           = NICHESv2_inputs$LRM.db,
+  mode             = "spatial",
+  ligand.col       = "ligand",
+  receptor.col     = "receptor",
+  k                = 5L,           # 5 nearest spatial neighbours per cell
+  method           = "product",    # score = ligand expression x receptor expression
+  normalize.method = "prop",
+  n.cores          = 2L
+)
 
-# 3. Full R CMD check
-devtools::check()
+print(obj)
 ```
+
+For Seurat and AnnData input workflows, vignettes are in preparation.
+
+---
+
+## Features
+
+- **Three edge modes:** spatial k-NN or radius-based neighbours (including
+  autocrine self-loops), type-stratified random sampling, and pseudo-bulk
+  all-type-pairs
+- **LR databases:** FANTOM5 bundled for human, mouse, rat, and pig (no
+  internet required); OmniPath via `OmnipathR`; user-supplied data frames
+  accepted; multi-gene complexes supported via underscore delimiting
+- **Memory-efficient storage:** scores held in long-format sparse
+  `data.table`s inside the 14-slot `NICHESObject` S3 class — footprint
+  scales with dataset density, not total dimensions
+- **Multi-sample support:** `sample.col` argument in `create_NICHESObject()`
+  processes samples independently and merges results; barcode uniqueness
+  enforced as a hard error
+- **Flexible data ingest:** raw sparse matrix, Seurat V4/V5
+  (`extract_NICHESInputs_Seurat()`), or AnnData via `rhdf5` only —
+  no Python, conda, or basilisk required
+  (`extract_NICHESInputs_AnnData()`)
+- **Cross-platform parallelism:** socket clusters only
+  (`parallel::makeCluster` + `parLapply`); never `mclapply`
+- **In-situ visualisation:** `CellToCell_InSitu()` exports batch PNGs for
+  any list of LR pairs; `CellToCell_InSitu_Single_LRM()` for interactive
+  single-pair inspection
+- **Neighborhood analysis:** `add_neighborhoods()` populates per-cell edge
+  and cell-neighbour lists; three `edge.filter.mode` options control which
+  edges are included in each neighborhood
+- **Aggregation:** `Aggregate_CellToCell_Edges()` returns zero-filled full
+  cell × LRM grids from both sending and receiving perspectives
 
 ---
 
 ## Citation
 
-If you use NICHESv2 in published work, please cite the original NICHES paper
-and the LR database you chose (FANTOM5 or OmniPath):
+NICHESv2 is described in a manuscript currently in preparation. In the
+meantime, please cite the original NICHES method. BibTeX will be added here
+upon publication.
 
-> Ramilowski J.A. et al. (2015). A draft network of ligand-receptor-mediated
-> multicellular signalling in human. *Nature Communications*, 6, 7866.
-
-> Türei D. et al. (2021). Integrated intra- and intercellular signaling
-> knowledge for multicellular omics analysis. *Molecular Systems Biology*,
-> 17(3), e9923.
+```bibtex
+@article{NICHESv2_preprint,
+  title   = {{NICHESv2}: memory-efficient spatial cell-to-cell
+             ligand-receptor communication scoring for
+             single-cell transcriptomics},
+  author  = {Wang, Nuoya and Raredon, {Micha Sam Brickman}},
+  journal = {},
+  year    = {2026},
+  doi     = {}
+}
+```
 
 ---
 
 ## License
 
-MIT © 2026 NICHESv2 Authors
+MIT © 2026 Nuoya Wang, Micha Sam Brickman Raredon
