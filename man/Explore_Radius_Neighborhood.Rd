@@ -30,7 +30,7 @@ bounding-box diagonal.}
 
 \item{n.sample}{integer(1) or NULL. Number of cells to randomly sample for
 the neighbourhood estimate. Default 2000. Set to \code{NULL} to use all
-cells — not recommended for large datasets.}
+cells -- not recommended for large datasets.}
 
 \item{seed}{integer(1) or NULL. Random seed for reproducible sampling.
 Default 42.}
@@ -62,4 +62,23 @@ A single kd-tree query via \code{dbscan::frNN()} is run at \code{r.max};
 all smaller radii are evaluated by thresholding the already-retrieved
 distance lists, so the kd-tree is built only once regardless of how many
 radius steps are requested.
+}
+\examples{
+\donttest{
+data(NICHESv2_inputs)
+
+# Build a coord data.frame from the example metadata
+coord <- NICHESv2_inputs$meta.data[, c("x", "y")]
+rownames(coord) <- rownames(NICHESv2_inputs$meta.data)
+
+# Sweep radius across the bounding box; small dataset -> use all 80 cells
+radius.curve <- Explore_Radius_Neighborhood(
+  coord     = coord,
+  n.sample  = 80L,
+  n.cores   = 1L,
+  show.plot = FALSE
+)
+head(radius.curve)
+}
+
 }

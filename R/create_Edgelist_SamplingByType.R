@@ -61,9 +61,20 @@
 #' cell barcodes).
 #'
 #' @details
-#' Cell types with zero cells after barcode-matrix intersection are silently
-#' skipped. Type crossings where the effective cap is zero (e.g., one type has
-#' no cells after filtering) are also silently skipped.
+#' This function is a low-level primitive: it builds the sampled
+#' non-spatial edge list that \code{\link{create_NICHESObject}} consumes
+#' internally when called with \code{mode = "sampled"}. Most users should
+#' call \code{create_NICHESObject(mode = "sampled", ...)}, which invokes
+#' this function and assembles the result into a full \code{NICHESObject}
+#' in one step. \code{create_Edgelist_SamplingByType()} is exposed for
+#' power users who want to inspect the sampled edges, fix the random
+#' seed explicitly outside the wrapper, or feed the edges into a custom
+#' scoring pipeline.
+#'
+#' Cell types with zero cells after barcode-matrix intersection are
+#' silently skipped. Type crossings where the effective cap is zero
+#' (e.g., one type has no cells after filtering) are also silently
+#' skipped.
 #'
 #' @examples
 #' set.seed(1)
@@ -78,6 +89,7 @@
 #'   \code{\link{create_Edgelist_PseudoBulk}},
 #'   \code{\link{create_Edgelist_Spatial}}
 #'
+#' @keywords internal
 #' @export
 create_Edgelist_SamplingByType <- function(meta.data,
                                             cell.type.col,

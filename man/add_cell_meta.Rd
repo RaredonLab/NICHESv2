@@ -27,3 +27,23 @@ and (by default) rebuilds \code{$edge.meta} so the new columns are
 propagated as \code{Sending.*} / \code{Receiving.*} / \code{Joint.*}
 columns on every edge.
 }
+\examples{
+\donttest{
+data(NICHESv2_example)
+
+# Tag each cell with a synthetic region label and propagate to edges
+new.meta <- data.frame(
+  cell   = NICHESv2_example$cell.list,
+  region = sample(c("core", "edge"),
+                  length(NICHESv2_example$cell.list),
+                  replace = TRUE)
+)
+obj.tagged <- add_cell_meta(NICHESv2_example, new.meta)
+
+# The categorical column appears as Sending.*/Receiving.*/Joint.* on edges
+head(obj.tagged$edge.meta[, c("SendingCell", "ReceivingCell",
+                              "Sending.region", "Receiving.region",
+                              "Joint.region")])
+}
+
+}

@@ -26,7 +26,7 @@
 #'     symmetric.
 #' }
 #'
-#' Autocrine self-loop edges (A->A, \code{weight = 0}) are always appended for
+#' Autocrine self-loop edges (A->A, \code{distance = 0}) are always appended for
 #' every cell in both modes.
 #'
 #' @param coord   \code{data.frame}. First column = x, second column = y.
@@ -43,7 +43,7 @@
 #' \describe{
 #'   \item{\code{from}}{Sending cell barcode (character).}
 #'   \item{\code{to}}{Receiving cell barcode (character).}
-#'   \item{\code{weight}}{Euclidean distance; 0 for self-loops (numeric).}
+#'   \item{\code{distance}}{Euclidean distance; 0 for self-loops (numeric).}
 #'   \item{\code{x.from}, \code{y.from}}{Sending cell coordinates (numeric).}
 #'   \item{\code{x.to},   \code{y.to}  }{Receiving cell coordinates (numeric).}
 #' }
@@ -51,6 +51,16 @@
 #' \code{cell.names}.
 #'
 #' @details
+#' This function is a low-level primitive: it builds the spatial edge
+#' list that \code{\link{create_NICHESObject}} consumes internally. Most
+#' users should call \code{create_NICHESObject(mode = "spatial", ...)},
+#' which invokes this function and assembles the result into a full
+#' \code{NICHESObject} in one step. \code{create_Edgelist_Spatial()} is
+#' exposed for power users who want to inspect or post-process the edge
+#' list, benchmark alternative \code{k} or \code{rad} values without
+#' re-running the scoring step, or feed the edges into a non-NICHESv2
+#' scoring pipeline.
+#'
 #' \strong{Parameter resolution (priority):}
 #' \enumerate{
 #'   \item Both NULL / invalid -> default \code{k = 4}.
@@ -66,6 +76,7 @@
 #' el <- create_Edgelist_Spatial(co, k = 5)
 #' el.rad <- create_Edgelist_Spatial(co, rad = 0.2)
 #'
+#' @keywords internal
 #' @export
 create_Edgelist_Spatial <- function(coord,
                                      k       = NULL,
@@ -157,7 +168,7 @@ create_Edgelist_Spatial <- function(coord,
       keep  <- nb != i
       nb    <- nb[keep]; dists <- dists[keep]
       if (length(nb) == 0L) return(NULL)
-      data.table(from = cell.names[i], to = cell.names[nb], weight = dists)
+      data.table(from = cell.names[i], to = cell.names[nb], distance = dists)
     }
 
     if (n.cores > 1L) {
@@ -183,7 +194,7 @@ create_Edgelist_Spatial <- function(coord,
       valid <- nb > 0L
       nb    <- nb[valid]
       if (length(nb) == 0L) return(NULL)
-      data.table(from = i, to = nb, weight = nn.dists[i, valid])
+      data.table(from = i, to = nb, distance = nn.dists[i, valid])
     }
 
     if (n.cores > 1L) {
@@ -210,7 +221,7 @@ create_Edgelist_Spatial <- function(coord,
 
   ## SECTION 5: Append autocrine edges & attach coordinates ----
 
-  autocrine.dt <- data.table(from = cell.names, to = cell.names, weight = 0)
+  autocrine.dt <- data.table(from = cell.names, to = cell.names, distance = 0)
   edge.dt      <- rbindlist(list(edge.dt, autocrine.dt), use.names = TRUE)
 
   n.intercell <- nrow(edge.dt) - n.cells
@@ -223,7 +234,7 @@ create_Edgelist_Spatial <- function(coord,
   edge.dt[, x.to   := x.coords[to]]
   edge.dt[, y.to   := y.coords[to]]
 
-  setcolorder(edge.dt, c("from", "to", "weight", "x.from", "y.from", "x.to", "y.to"))
+  setcolorder(edge.dt, c("from", "to", "distance", "x.from", "y.from", "x.to", "y.to"))
   setkeyv(edge.dt, c("from", "to"))
 
   attr(edge.dt, "mode")       <- if (use.radius) "radius" else "kNN"

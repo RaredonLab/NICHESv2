@@ -10,7 +10,7 @@ test_that("create_Edgelist_Spatial: kNN mode returns correct structure", {
     k = 4L
   )
   expect_s3_class(el, "data.table")
-  expect_true(all(c("from", "to", "weight", "x.from", "y.from", "x.to", "y.to") %in% colnames(el)))
+  expect_true(all(c("from", "to", "distance", "x.from", "y.from", "x.to", "y.to") %in% colnames(el)))
   expect_equal(attr(el, "mode"), "kNN")
   expect_equal(attr(el, "param"), 4L)
 })
@@ -35,7 +35,7 @@ test_that("create_Edgelist_Spatial: autocrine self-loops always present", {
   n.cells <- nrow(meta.data)
   autocrine <- el[el$from == el$to, ]
   expect_equal(nrow(autocrine), n.cells)
-  expect_true(all(autocrine$weight == 0))
+  expect_true(all(autocrine$distance == 0))
 })
 
 test_that("create_Edgelist_Spatial: kNN edges are mutual", {

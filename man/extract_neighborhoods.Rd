@@ -62,4 +62,15 @@ Neighborhoods are defined topologically from the edge list: cell B is a
 neighbor of cell A if any edge connects them (in either direction). The
 \code{edge.filter.mode} parameter controls which edges are assigned to
 each cell's neighborhood.
+
+
+This function is a low-level primitive: it operates on a raw edge list
+(a \code{data.table} of \code{(edge, SendingCell, ReceivingCell)} rows)
+rather than on a full \code{NICHESObject}. Most users should call
+\code{\link{add_neighborhoods}} instead, which extracts neighborhoods
+from \code{niches.obj$edge.list} and writes them back into the three
+neighborhood slots in one step. \code{extract_neighborhoods()} is
+exposed for power users and for testing pipelines that build edge
+lists outside the standard \code{create_NICHESObject()} workflow.
 }
+\keyword{internal}

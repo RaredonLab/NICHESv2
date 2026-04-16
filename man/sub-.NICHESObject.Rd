@@ -2,21 +2,65 @@
 % Please edit documentation in R/NICHESObject_class.R
 \name{[.NICHESObject}
 \alias{[.NICHESObject}
-\title{Subset a NICHESObject to a set of cells.}
+\title{Subset a NICHESObject to a Set of Cells}
 \usage{
 \method{[}{NICHESObject}(x, i, ...)
 }
 \arguments{
-\item{x}{A NICHESObject.}
+\item{x}{A \code{NICHESObject}.}
 
 \item{i}{Character vector of cell barcodes to retain.}
 
-\item{...}{Unused.}
+\item{...}{Unused. Present for S3 method signature conformance.}
+}
+\value{
+A new \code{NICHESObject} restricted to the retained cells and
+  their fully-internal edges. Gene and LRM slots are unchanged.
 }
 \description{
 Filters all cell-indexed slots (\code{$cell.list}, \code{$cell.data},
-\code{$cell.meta}) and all edge-indexed slots to keep only edges where
-BOTH sending and receiving cells are in \code{i}. If \code{$segmentation}
-is populated, it is filtered to retain only rows whose \code{cell} is in
-the retained set.
+\code{$cell.meta}) and all edge-indexed slots
+(\code{$edge.list}, \code{$edge.data}, \code{$edge.meta}) to keep only
+edges where \strong{both} sending and receiving cells are in \code{i}.
+If \code{$segmentation} is populated, it is filtered to retain only rows
+whose \code{cell} is in the retained set. Slot-level invariants are
+re-validated by the internal constructor before the subset is returned.
+}
+\details{
+Cell barcodes in \code{i} that are not present in \code{x$cell.list} are
+silently dropped. If the intersection is empty the function errors rather
+than returning an unusable empty object.
+}
+\examples{
+\donttest{
+set.seed(1L)
+count.mtx <- Matrix::sparseMatrix(
+  i = sample(6L, 30L, replace = TRUE),
+  j = sample(8L, 30L, replace = TRUE),
+  x = as.numeric(rpois(30L, lambda = 3) + 1L),
+  dims = c(6L, 8L),
+  dimnames = list(paste0("Gene", 1:6), paste0("Cell", 1:8))
+)
+meta.data <- data.frame(
+  x = runif(8L), y = runif(8L),
+  row.names = paste0("Cell", 1:8)
+)
+LRM.db <- data.frame(
+  ligand   = c("Gene1", "Gene3"),
+  receptor = c("Gene2", "Gene4")
+)
+obj <- create_NICHESObject(
+  count.mtx = count.mtx, meta.data = meta.data, LRM.db = LRM.db,
+  mode = "spatial", ligand.col = "ligand", receptor.col = "receptor",
+  k = 3L, n.cores = 1L, verbose = FALSE
+)
+
+# Subset to the first four cells; only fully-internal edges are kept
+sub <- obj[paste0("Cell", 1:4)]
+dim(sub)
+}
+
+}
+\seealso{
+\code{\link{is_NICHESObject}} to validate the result.
 }

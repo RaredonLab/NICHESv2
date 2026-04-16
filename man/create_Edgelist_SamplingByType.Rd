@@ -45,27 +45,38 @@ cell barcodes).
 \description{
 Constructs a directed edge list for non-spatial single-cell communication
 analysis by randomly sampling cell pairs within each ordered cell type
-crossing. For every directed type pair (A → B), the function:
+crossing. For every directed type pair (A -> B), the function:
 \enumerate{
   \item Computes a per-crossing cap: \code{min(n_A, n_B)} (further bounded
     by \code{max.cells} if supplied).
   \item Independently samples \code{cap} cell barcodes from type A (senders)
     and \code{cap} barcodes from type B (receivers) without replacement.
-  \item Pairs them positionally — the k-th sampled sender is paired with
+  \item Pairs them positionally -- the k-th sampled sender is paired with
     the k-th sampled receiver.
 }
-All T² directed crossings are covered, including autocrine (A → A), where
+All T^2 directed crossings are covered, including autocrine (A -> A), where
 both sender and receiver are sampled from the same type.
 
-\strong{Important:} Individual edges are biologically synthetic — the
+\strong{Important:} Individual edges are biologically synthetic -- the
 specific cell pairing within a type crossing is arbitrary. Only aggregate
 signals across all edges of a given type pair carry biological meaning.
 Results differ across runs unless \code{seed} is fixed.
 }
 \details{
-Cell types with zero cells after barcode–matrix intersection are silently
-skipped. Type crossings where the effective cap is zero (e.g., one type has
-no cells after filtering) are also silently skipped.
+This function is a low-level primitive: it builds the sampled
+non-spatial edge list that \code{\link{create_NICHESObject}} consumes
+internally when called with \code{mode = "sampled"}. Most users should
+call \code{create_NICHESObject(mode = "sampled", ...)}, which invokes
+this function and assembles the result into a full \code{NICHESObject}
+in one step. \code{create_Edgelist_SamplingByType()} is exposed for
+power users who want to inspect the sampled edges, fix the random
+seed explicitly outside the wrapper, or feed the edges into a custom
+scoring pipeline.
+
+Cell types with zero cells after barcode-matrix intersection are
+silently skipped. Type crossings where the effective cap is zero
+(e.g., one type has no cells after filtering) are also silently
+skipped.
 }
 \examples{
 set.seed(1)
@@ -82,3 +93,4 @@ el <- create_Edgelist_SamplingByType(meta, cell.type.col = "cell.type",
   \code{\link{create_Edgelist_PseudoBulk}},
   \code{\link{create_Edgelist_Spatial}}
 }
+\keyword{internal}

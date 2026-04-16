@@ -18,7 +18,7 @@ compute_PseudoBulk_Connectivity(
 )
 }
 \arguments{
-\item{count.mtx}{Gene × cell expression matrix (sparse or dense).
+\item{count.mtx}{Gene x cell expression matrix (sparse or dense).
 Row names = gene symbols; column names = cell barcodes.}
 
 \item{meta.data}{\code{data.frame} with row names = cell barcodes.
@@ -43,7 +43,7 @@ Default \code{"receptor"}.}
 \item{normalize.method}{Normalisation for \code{score.norm}:
 \code{"prop"} (default, proportional per type-pair) or \code{"none"}.}
 
-\item{n.cores}{CPU cores. Default 1. Socket cluster — works on all
+\item{n.cores}{CPU cores. Default 1. Socket cluster -- works on all
 platforms.}
 
 \item{verbose}{Print progress messages. Default \code{TRUE}.}
@@ -55,18 +55,18 @@ A \code{data.table} keyed on \code{(SendingType, ReceivingType, LRM)}
 }
 \description{
 Computes ligand-receptor signal scores between all ordered cell type pairs
-using per-type mean expression profiles (pseudobulk). Covers all T² directed
-type-to-type crossings including autocrine (A → A).
+using per-type mean expression profiles (pseudobulk). Covers all T^2 directed
+type-to-type crossings including autocrine (A -> A).
 
 Unlike \code{create_NICHESObject()}, this function does \strong{not} build
 a \code{NICHESObject}. It returns a compact \code{data.table} directly
 suitable for heatmap or network visualisation of type-level communication.
-This is intentional — the pseudobulk output is type-level rather than
+This is intentional -- the pseudobulk output is type-level rather than
 cell-level and does not benefit from the full NICHESObject slot structure.
 }
 \section{Output schema}{
 
-One row per (type-pair × non-zero LRM):
+One row per (type-pair x non-zero LRM):
 \describe{
   \item{\code{SendingType}}{Sending cell type label.}
   \item{\code{ReceivingType}}{Receiving cell type label.}
@@ -75,21 +75,30 @@ One row per (type-pair × non-zero LRM):
   \item{\code{receptor}}{Receptor gene or complex.}
   \item{\code{score}}{Raw LR signal (product or minimum of mean expressions).}
   \item{\code{score.norm}}{Score normalised proportionally per type-pair edge
-    (sums to 1.0 across all LRMs for a given sending–receiving pair), or equal
+    (sums to 1.0 across all LRMs for a given sending-receiving pair), or equal
     to \code{score} when \code{normalize.method = "none"}.}
 }
 }
 
 \examples{
-\dontrun{
+\donttest{
+data(NICHESv2_inputs)
+
+# Type-level connectivity using the bundled inputs (3 cell types: A/B/C)
 pb <- compute_PseudoBulk_Connectivity(
-  count.mtx     = count.mtx,
-  meta.data     = meta.data,
-  LRM.db        = "omnipath",
-  cell.type.col = "cell.type"
+  count.mtx     = NICHESv2_inputs$count.mtx,
+  meta.data     = NICHESv2_inputs$meta.data,
+  LRM.db        = NICHESv2_inputs$LRM.db,
+  cell.type.col = "celltype",
+  n.cores       = 1L,
+  verbose       = FALSE
 )
-# Quick heatmap of total signal per type pair
-agg <- pb[, .(total.score = sum(score)), by = .(SendingType, ReceivingType)]
+head(pb)
+
+# Total signal per directed type pair -- the input to a heatmap or chord plot
+agg <- pb[, list(total.score = sum(score)),
+          by = list(SendingType, ReceivingType)]
+agg
 }
 
 }

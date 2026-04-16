@@ -20,7 +20,7 @@ The input \code{NICHESObject} with \code{$segmentation} populated.
 Stores a pre-built \code{sf} object of cell segmentation polygons in the
 \code{$segmentation} slot of a \code{NICHESObject}.
 
-NICHESv2 does not extract segmentation data from Seurat objects — that step
+NICHESv2 does not extract segmentation data from Seurat objects -- that step
 is platform-specific and belongs in the user's own preprocessing script.
 Once you have built an \code{sf} object (using \pkg{sf}), call this function
 to attach it so that downstream plotting utilities can overlay cell
@@ -28,7 +28,7 @@ boundaries.
 
 The \code{sf} object must have a \code{cell} column whose values are cell
 barcodes, and every cell in \code{niches.obj$cell.list} must have a
-corresponding polygon — since both the count matrix and the segmentation
+corresponding polygon -- since both the count matrix and the segmentation
 are extracted from the same source object, missing polygons indicate a
 barcode mismatch that must be resolved upstream. An error is raised if any
 cell is absent. Extra polygons for barcodes not in the object are permitted
@@ -36,8 +36,35 @@ with a warning.
 }
 \examples{
 \dontrun{
-# Build your sf object using your platform-specific script, then attach:
-niches.obj <- add_segmentation(niches.obj, cell.data.sf)
+# NICHESv2 expects 'seg.sf' to be an sf data.frame with:
+#   * a 'cell' column matching niches.obj$cell.list
+#   * an sf geometry column of polygons (one per cell)
+# The exact construction is platform-specific (Visium HD, Xenium, MERFISH,
+# CosMx, etc.). The skeleton below shows the required shape:
+
+library(sf)
+data(NICHESv2_example)
+
+# Replace 'polygon.list' with polygons from your segmentation pipeline:
+polygon.list <- lapply(NICHESv2_example$cell.list, function(cell) {
+  # ... your platform-specific polygon extraction ...
+  st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+                         ncol = 2, byrow = TRUE)))
+})
+
+seg.sf <- st_sf(
+  cell     = NICHESv2_example$cell.list,
+  geometry = st_sfc(polygon.list)
+)
+
+niches.obj <- add_segmentation(NICHESv2_example, seg.sf)
 }
 
+}
+\seealso{
+\code{\link{NICHESv2_example}} for an example object whose
+  \code{$segmentation} slot is \code{NULL} and ready to receive an
+  attached \code{sf} object; \code{\link{merge_NICHESObjects}} which
+  uses \code{sf::rbind()} to combine \code{$segmentation} slots across
+  merged objects.
 }

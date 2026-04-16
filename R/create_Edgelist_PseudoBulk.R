@@ -43,8 +43,19 @@
 #' cell type labels).
 #'
 #' @details
-#' Cell types are sorted alphabetically before enumeration so the output order
-#' is deterministic regardless of the order they appear in \code{meta.data}.
+#' This function is a low-level primitive: it builds the pseudobulk
+#' type-to-type edge list that \code{\link{compute_PseudoBulk_Connectivity}}
+#' consumes internally. Most users should call
+#' \code{compute_PseudoBulk_Connectivity()}, which invokes this function,
+#' computes per-type mean expression, scores every type pair, and returns
+#' a single \code{data.table} in one step.
+#' \code{create_Edgelist_PseudoBulk()} is exposed for power users who
+#' want to inspect the type-pair enumeration directly or feed the edges
+#' into a custom scoring pipeline.
+#'
+#' Cell types are sorted alphabetically before enumeration so the output
+#' order is deterministic regardless of the order they appear in
+#' \code{meta.data}.
 #'
 #' @examples
 #' meta <- data.frame(
@@ -57,6 +68,7 @@
 #'   \code{\link{create_Edgelist_SamplingByType}},
 #'   \code{\link{create_Edgelist_Spatial}}
 #'
+#' @keywords internal
 #' @export
 create_Edgelist_PseudoBulk <- function(meta.data, cell.type.col) {
 

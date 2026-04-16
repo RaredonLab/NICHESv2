@@ -16,7 +16,7 @@ always computed and stored regardless of this choice.}
 \value{
 A named list with two elements:
 \describe{
-  \item{\code{$sending}}{data.table, n.cells × n.LRM rows, keyed on
+  \item{\code{$sending}}{data.table, n.cells x n.LRM rows, keyed on
     \code{(cell, LRM)}.}
   \item{\code{$receiving}}{Same structure for receiving perspective.}
 }
@@ -27,8 +27,8 @@ per-cell sending and receiving statistics. All three summary statistics
 (sum, mean, max) are computed and stored in a single pass; the
 \code{stat} argument determines the \code{score.stat} alias column.
 
-The output is a full cell × LRM grid — every cell in \code{$cell.list}
-paired with every LRM pair in \code{$LRM.list} — with zero-fill for
+The output is a full cell x LRM grid -- every cell in \code{$cell.list}
+paired with every LRM pair in \code{$LRM.list} -- with zero-fill for
 silent combinations.
 }
 \section{Sending vs receiving}{
@@ -36,9 +36,9 @@ silent combinations.
 \describe{
   \item{\strong{Sending}}{For cell A with neighbours B, C, D:
     the value for LRM "VEGFA|KDR" is the aggregation of
-    score(A→B) + score(A→C) + score(A→D).}
+    score(A->B) + score(A->C) + score(A->D).}
   \item{\strong{Receiving}}{For cell A receiving from neighbours B, C, D:
-    the value is the aggregation of score(B→A) + score(C→A) + score(D→A).}
+    the value is the aggregation of score(B->A) + score(C->A) + score(D->A).}
 }
 }
 
@@ -54,10 +54,18 @@ Keyed on \code{(cell, LRM)}.
 }
 
 \examples{
-\dontrun{
-agg <- Aggregate_CellToCell_Edges(niches.obj, stat = "mean")
+\donttest{
+data(NICHESv2_example)
+
+agg <- Aggregate_CellToCell_Edges(NICHESv2_example, stat = "mean")
+
+# Per-cell sending and receiving signal -- one row per (cell, LRM)
 head(agg$sending)
 head(agg$receiving)
+
+# Both tables are full cell x LRM grids (zero-filled for silent pairs)
+nrow(agg$sending) == length(NICHESv2_example$cell.list) *
+                     length(NICHESv2_example$LRM.list)
 }
 
 }
