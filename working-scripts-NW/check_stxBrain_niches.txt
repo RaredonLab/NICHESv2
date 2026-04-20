@@ -1,0 +1,27 @@
+-- NICHESObject --------------------------------------------
+  Cells        : 2696  (2696 non-empty)
+  Genes        : 31053  (20467 valid)
+  Edges        : 18500  (18495 non-empty)
+  LRM pairs    : 2251  (1827 valid)
+  Segmentation : none
+
+  Slot summary:
+    $cell.list     -- character vector of cell barcodes
+    $cell.data     -- (cell, gene, score, score.norm) [sparse]
+    $cell.meta     -- per-cell metadata
+    $edge.list     -- (edge, SendingCell, ReceivingCell)
+    $edge.data     -- (edge, LRM, score, score.norm) [sparse]
+    $edge.meta     -- per-edge metadata with Sending/Receiving/Joint cols
+    $neighborhood.* -- reserved (NULL)
+    $gene.list     -- character vector of gene names
+    $gene.meta     -- per-gene metadata
+    $LRM.list      -- character vector of 'ligand|receptor' pairs
+    $LRM.meta      -- per-LRM metadata
+    $segmentation  -- sf object of cell polygons, or NULL
+------------------------------------------------------------
+Key: <edge, LRM>
+                                    edge          LRM score score.norm
+                                  <char>       <char> <num>      <num>
+1: AAACAAGTATCTCCCA-1|AAACAAGTATCTCCCA-1 Adam15|Itgav     4 0.00379867
+2: AAACAAGTATCTCCCA-1|AAACAAGTATCTCCCA-1    Apoe|Lrp1   148 0.14055081
+3: AAACAAGTATCTCCCA-1|AAACAAGTATCTCCCA-1   Apoe|Sorl1    37 0.03513770
