@@ -326,6 +326,8 @@ S3 method source vs test file naming:
   under test (methods), not the source file. Both names are correct and
   intentional.
   
+CI is now live on dev/main via .github/workflows/R-CMD-check.yaml
+  
 ================================================================================
 TEST SUITE STATUS
 ================================================================================
