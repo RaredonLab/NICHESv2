@@ -81,5 +81,11 @@ utils::globalVariables(c(
   "median", "sd",
   
   # plot internals
-  ".plot.val"
+  ".plot.val",
+  
+  # add_cell_centric_edge_agg -- cell-centric aggregation columns
+  "count.out", "count.in",
+  "score.out.sum",   "score.in.sum",
+  "score.out.mean",  "score.in.mean",
+  "score.out.cmean", "score.in.cmean"
 ))
