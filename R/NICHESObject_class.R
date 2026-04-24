@@ -1,6 +1,6 @@
 # NICHESObject_class.R ----------------------------------------------------
 # S3 class definition for NICHESObject -- the central data structure
-# of the NICHESv2 package. Defines the 14-slot specification and all
+# of the NICHESv2 package. Defines the 15-slot specification and all
 # S3 methods: print, summary, dim, length, [, and is_NICHESObject.
 #
 # DEPS: data.table
@@ -8,7 +8,7 @@
 
 ## LOW-LEVEL CONSTRUCTOR (internal) ----
 #
-# Creates a validated NICHESObject from its 14 constituent slots. Called by
+# Creates a validated NICHESObject from its 15 constituent slots. Called by
 # create_NICHESObject() -- end users should never call this directly.
 #
 # All slot-level validation lives here so that every NICHESObject, regardless
@@ -29,9 +29,10 @@
     gene.meta,
     LRM.list,
     LRM.meta,
-    segmentation           = NULL
+    segmentation           = NULL,
+    aggregations           = list()
 ) {
-
+  
   # -- Slot-type invariants ---------------------------------------------------
   stopifnot(
     is.character(cell.list),
@@ -77,7 +78,8 @@
       gene.meta              = gene.meta,
       LRM.list               = LRM.list,
       LRM.meta               = LRM.meta,
-      segmentation           = segmentation
+      segmentation           = segmentation,
+      aggregations           = aggregations
     ),
     class = "NICHESObject"
   )
@@ -175,6 +177,21 @@ print.NICHESObject <- function(x, ...) {
   cat(sprintf("  LRM pairs    : %d  (%d valid)\n",
               length(x$LRM.list), n.lrms.valid))
   cat(sprintf("  Segmentation : %s\n", seg.status))
+  
+  agg.names <- names(x$aggregations)
+  if (length(agg.names) == 0L) {
+    cat("  Aggregations : none\n")
+  } else {
+    cat("  Aggregations :\n")
+    for (nm in agg.names) {
+      sl <- x$aggregations[[nm]]
+      if (is.data.table(sl)) {
+        cat(sprintf("    $%-34s: %d rows\n", nm, nrow(sl)))
+      } else if (is.list(sl)) {
+        cat(sprintf("    $%-34s: %d result(s)\n", nm, length(sl)))
+      }
+    }
+  }
   cat("\n  Slot summary:\n")
   cat("    $cell.list     -- character vector of cell barcodes\n")
   cat("    $cell.data     -- (cell, gene, score, score.norm) [sparse]\n")
@@ -290,7 +307,22 @@ summary.NICHESObject <- function(object, ...) {
   } else {
     cat("\n  Segmentation: none\n")
   }
-
+  
+  agg.names <- names(object$aggregations)
+  if (length(agg.names) == 0L) {
+    cat("\n  Aggregations: none\n")
+  } else {
+    cat(sprintf("\n  Aggregations: %d computed\n", length(agg.names)))
+    for (nm in agg.names) {
+      sl <- object$aggregations[[nm]]
+      if (is.data.table(sl)) {
+        cat(sprintf("    $%-34s: %d rows\n", nm, nrow(sl)))
+      } else if (is.list(sl)) {
+        cat(sprintf("    $%-34s: %d result(s)\n", nm, length(sl)))
+      }
+    }
+  }
+  
   cat("------------------------------------------------------------\n")
   invisible(object)
 }
@@ -479,6 +511,10 @@ length.NICHESObject <- function(x) length(x$cell.list)
     NULL
   }
 
+  if (length(x$aggregations) > 0L)
+    message("[NICHESObject] Aggregation slots dropped on subset; ",
+            "re-run add_*_agg() functions to recompute.")
+  
   result <- .new_NICHESObject(
     cell.list              = new.cell.list,
     cell.data              = new.cell.data,
@@ -493,7 +529,8 @@ length.NICHESObject <- function(x) length(x$cell.list)
     gene.meta              = x$gene.meta,
     LRM.list               = x$LRM.list,
     LRM.meta               = x$LRM.meta,
-    segmentation           = new.segmentation
+    segmentation           = new.segmentation,
+    aggregations           = list()
   )
   attr(result, "mode")       <- attr(x, "mode")
   attr(result, "sample.col") <- attr(x, "sample.col")
