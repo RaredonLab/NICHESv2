@@ -24,7 +24,7 @@ ONE EXPORTED FUNCTION PER FILE.
 
 
 ================================================================================
-NICHESObject — 14 SLOTS
+NICHESObject — 15 SLOTS
 ================================================================================
 
 $cell.list     chr vector   — barcodes (colnames of count.mtx), all modes
@@ -43,15 +43,25 @@ $gene.meta     data.table   — keyed: gene
 $LRM.list      chr vector   — valid "ligand|receptor" strings
 $LRM.meta      data.table   — LRM|ligand|receptor|<extras>; keyed: LRM
 $segmentation  sf object    — NULL until add_segmentation(); sf in Suggests
+$aggregations  list         — named list of aggregation data.tables:
+                              $cell.centric.edge.agg         data.table, keyed (cell,LRM)
+                              $neighborhood.centric.edge.agg named list of data.tables,
+                                keyed by "{edge.filter.mode}.ac={!remove.autocrine}"
+                              $neighborhood.composition       data.table, keyed cell
+                              Starts as list() until aggregate_NICHESObject() or
+                              individual add_*_agg() functions are called.
 
 Neighborhood slots are NULL until add_neighborhoods() is called.
-They store IDs only — join to $edge.data/$edge.meta for scores/coordinates.
+They store IDs only -- join to $edge.data/$edge.meta for scores/coordinates.
+When add_neighborhoods(overwrite=TRUE) is called, stale
+$neighborhood.centric.edge.agg and $neighborhood.composition entries are
+cleared automatically with a verbose message.
 
 Object attributes:
   attr(obj,"mode")             = "spatial"|"sampled"
   attr(obj,"sample.col")       = col name string (if split by sample)
   attr(obj,"edge.filter.mode") = set by add_neighborhoods()
-
+  attr(obj,"remove.autocrine") = set by add_neighborhoods()
 
 ================================================================================
 EXPORTED FUNCTIONS
@@ -97,15 +107,62 @@ create_NICHESObject(count.mtx, meta.data, LRM.db,
                     cell.type.col=NULL, ligand.col, receptor.col,
                     k, rad, seed=42L, max.cells,
                     smooth=FALSE, smooth.k=9L, n.pcs=30L,
-                    method, normalize.method, gene.meta, n.cores, verbose)
+                    method, normalize.method, gene.meta,
+                    edge.filter.mode="both_in_neighborhood",
+                    remove.autocrine=FALSE, n.cores, verbose)
   Dispatcher only. Routes to .create_NICHESObject_single() or
-  .create_NICHESObject_by_sample() depending on sample.col.
+  .create_NICHESObject_by_sample() depending on sample.col. After object
+  construction, calls add_neighborhoods() unless edge.filter.mode=NULL.
   → NICHESObject
   FILE: R/create_NICHESObject.R (dispatcher only — single function in this file)
 
 — OBJECT EXTENSIONS —
 add_neighborhoods(niches.obj, edge.filter.mode, remove.autocrine,
-                  n.cores, verbose)
+                  overwrite=FALSE, n.cores, verbose)
+  overwrite=FALSE hard-errors if slots already populated.
+  overwrite=TRUE clears stale $neighborhood.centric.edge.agg and
+  $neighborhood.composition before recomputing.
+
+— AGGREGATION —
+aggregate_NICHESObject(niches.obj, cell.type.col=NULL, by.direction=TRUE,
+                       include.self=TRUE, normalize=TRUE, overwrite=FALSE,
+                       n.cores=1L, verbose=TRUE)
+  Wrapper: calls all add_*_agg() and add_*_summaries() in dependency order.
+  FILE: R/aggregate_NICHESObject.R
+
+add_cell_centric_edge_agg(niches.obj, methods, overwrite, n.cores, verbose)
+  methods: c("sum","mean","cmean"). Sparse (cell,LRM) table. No neighborhood
+  dependency. Appends to $aggregations$cell.centric.edge.agg.
+  FILE: R/add_cell_centric_edge_agg.R
+
+add_cell_centric_summaries(niches.obj, summaries, overwrite, verbose)
+  11 summaries: ratio.sum/mean/cmean, log2ratio.sum/mean/cmean,
+  total.sum/mean/cmean, asymmetry, count.total. Appends columns to
+  $aggregations$cell.centric.edge.agg.
+  FILE: R/add_cell_centric_summaries.R
+
+add_neighborhood_centric_edge_agg(niches.obj, neighborhoods=NULL, methods,
+                                   by.direction=FALSE, overwrite=FALSE,
+                                   n.cores, verbose)
+  Named list storage keyed by "{edge.filter.mode}.ac={!remove.autocrine}".
+  by.direction=TRUE adds focal.in/focal.out/cross decomposition.
+  Non-spatial mode: computation identical but interpretation shifts (see GOTCHAS).
+  FILE: R/add_neighborhood_centric_edge_agg.R
+
+add_neighborhood_centric_summaries(niches.obj, summaries, key=NULL,
+                                    overwrite=FALSE, verbose)
+  9 summaries: ratio.focal.sum/mean/cmean, log2ratio.focal.sum/mean/cmean,
+  focal.asymmetry, cross.fraction, focal.fraction.
+  Requires by.direction=TRUE columns. key=NULL derives from object attributes.
+  FILE: R/add_neighborhood_centric_summaries.R
+
+add_neighborhood_composition(niches.obj, cell.type.col, include.self=TRUE,
+                              normalize=TRUE, verbose)
+  Source: $edge.list + $cell.meta only. No neighborhood slot dependency.
+  Spatial mode only (hard error for sampled mode).
+  Always overwrites -- no overwrite parameter.
+  Column names: gsub("[^A-Za-z0-9.]",".",type) + .neighbor.count/.neighbor.prop
+  FILE: R/add_neighborhood_composition.R
   Calls extract_neighborhoods() on niches.obj$edge.list, populates 3 slots.
   FILE: R/add_neighborhoods.R
 
@@ -162,7 +219,7 @@ Small utilities only:
   .genes_available(gene.str, set) all components in set?
   .prop_norm(x)                   x/sum(x); zeros if sum==0
   .categorical_cols(dt, exclude)  character or factor column names
-  .new_NICHESObject(...)          14-slot constructor
+  .new_NICHESObject(...)          15-slot constructor (aggregations = list())
   .coerce_meta(meta.data)         → keyed data.table with "cell" col
   .is_NICHESObject(x)             inherits(x,"NICHESObject")
   %||%                            null-coalescing operator
@@ -234,6 +291,22 @@ Fixtures: data-raw/build_NICHESv2_example.R — re-run when schema or bundled
 Intentional skips (3): full-batch InSitu (>5 LRMs), irlba-absent path,
   replaced placeholder in test-compute_PseudoBulk_Connectivity.R
 
+================================================================================
+CHECKLIST -- EVERY NEW EXPORTED FUNCTION (CRAN compliance)
+================================================================================
+
+Before delivering any new exported function, verify ALL of the following:
+  [ ] Input guard: inherits(x, "NICHESObject") -- NOT .is_NICHESObject()
+  [ ] All dot-prefixed helpers called exist in utils.R (grep to confirm)
+  [ ] All NSE column names in := or .() declared in globalVariables() in utils.R
+  [ ] New globalVariables block appended at END of utils.R globalVariables list
+  [ ] Socket cluster: clusterExport uses envir = environment() for local vars
+  [ ] No mclapply -- socket clusters only (parallel::makeCluster + parLapply)
+  [ ] devtools::document() run twice after any structural change
+  [ ] One exported function per file, file named after the function
+  [ ] No non-ASCII characters in .R file (tools::showNonASCII to verify)
+  [ ] Use -- not em/en dash; ... not ellipsis; straight quotes only
+  [ ] @seealso links only reference functions that already exist
 
 ================================================================================
 KEY GOTCHAS (read before touching these areas)
@@ -306,9 +379,23 @@ smooth = TRUE has zero test coverage:
     attr(result, "sample.col") <- attr(x, "sample.col")
   to R/NICHESObject_methods.R before the return statement.
 
+Non-ASCII characters in .R files:
+  CRAN prohibits non-ASCII characters anywhere in .R files, including
+  comments and roxygen strings. Em dashes (--), en dashes, curly quotes,
+  and ellipsis characters are common offenders. Always use:
+    -- instead of em/en dash
+    ... instead of ellipsis character
+    straight quotes only
+  Detect with: tools::showNonASCII(readLines("R/file.R"))
+
+inherits() vs .is_NICHESObject():
+  .is_NICHESObject() is listed in the design doc but does NOT exist in
+  utils.R. Always use inherits(x, "NICHESObject") directly in new functions.
+
 globalVariables pattern for data.table NSE:
   All data.table column names used with NSE must be declared via
-  utils::globalVariables() in NICHESv2-package.R to suppress R CMD check
+  utils::globalVariables() in utils.R (NOT NICHESv2-package.R) to suppress
+  R CMD check
   "no visible binding" notes. Similarly, base R functions used without
   explicit :: (head, setNames, as, median, quantile, sd) need @importFrom
   tags in NICHESv2-package.R.
@@ -367,15 +454,13 @@ R CMD check status: 0 errors | 0 warnings | 1 note
 PENDING DECISIONS
 ================================================================================
 
-1. Integrate extract_neighborhoods into create_NICHESObject():
-   add edge.filter.mode=NULL parameter; when non-NULL, call
-   add_neighborhoods() at the end. PENDING advisor discussion.
+1. [RESOLVED] extract_neighborhoods integrated into create_NICHESObject():
+   edge.filter.mode="both_in_neighborhood" default; NULL = opt-out.
+   remove.autocrine=FALSE default. Both exposed as parameters.
 
-2. Default edge.filter.mode: currently "both_in_neighborhood"; confirm with
-   advisor.
+2. [RESOLVED] Default edge.filter.mode = "both_in_neighborhood".
 
 3. Performance optimization for large datasets: pre-extract gene expression
-   vectors once rather than per LRM pair; pre-filter silent LRM pairs.
 
 4. Aggregate_CellToCell_Edges future design: sparse dgCMatrix (cells × LRMs)
    plus inverted index $active — pending advisor discussion.
@@ -386,3 +471,26 @@ PENDING DECISIONS
    four-part validation pipeline previously sketched) until advisor
    decision is resolved. Dataset choice (own Visium vs. public benchmark)
    consequently also paused.
+
+6. Rename "sampled" mode to "nonspatial": affects attr(obj,"mode"),
+   create_NICHESObject mode argument, and all internal checks. Do in a
+   dedicated session to avoid partial changes. TODO.
+
+7. .neighborhood_agg_key() helper for utils.R: one-liner
+   paste0(efm, ".ac=", !rem.auto) currently duplicated inline in
+   add_neighborhood_centric_edge_agg.R and add_neighborhood_centric_summaries.R.
+   Candidate for utils.R once confirmed with Nuoya. Requires approval before
+   adding any new helper function.
+
+8. compare_neighborhood_modes() future function: compare the same aggregation
+   statistic across different keys in $neighborhood.centric.edge.agg.
+   Returns a standalone data.table (not stored in object). Not yet designed.
+
+9. Aggregation test suite: write together after full aggregation pass.
+   Needed files:
+     test-add_cell_centric_edge_agg.R
+     test-add_cell_centric_summaries.R
+     test-add_neighborhood_centric_edge_agg.R
+     test-add_neighborhood_centric_summaries.R
+     test-add_neighborhood_composition.R
+     test-aggregate_NICHESObject.R

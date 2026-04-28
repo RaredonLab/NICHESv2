@@ -41,9 +41,10 @@
 #'         for \code{mode = "sampled"}.
 #'   \item Score every edge x LRM combination via
 #'         \code{\link{compute_CellToCell}}, sparsifying as it goes.
-#'   \item Assemble the 14-slot \code{NICHESObject} (cell, edge, gene, LRM,
-#'         and segmentation slots; neighborhood slots are populated later by
-#'         \code{\link{add_neighborhoods}}).
+#'   \item Assemble the 15-slot \code{NICHESObject} (cell, edge, gene, LRM,
+#'         segmentation, and aggregation slots).
+#'   \item Extract neighborhoods via \code{\link{add_neighborhoods}} when
+#'         \code{edge.filter.mode} is non-\code{NULL} (the default).
 #' }
 #'
 #' Each step is also exported individually for users who need finer control.
@@ -135,6 +136,16 @@
 #' @param gene.meta   Optional \code{data.frame} with a \code{"gene"} column
 #'   (and any number of additional annotation columns) joined onto the
 #'   \code{$gene.meta} slot. Default \code{NULL}.
+#' @param edge.filter.mode Character or \code{NULL}. Controls which edges are
+#'   assigned to each cell's neighborhood. Passed to
+#'   \code{\link{add_neighborhoods}}. One of \code{"both_in_neighborhood"}
+#'   (default), \code{"any_in_neighborhood"}, or \code{"central_cell_only"}.
+#'   Pass \code{NULL} to skip neighborhood extraction entirely, leaving the
+#'   three neighborhood slots \code{NULL}.
+#' @param remove.autocrine Logical. When \code{TRUE}, self-loops are excluded
+#'   from each cell's neighbor list (but may still appear in the neighborhood
+#'   edge list depending on \code{edge.filter.mode}). Passed to
+#'   \code{\link{add_neighborhoods}}. Default \code{FALSE}.
 #' @param n.cores     Integer. Number of CPU cores for the inner scoring
 #'   pipeline. Default \code{1L}. Always uses socket clusters
 #'   (\code{parallel::makeCluster}) for cross-platform compatibility.
@@ -146,11 +157,13 @@
 #'   Slots \code{$cell.list}, \code{$cell.data}, \code{$cell.meta},
 #'   \code{$edge.list}, \code{$edge.data}, \code{$edge.meta},
 #'   \code{$gene.list}, \code{$gene.meta}, \code{$LRM.list}, and
-#'   \code{$LRM.meta} are populated. The neighborhood slots
-#'   (\code{$neighborhood.cell.list}, \code{$neighborhood.edge.list},
-#'   \code{$neighborhood.meta}) and \code{$segmentation} remain \code{NULL}
-#'   until \code{\link{add_neighborhoods}} and \code{\link{add_segmentation}}
-#'   are called.
+#'   \code{$LRM.meta} are always populated. When \code{edge.filter.mode}
+#'   is non-\code{NULL} (the default), the three neighborhood slots are
+#'   also populated and \code{attr(obj, "edge.filter.mode")} and
+#'   \code{attr(obj, "remove.autocrine")} are set on the object. Pass
+#'   \code{edge.filter.mode = NULL} to skip neighborhood extraction and
+#'   leave those slots \code{NULL}. \code{$segmentation} always remains
+#'   \code{NULL} until \code{\link{add_segmentation}} is called.
 #'
 #' @seealso
 #'   \code{\link{NICHESv2_example}} for an example object produced by this
@@ -242,9 +255,10 @@ create_NICHESObject <- function(count.mtx,
                                 method           = c("product", "minimum"),
                                 normalize.method = c("prop", "none"),
                                 gene.meta        = NULL,
+                                edge.filter.mode = "both_in_neighborhood",
+                                remove.autocrine = FALSE,
                                 n.cores          = 1L,
                                 verbose          = TRUE) {
-
   ## Validate sample.col before anything else ----
   if (!is.null(sample.col)) {
     if (!is.character(sample.col) || length(sample.col) != 1L)
@@ -259,7 +273,7 @@ create_NICHESObject <- function(count.mtx,
 
   ## BRANCH: sample.col provided -> split, compute per sample, merge ----
   if (!is.null(sample.col)) {
-    return(.create_NICHESObject_by_sample(
+    obj <- .create_NICHESObject_by_sample(
       count.mtx        = count.mtx,
       meta.data        = meta.data,
       LRM.db           = LRM.db,
@@ -281,30 +295,45 @@ create_NICHESObject <- function(count.mtx,
       gene.meta        = gene.meta,
       n.cores          = n.cores,
       verbose          = verbose
-    ))
+    )
+  } else {
+    ## BRANCH: no sample.col -> original single-pass logic ----
+    obj <- .create_NICHESObject_single(
+      count.mtx        = count.mtx,
+      meta.data        = meta.data,
+      LRM.db           = LRM.db,
+      mode             = mode,
+      species          = species,
+      cell.type.col    = cell.type.col,
+      ligand.col       = ligand.col,
+      receptor.col     = receptor.col,
+      k                = k,
+      rad              = rad,
+      seed             = seed,
+      max.cells        = max.cells,
+      smooth           = smooth,
+      smooth.k         = smooth.k,
+      n.pcs            = n.pcs,
+      method           = method,
+      normalize.method = normalize.method,
+      gene.meta        = gene.meta,
+      n.cores          = n.cores,
+      verbose          = verbose
+    )
   }
-
-  ## BRANCH: no sample.col -> original single-pass logic ----
-  .create_NICHESObject_single(
-    count.mtx        = count.mtx,
-    meta.data        = meta.data,
-    LRM.db           = LRM.db,
-    mode             = mode,
-    species          = species,
-    cell.type.col    = cell.type.col,
-    ligand.col       = ligand.col,
-    receptor.col     = receptor.col,
-    k                = k,
-    rad              = rad,
-    seed             = seed,
-    max.cells        = max.cells,
-    smooth           = smooth,
-    smooth.k         = smooth.k,
-    n.pcs            = n.pcs,
-    method           = method,
-    normalize.method = normalize.method,
-    gene.meta        = gene.meta,
-    n.cores          = n.cores,
-    verbose          = verbose
-  )
+  
+  ## Neighborhood extraction ----
+  # Skipped when edge.filter.mode = NULL (user opts out explicitly).
+  if (!is.null(edge.filter.mode)) {
+    obj <- add_neighborhoods(
+      niches.obj       = obj,
+      edge.filter.mode = edge.filter.mode,
+      remove.autocrine = remove.autocrine,
+      overwrite        = FALSE,
+      n.cores          = n.cores,
+      verbose          = verbose
+    )
+  }
+  
+  obj
 }

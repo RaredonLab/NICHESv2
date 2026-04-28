@@ -349,3 +349,68 @@ test_that("create_NICHESObject: single-cell sample emits warning; remaining samp
   expect_true(is_NICHESObject(obj))
   expect_equal(length(obj$cell.list), 21L)
 })
+
+# ── Section 6: neighborhood slots ─────────────────────────────────────────────
+
+test_that("create_NICHESObject: neighborhood slots non-NULL by default", {
+  inp <- .make_sample_col_inputs()
+  obj <- suppressWarnings(create_NICHESObject(
+    count.mtx  = inp$count.mtx,
+    meta.data  = inp$meta.data,
+    LRM.db     = inp$lrm.db,
+    mode       = "spatial",
+    k          = 3L,
+    n.cores    = 1L,
+    verbose    = FALSE
+  ))
+  expect_false(is.null(obj$neighborhood.cell.list))
+  expect_false(is.null(obj$neighborhood.edge.list))
+  expect_false(is.null(obj$neighborhood.meta))
+})
+
+test_that("create_NICHESObject: edge.filter.mode attribute set correctly", {
+  inp <- .make_sample_col_inputs()
+  obj <- suppressWarnings(create_NICHESObject(
+    count.mtx        = inp$count.mtx,
+    meta.data        = inp$meta.data,
+    LRM.db           = inp$lrm.db,
+    mode             = "spatial",
+    k                = 3L,
+    edge.filter.mode = "central_cell_only",
+    n.cores          = 1L,
+    verbose          = FALSE
+  ))
+  expect_equal(attr(obj, "edge.filter.mode"), "central_cell_only")
+})
+
+test_that("create_NICHESObject: remove.autocrine attribute set correctly", {
+  inp <- .make_sample_col_inputs()
+  obj <- suppressWarnings(create_NICHESObject(
+    count.mtx        = inp$count.mtx,
+    meta.data        = inp$meta.data,
+    LRM.db           = inp$lrm.db,
+    mode             = "spatial",
+    k                = 3L,
+    remove.autocrine = TRUE,
+    n.cores          = 1L,
+    verbose          = FALSE
+  ))
+  expect_true(attr(obj, "remove.autocrine"))
+})
+
+test_that("create_NICHESObject: edge.filter.mode = NULL leaves neighborhood slots NULL", {
+  inp <- .make_sample_col_inputs()
+  obj <- suppressWarnings(create_NICHESObject(
+    count.mtx        = inp$count.mtx,
+    meta.data        = inp$meta.data,
+    LRM.db           = inp$lrm.db,
+    mode             = "spatial",
+    k                = 3L,
+    edge.filter.mode = NULL,
+    n.cores          = 1L,
+    verbose          = FALSE
+  ))
+  expect_null(obj$neighborhood.cell.list)
+  expect_null(obj$neighborhood.edge.list)
+  expect_null(obj$neighborhood.meta)
+})
