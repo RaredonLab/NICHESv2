@@ -8,7 +8,8 @@ add_neighborhoods(
   niches.obj,
   edge.filter.mode = "both_in_neighborhood",
   remove.autocrine = FALSE,
-  n.cores = 1,
+  overwrite = FALSE,
+  n.cores = 1L,
   verbose = TRUE
 )
 }
@@ -22,13 +23,19 @@ add_neighborhoods(
 \item{remove.autocrine}{Logical. Passed to
 \code{\link{extract_neighborhoods}}. Default \code{FALSE}.}
 
-\item{n.cores}{Integer. Number of cores for parallel processing. Default 1.}
+\item{overwrite}{Logical. If \code{FALSE} (default), raises a hard error
+when the neighborhood slots are already populated. Set to \code{TRUE} to
+recompute; stale neighborhood-dependent aggregation slots are cleared
+automatically.}
+
+\item{n.cores}{Integer. Number of cores for parallel processing. Default \code{1L}.}
 
 \item{verbose}{Logical. Print progress messages. Default \code{TRUE}.}
 }
 \value{
 The input \code{NICHESObject} with the three neighborhood slots
-  populated. Attribute \code{"edge.filter.mode"} is set on the object.
+  Attributes \code{"edge.filter.mode"} and \code{"remove.autocrine"} are
+  set on the object.
 }
 \description{
 Extracts neighborhoods from the edge list of a \code{NICHESObject} and
@@ -37,8 +44,11 @@ populates the three neighborhood slots: \code{$neighborhood.cell.list},
 }
 \details{
 This function calls \code{\link{extract_neighborhoods}} internally.
-If the neighborhood slots are already populated, they are overwritten
-with a message.
+If the neighborhood slots are already populated and \code{overwrite = FALSE}
+(the default), a hard error is raised. Pass \code{overwrite = TRUE} to
+recompute; any stale neighborhood-dependent aggregation slots
+(\code{$aggregations$neighborhood.centric.edge.agg} and
+\code{$aggregations$neighborhood.composition}) are cleared automatically.
 }
 \examples{
 \donttest{
@@ -46,7 +56,7 @@ data(NICHESv2_example)
 
 # Default neighborhood: edges where BOTH endpoints lie in the same
 # neighborhood as the central cell
-obj.nb <- add_neighborhoods(NICHESv2_example)
+obj.nb <- add_neighborhoods(NICHESv2_example, overwrite = TRUE)
 
 length(obj.nb$neighborhood.cell.list)   # one entry per cell
 head(obj.nb$neighborhood.meta)          # n.neighbors and n.edges per cell

@@ -87,5 +87,29 @@ utils::globalVariables(c(
   "count.out", "count.in",
   "score.out.sum",   "score.in.sum",
   "score.out.mean",  "score.in.mean",
-  "score.out.cmean", "score.in.cmean"
+  "score.out.cmean", "score.in.cmean",
+  
+  # add_neighborhood_centric_edge_agg -- neighborhood aggregation columns
+  "n.edges",
+  "count.total",
+  "direction",
+  "score.total.sum",   "score.total.mean",   "score.total.cmean",
+  "count.focal.in",    "count.focal.out",    "count.cross",
+  "score.focal.in.sum",    "score.focal.in.mean",    "score.focal.in.cmean",
+  "score.focal.out.sum",   "score.focal.out.mean",   "score.focal.out.cmean",
+  "score.cross.sum",       "score.cross.mean",        "score.cross.cmean",
+  
+  # add_neighborhood_composition -- composition columns
+  "cell.type", "cell.type.polished",
+  
+  # add_cell_centric_summaries -- derived summary columns
+  # (score.total.sum/mean/cmean and count.total already declared above)
+  "score.sum.inout.ratio",      "score.mean.inout.ratio",      "score.cmean.inout.ratio",
+  "score.sum.inout.log2ratio",  "score.mean.inout.log2ratio",  "score.cmean.inout.log2ratio",
+  "asymmetry",
+  
+  # add_neighborhood_centric_summaries -- derived summary columns
+  "score.focal.sum.inout.ratio",      "score.focal.mean.inout.ratio",      "score.focal.cmean.inout.ratio",
+  "score.focal.sum.inout.log2ratio",  "score.focal.mean.inout.log2ratio",  "score.focal.cmean.inout.log2ratio",
+  "count.focal.asymmetry", "count.cross.fraction", "count.focal.fraction"
 ))
