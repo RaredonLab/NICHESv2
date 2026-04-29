@@ -97,7 +97,7 @@ obj2 <- add_neighborhood_composition(
 
 }
 \seealso{
-\code{\link{add_cell_centric_edge_agg}},
-  \code{\link{add_neighborhood_centric_edge_agg}},
-  \code{\link{add_neighborhoods}}
+\code{\link{add_neighborhood_edge_agg}},
+  \code{\link{add_neighborhoods}},
+  \code{\link{aggregate_NICHESObject}}
 }
