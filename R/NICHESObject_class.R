@@ -178,6 +178,18 @@ print.NICHESObject <- function(x, ...) {
               length(x$LRM.list), n.lrms.valid))
   cat(sprintf("  Segmentation : %s\n", seg.status))
   
+  if (!is.null(x$neighborhood.cell.list)) {
+    cat(sprintf(
+      "  Neighborhoods: %d cells  |  %d edges  (mode: %s, autocrine: %s)\n",
+      length(x$neighborhood.cell.list),
+      sum(lengths(x$neighborhood.edge.list)),
+      attr(x, "edge.filter.mode") %||% "unknown",
+      if (isTRUE(attr(x, "remove.autocrine"))) "removed" else "included"
+    ))
+  } else {
+    cat("  Neighborhoods: none\n")
+  }
+  
   agg.names <- names(x$aggregations)
   if (length(agg.names) == 0L) {
     cat("  Aggregations : none\n")
@@ -199,12 +211,15 @@ print.NICHESObject <- function(x, ...) {
   cat("    $edge.list     -- (edge, SendingCell, ReceivingCell)\n")
   cat("    $edge.data     -- (edge, LRM, score, score.norm) [sparse]\n")
   cat("    $edge.meta     -- per-edge metadata with Sending/Receiving/Joint cols\n")
-  cat("    $neighborhood.* -- reserved (NULL)\n")
+  cat("    $neighborhood.cell.list -- named list: cell -> neighbor barcodes\n")
+  cat("    $neighborhood.edge.list -- named list: cell -> edge IDs\n")
+  cat("    $neighborhood.meta      -- (cell, n.neighbors, n.edges) [keyed]\n")
   cat("    $gene.list     -- character vector of gene names\n")
   cat("    $gene.meta     -- per-gene metadata\n")
   cat("    $LRM.list      -- character vector of 'ligand|receptor' pairs\n")
   cat("    $LRM.meta      -- per-LRM metadata\n")
   cat("    $segmentation  -- sf object of cell polygons, or NULL\n")
+  cat("    $aggregations  -- named list of aggregation data.tables\n")
   cat("------------------------------------------------------------\n")
   invisible(x)
 }

@@ -2,143 +2,88 @@
 % Please edit documentation in R/aggregate_NICHESObject.R
 \name{aggregate_NICHESObject}
 \alias{aggregate_NICHESObject}
-\title{Run the Full Aggregation and Summary Pipeline on a NICHESObject}
+\title{Run the Full Aggregation Pipeline on a NICHESObject}
 \usage{
 aggregate_NICHESObject(
   niches.obj,
   cell.type.col = NULL,
-  by.direction = TRUE,
-  include.self = TRUE,
-  normalize = TRUE,
-  overwrite = FALSE,
   n.cores = 1L,
   verbose = TRUE
 )
 }
 \arguments{
-\item{niches.obj}{A \code{NICHESObject}.}
+\item{niches.obj}{A \code{NICHESObject} with neighborhood slots
+populated.}
 
 \item{cell.type.col}{Character or \code{NULL}. Name of the column in
 \code{$cell.meta} holding cell type annotations, passed to
 \code{\link{add_neighborhood_composition}}. When \code{NULL} (default),
-step 5 is skipped.}
+step 2 is skipped.}
 
-\item{by.direction}{Logical. When \code{TRUE} (default), computes
-directional decomposition (focal-in, focal-out, cross) in
-\code{\link{add_neighborhood_centric_edge_agg}} and runs
-\code{\link{add_neighborhood_centric_summaries}}. When \code{FALSE},
-only total-level neighborhood aggregation is computed and summaries are
-skipped.}
+\item{n.cores}{Positive integer. Socket-cluster workers passed to
+\code{\link{add_neighborhood_edge_agg}}. Default \code{1L}.}
 
-\item{include.self}{Logical. Passed to
-\code{\link{add_neighborhood_composition}}. Whether to count the focal
-cell itself as one of its own neighbors. Default \code{TRUE}.}
-
-\item{normalize}{Logical. Passed to
-\code{\link{add_neighborhood_composition}}. Whether to also compute
-\code{.neighbor.prop} proportion columns. Default \code{TRUE}.}
-
-\item{overwrite}{Logical. When \code{FALSE} (default), each sub-function
-skips columns already present. When \code{TRUE}, all steps are recomputed
-from scratch.}
-
-\item{n.cores}{Positive integer. Number of parallel worker processes
-passed to the aggregation functions. Default \code{1L}.}
-
-\item{verbose}{Logical. Emit progress messages from each sub-function.
-Default \code{TRUE}.}
+\item{verbose}{Logical. Emit progress messages. Default \code{TRUE}.}
 }
 \value{
 The input \code{niches.obj} with \code{$aggregations} populated:
 \describe{
-  \item{\code{$cell.centric.edge.agg}}{Always populated.}
-  \item{\code{$neighborhood.centric.edge.agg}}{Populated when neighborhood
-    slots are non-\code{NULL}.}
+  \item{\code{$neighborhood.edge.agg}}{Always populated (four-category
+    edge aggregation keyed on \code{(cell, LRM)}, with all three score
+    methods and in/out ratio).}
   \item{\code{$neighborhood.composition}}{Populated when
     \code{cell.type.col} is provided and \code{mode = "spatial"}.}
 }
 }
 \description{
-A convenience wrapper that calls all aggregation and summary functions in
-the correct dependency order, populating the entire
-\code{$aggregations} slot in a single call. Individual functions can still
-be called directly for finer control (e.g.\ to add a single summary type
-or to operate on a specific neighborhood key).
+A convenience wrapper that calls all aggregation functions in the correct
+dependency order, populating the \code{$aggregations} slot in a single
+call. Both steps always fully recompute and replace their slots -- there
+is no incremental update mode. Individual functions can still be called
+directly for finer control.
 }
 \section{Pipeline steps}{
 
 \enumerate{
-  \item \code{\link{add_cell_centric_edge_agg}}: aggregates scores across
-    all edges directly linking each cell, using all three methods
-    (\code{"sum"}, \code{"mean"}, \code{"cmean"}).
-  \item \code{\link{add_cell_centric_summaries}}: appends all eleven derived
-    summary columns to the cell-centric aggregation table.
-  \item \code{\link{add_neighborhood_centric_edge_agg}}: aggregates scores
-    across all neighborhood edges for each cell, using all three methods.
-    When \code{by.direction = TRUE} (default), also computes the focal-in,
-    focal-out, and cross directional decomposition. \emph{Skipped with a
-    warning if the neighborhood slots are \code{NULL}.}
-  \item \code{\link{add_neighborhood_centric_summaries}}: appends all nine
-    derived summary columns to the neighborhood-centric aggregation entry.
-    \emph{Skipped if step 3 was skipped or if \code{by.direction = FALSE}.}
+  \item \code{\link{add_neighborhood_edge_agg}}: for each focal cell and
+    each LRM pair, aggregates scores across all neighborhood edges using
+    a four-way classification (in, out, cross, autocrine). All three
+    score methods (sum, mean, cmean) and the in/out ratio are always
+    computed.
   \item \code{\link{add_neighborhood_composition}}: computes cell-type
-    composition of each cell's local neighborhood. \emph{Skipped if
-    \code{cell.type.col = NULL} or if the object mode is
-    \code{"sampled"}.}
+    composition of each cell's local neighborhood from \code{$edge.list}
+    and \code{$cell.meta}. \emph{Skipped if \code{cell.type.col = NULL}
+    or if the object mode is \code{"sampled"}.}
 }
 }
 
 \section{Neighborhood slots requirement}{
 
-Steps 3 and 4 require the three neighborhood slots to be populated.
-\code{\link{create_NICHESObject}} populates them automatically (default
-\code{edge.filter.mode = "both_in_neighborhood"}), so this requirement is
-met in the standard workflow. If neighborhood slots are \code{NULL} (e.g.\
-after subsetting the object), steps 3 and 4 are skipped with an
-informational message rather than a hard error.
-}
-
-\section{Incremental use}{
-
-When \code{overwrite = FALSE} (default), each sub-function skips columns
-that are already present and only appends genuinely new results. This means
-\code{aggregate_NICHESObject} can be re-called safely after manually running
-individual aggregation steps -- it will fill in any missing pieces without
-recomputing existing ones.
+Step 1 requires the three neighborhood slots to be populated.
+\code{\link{create_NICHESObject}} populates them automatically using
+\code{edge.filter.mode = "both_in_neighborhood"} and
+\code{remove.autocrine = FALSE}, so this requirement is met in the
+standard workflow.
 }
 
 \examples{
 \donttest{
 data(NICHESv2_example)
 
-# Full pipeline with cell type composition
+# Edge aggregation only
+obj <- aggregate_NICHESObject(NICHESv2_example, n.cores = 1L)
+names(obj$aggregations)
+
+# With cell-type composition
 obj <- aggregate_NICHESObject(
   NICHESv2_example,
   cell.type.col = "celltype",
   n.cores       = 1L
 )
-names(obj$aggregations)
-
-# Without directional decomposition (faster; skips summaries step)
-obj2 <- aggregate_NICHESObject(
-  NICHESv2_example,
-  by.direction = FALSE,
-  n.cores      = 1L
-)
-
-# Incremental: add composition to an already-aggregated object
-obj3 <- aggregate_NICHESObject(
-  obj,
-  cell.type.col = "celltype",
-  overwrite     = FALSE
-)
 }
 
 }
 \seealso{
-\code{\link{add_cell_centric_edge_agg}},
-  \code{\link{add_cell_centric_summaries}},
-  \code{\link{add_neighborhood_centric_edge_agg}},
-  \code{\link{add_neighborhood_centric_summaries}},
+\code{\link{add_neighborhood_edge_agg}},
   \code{\link{add_neighborhood_composition}}
 }
