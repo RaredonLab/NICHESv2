@@ -4,7 +4,7 @@
 #
 #   1. add_neighborhood_edge_agg()     -- four-category edge aggregation
 #   2. add_neighborhood_composition()  -- cell-type composition
-#      (skipped if cell.type.col = NULL or mode = "sampled")
+#      (skipped if cell.type.col = NULL or mode = "nonspatial")
 #
 # Both steps always fully recompute and replace their slots. There is no
 # incremental update mode -- call the function when you want a fresh result.
@@ -32,7 +32,7 @@
 #'   \item \code{\link{add_neighborhood_composition}}: computes cell-type
 #'     composition of each cell's local neighborhood from \code{$edge.list}
 #'     and \code{$cell.meta}. \emph{Skipped if \code{cell.type.col = NULL}
-#'     or if the object mode is \code{"sampled"}.}
+#'     or if the object mode is \code{"nonspatial"}.}
 #' }
 #'
 #' @section Neighborhood slots requirement:
@@ -119,11 +119,11 @@ aggregate_NICHESObject <- function(
         "[aggregate_NICHESObject] Step 2/2: SKIPPED -- 'cell.type.col' not ",
         "provided. Supply cell.type.col to compute neighborhood composition."
       )
-  } else if (identical(attr(niches.obj, "mode"), "sampled")) {
+  } else if (identical(attr(niches.obj, "mode"), "nonspatial")) {
     if (verbose)
       message(
         "[aggregate_NICHESObject] Step 2/2: SKIPPED -- neighborhood ",
-        "composition is not supported for mode = 'sampled'."
+        "composition is not supported for mode = 'nonspatial'."
       )
   } else {
     if (verbose)

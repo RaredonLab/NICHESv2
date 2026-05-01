@@ -76,7 +76,7 @@ Universal scoring engine for all NICHESv2 edge modes. For each edge and each
 valid LR pair, computes a signal score. The edge list may come from any of
 the three edgelist constructors -- spatial, pseudobulk, or type-sampled --
 and the count matrix is expected to match accordingly (cell barcodes as
-column names for spatial and sampled modes; cell type names for pseudobulk
+column names for spatial and nonspatial modes; cell type names for pseudobulk
 mode).
 
 Supports \strong{multi-gene complexes}: a ligand or receptor represented as

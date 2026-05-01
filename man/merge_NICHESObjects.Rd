@@ -27,7 +27,7 @@ together.
 }
 \details{
 \strong{Mode compatibility.} All objects must share the same
-\code{attr(., "mode")} (\code{"spatial"} or \code{"sampled"}). A mismatch
+\code{attr(., "mode")} (\code{"spatial"} or \code{"nonspatial"}). A mismatch
 is a hard error because the slot schemas differ (spatial objects carry
 \code{x}/\code{y} in \code{$cell.meta}; edge semantics differ).
 

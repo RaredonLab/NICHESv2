@@ -8,7 +8,7 @@
 # resulting table always has the same columns regardless of a cell's actual
 # neighborhood.
 #
-# Spatial mode only: in "sampled" mode edges are statistically paired rather
+# Spatial mode only: in "nonspatial" mode edges are statistically paired rather
 # than spatially proximate, so composition would reflect sampling design rather
 # than local tissue structure.
 #
@@ -43,7 +43,7 @@
 #'
 #' @section Spatial mode only:
 #' This function raises a hard error when
-#' \code{attr(niches.obj, "mode") == "sampled"}. In sampled mode, edges are
+#' \code{attr(niches.obj, "mode") == "nonspatial"}. In nonspatial mode, edges are
 #' statistically paired rather than spatially proximate, so neighborhood
 #' composition would reflect sampling design rather than local tissue
 #' structure. This is biologically meaningless and is therefore not supported.
@@ -109,10 +109,10 @@ add_neighborhood_composition <- function(
          call. = FALSE)
 
   ## Spatial-mode guard --------------------------------------------------------
-  if (identical(attr(niches.obj, "mode"), "sampled"))
+  if (identical(attr(niches.obj, "mode"), "nonspatial"))
     stop(
       "[add_neighborhood_composition] This function requires mode = 'spatial'. ",
-      "In sampled mode, edges are statistically paired rather than spatially ",
+      "In nonspatial mode, edges are statistically paired rather than spatially ",
       "proximate, so neighborhood composition would reflect sampling design ",
       "rather than local tissue structure and is not supported.",
       call. = FALSE
@@ -127,8 +127,7 @@ add_neighborhood_composition <- function(
     )
   if (!cell.type.col %in% colnames(niches.obj$cell.meta))
     stop(sprintf(
-      "[add_neighborhood_composition] 'cell.type.col' \"%s\" not found in ",
-      "$cell.meta. Available columns: %s",
+      "[add_neighborhood_composition] 'cell.type.col' \"%s\" not found in $cell.meta. Available columns: %s",
       cell.type.col,
       paste(setdiff(colnames(niches.obj$cell.meta), "cell"), collapse = ", ")
     ), call. = FALSE)

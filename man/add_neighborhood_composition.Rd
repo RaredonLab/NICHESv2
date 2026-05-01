@@ -61,7 +61,7 @@ polished type name. For example, cell type \code{"CD8+ T cell"} becomes
 \section{Spatial mode only}{
 
 This function raises a hard error when
-\code{attr(niches.obj, "mode") == "sampled"}. In sampled mode, edges are
+\code{attr(niches.obj, "mode") == "nonspatial"}. In nonspatial mode, edges are
 statistically paired rather than spatially proximate, so neighborhood
 composition would reflect sampling design rather than local tissue
 structure. This is biologically meaningless and is therefore not supported.

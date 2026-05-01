@@ -27,8 +27,8 @@ Pig ortholog-mapped ligand-receptor pairs derived from the human
 FANTOM5 table (Ramilowski et al., 2015) using the methodology of
 Raredon et al. (2019). This is the table loaded when
 \code{load_LRM_database("fantom5", species = "pig")} is called.
-Note: pig is supported by FANTOM5 only; OmniPath does not provide
-pig ligand-receptor data.
+Note: pig is supported by ConnectomeDB2025 and FANTOM5; OmniPath does
+not provide pig ligand-receptor data.
 }
 \examples{
 \donttest{

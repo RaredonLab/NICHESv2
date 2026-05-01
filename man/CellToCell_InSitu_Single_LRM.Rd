@@ -128,6 +128,6 @@ p + ggplot2::labs(subtitle = "Customised after the call")
     in one call;
   \code{\link{NICHESv2_example}} for an example object suitable for
     plotting;
-  \code{\link{Aggregate_CellToCell_Edges}} for non-graphical per-cell
+  \code{\link{aggregate_NICHESObject}} for non-graphical per-cell
     summaries of the same edge data.
 }

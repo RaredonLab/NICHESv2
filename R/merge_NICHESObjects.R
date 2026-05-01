@@ -15,7 +15,7 @@
 #'
 #' @details
 #' \strong{Mode compatibility.} All objects must share the same
-#' \code{attr(., "mode")} (\code{"spatial"} or \code{"sampled"}). A mismatch
+#' \code{attr(., "mode")} (\code{"spatial"} or \code{"nonspatial"}). A mismatch
 #' is a hard error because the slot schemas differ (spatial objects carry
 #' \code{x}/\code{y} in \code{$cell.meta}; edge semantics differ).
 #'
@@ -108,7 +108,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
   if (length(unique(modes)) > 1L)
     stop(sprintf(
       paste0("Cannot merge NICHESObjects with different modes: %s.\n",
-             "All objects must share the same mode (\"spatial\" or \"sampled\")."),
+             "All objects must share the same mode (\"spatial\" or \"nonspatial\")."),
       paste(unique(modes), collapse = ", ")
     ), call. = FALSE)
 
