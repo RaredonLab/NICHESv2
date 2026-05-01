@@ -130,28 +130,28 @@ test_that("create_NICHESObject: spatial mode errors when neither k nor rad provi
   )
 })
 
-# ── Section 2: sampled mode validation ────────────────────────────────────────
+# ── Section 2: nonspatial mode validation ────────────────────────────────────────
 
-test_that("create_NICHESObject: sampled mode errors when cell.type.col is NULL", {
+test_that("create_NICHESObject: nonspatial mode errors when cell.type.col is NULL", {
   expect_error(
     create_NICHESObject(
       count.mtx     = .make_count_mtx(20L),
       meta.data     = .make_sampled_meta(20L),
       LRM.db        = .make_tiny_LRM_db(),
-      mode          = "sampled",
+      mode          = "nonspatial",
       cell.type.col = NULL
     ),
     regexp = "cell.type.col"
   )
 })
 
-test_that("create_NICHESObject: sampled mode errors when cell.type.col not in meta.data", {
+test_that("create_NICHESObject: nonspatial mode errors when cell.type.col not in meta.data", {
   expect_error(
     create_NICHESObject(
       count.mtx     = .make_count_mtx(20L),
       meta.data     = .make_sampled_meta(20L),
       LRM.db        = .make_tiny_LRM_db(),
-      mode          = "sampled",
+      mode          = "nonspatial",
       cell.type.col = "nonexistent"
     ),
     regexp = "cell.type.col"

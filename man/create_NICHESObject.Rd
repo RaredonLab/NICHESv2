@@ -8,7 +8,7 @@ create_NICHESObject(
   count.mtx,
   meta.data,
   LRM.db,
-  mode = c("spatial", "sampled"),
+  mode = c("spatial", "nonspatial"),
   species = "human",
   sample.col = NULL,
   cell.type.col = NULL,
@@ -36,7 +36,7 @@ must match \code{rownames(meta.data)} and the columns of
 
 \item{meta.data}{\code{data.frame} with row names = cell barcodes. Must
 contain \code{x} and \code{y} columns when \code{mode = "spatial"}, and
-the column named by \code{cell.type.col} when \code{mode = "sampled"}.}
+the column named by \code{cell.type.col} when \code{mode = "nonspatial"}.}
 
 \item{LRM.db}{Either a character string naming a built-in database
 (\code{"fantom5"} or \code{"omnipath"}) or a \code{data.frame} with at
@@ -44,7 +44,7 @@ least the columns named by \code{ligand.col} and \code{receptor.col}.
 See \code{\link{load_LRM_database}} for details and supported species.}
 
 \item{mode}{Character. \code{"spatial"} (default, kNN/radius edges)
-or \code{"sampled"} (type-stratified random sampling).}
+or \code{"nonspatial"} (type-stratified random sampling).}
 
 \item{species}{Species for built-in LRM databases. One of
 \code{"human"} (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
@@ -58,7 +58,7 @@ sample and the per-sample objects are merged. See the Sample-aware
 processing section above for the barcode-uniqueness requirement.}
 
 \item{cell.type.col}{Character or \code{NULL}. Column in \code{meta.data}
-holding cell type labels. \strong{Required for \code{mode = "sampled"}};
+holding cell type labels. \strong{Required for \code{mode = "nonspatial"}};
 ignored otherwise.}
 
 \item{ligand.col}{Character. Column name for ligands in \code{LRM.db}.
@@ -77,13 +77,13 @@ fixed-radius edges (same units as the \code{x}/\code{y} columns).
 Use \code{\link{Explore_Radius_Neighborhood}} to choose a sensible value.}
 
 \item{seed}{Integer. Random seed for reproducible type-stratified
-sampling. Default \code{42L}. Sampled mode only.}
+sampling. Default \code{42L}. Nonspatial mode only.}
 
 \item{max.cells}{Integer or \code{NULL}. Per cell-type-pair edge cap.
-Default \code{NULL} (no cap). Sampled mode only.}
+Default \code{NULL} (no cap). Nonspatial mode only.}
 
 \item{smooth}{Logical. Enable PCA-based neighbourhood smoothing of
-the count matrix before scoring. Default \code{FALSE}. Sampled mode
+the count matrix before scoring. Default \code{FALSE}. Nonspatial mode
 only; see the PCA-based smoothing section above.}
 
 \item{smooth.k}{Integer. Number of nearest neighbours used for
@@ -117,7 +117,7 @@ pipeline. Default \code{1L}. Always uses socket clusters
 }
 \value{
 A \code{NICHESObject} with attribute \code{"mode"} set to either
-  \code{"spatial"} or \code{"sampled"}. When \code{sample.col} is
+  \code{"spatial"} or \code{"nonspatial"}. When \code{sample.col} is
   provided, attribute \code{"sample.col"} is also set to the column name.
   Slots \code{$cell.list}, \code{$cell.data}, \code{$cell.meta},
   \code{$edge.list}, \code{$edge.data}, \code{$edge.meta},
@@ -134,7 +134,7 @@ The primary entry point for NICHESv2. Supports two analysis modes:
 \describe{
   \item{\code{"spatial"}}{Edges defined by physical proximity using kNN or
     radius in x/y space. Requires \code{x} and \code{y} in \code{meta.data}.}
-  \item{\code{"sampled"}}{NICHES v1-style type-stratified sampling. Requires
+  \item{\code{"nonspatial"}}{NICHES v1-style type-stratified sampling. Requires
     \code{cell.type.col}. Optional PCA-based neighbourhood smoothing via
     \code{smooth = TRUE}.}
 }
@@ -152,7 +152,7 @@ Internally, \code{create_NICHESObject()} chains the following steps:
         \code{data.frame} is used directly.
   \item Build the edge list -- \code{\link{create_Edgelist_Spatial}} for
         \code{mode = "spatial"} or \code{\link{create_Edgelist_SamplingByType}}
-        for \code{mode = "sampled"}.
+        for \code{mode = "nonspatial"}.
   \item Score every edge x LRM combination via
         \code{\link{compute_CellToCell}}, sparsifying as it goes.
   \item Assemble the 15-slot \code{NICHESObject} (cell, edge, gene, LRM,
@@ -183,7 +183,7 @@ Outer iteration over samples is always sequential; the inner pipeline
 uses \code{n.cores} for parallelism, so socket clusters are never nested.
 }
 
-\section{PCA-based smoothing (sampled mode only)}{
+\section{PCA-based smoothing (nonspatial mode only)}{
 
 When \code{smooth = TRUE}, the count matrix is denoised before scoring by
 replacing each cell's expression with the mean of its \code{smooth.k}
@@ -214,19 +214,19 @@ obj <- create_NICHESObject(
 print(obj)
 attr(obj, "mode")           # "spatial"
 
-# ---- Sampled mode (NICHES v1-style type-stratified sampling) ----
+# ---- Nonspatial mode (NICHES v1-style type-stratified sampling) ----
 obj.sampled <- create_NICHESObject(
   count.mtx     = NICHESv2_inputs$count.mtx,
   meta.data     = NICHESv2_inputs$meta.data,
   LRM.db        = NICHESv2_inputs$LRM.db,
-  mode          = "sampled",
+  mode          = "nonspatial",
   cell.type.col = "celltype",
   ligand.col    = "ligand",
   receptor.col  = "receptor",
   n.cores       = 1L,
   verbose       = FALSE
 )
-attr(obj.sampled, "mode")   # "sampled"
+attr(obj.sampled, "mode")   # "nonspatial"
 
 # ---- Sample-aware processing (sample.col) ----
 # Synthesise a 'sample' column to demonstrate the split-and-merge path.
@@ -262,7 +262,7 @@ attr(obj.split, "sample.col")   # "sample"
   \code{\link{create_Edgelist_SamplingByType}} for the edge-list
     constructors invoked internally;
   \code{\link{load_LRM_database}} for the LR-database loader;
-  \code{\link{Aggregate_CellToCell_Edges}},
+  \code{\link{aggregate_NICHESObject}},
   \code{\link{CellToCell_InSitu}} for downstream summarisation and
     plotting.
 }

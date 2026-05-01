@@ -10,6 +10,11 @@
 # The four species-specific tables are in data/ncomms8866_<species>.rda.
 # All five are accessed by the user via load_LRM_database("fantom5", ...).
 #
+# ConnectomeDB2025 LR databases (.rda files in data/) are produced by
+# data-raw/build_connectomedb2025.R. The four species-specific tables are in
+# data/connectomedb2025_<species>.rda. They are accessed via
+# load_LRM_database("connectomedb2025", ...) or load_LRM_database() (default).
+#
 # DEPS: none (documentation only)
 
 
@@ -72,7 +77,6 @@ NULL
 #' \code{k = 5}, ligand--receptor scoring with \code{method = "product"},
 #' and proportional normalisation. Used by the example blocks of downstream
 #' functions including \code{\link{add_neighborhoods}},
-#' \code{\link{Aggregate_CellToCell_Edges}},
 #' \code{\link{CellToCell_InSitu}}, \code{\link{add_cell_meta}}, and the
 #' S3 methods of \code{NICHESObject}.
 #'
@@ -293,8 +297,8 @@ NULL
 #' FANTOM5 table (Ramilowski et al., 2015) using the methodology of
 #' Raredon et al. (2019). This is the table loaded when
 #' \code{load_LRM_database("fantom5", species = "pig")} is called.
-#' Note: pig is supported by FANTOM5 only; OmniPath does not provide
-#' pig ligand-receptor data.
+#' Note: pig is supported by ConnectomeDB2025 and FANTOM5; OmniPath does
+#' not provide pig ligand-receptor data.
 #'
 #' @format A \code{data.frame} with one row per ligand-receptor pair and
 #' the following key columns:
@@ -323,6 +327,160 @@ NULL
 #' @examples
 #' \donttest{
 #' db <- load_LRM_database("fantom5", species = "pig")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+## connectomedb2025 family -------------------------------------------------
+#
+# Four ConnectomeDB2025 ligand-receptor tables.
+# Source: https://connectomedb.org
+#
+# Human table contains experimentally supported and orthology-inferred
+# interactions. Mouse, rat, and pig tables are derived via ortholog mapping.
+#
+# The recommended user interface for all four tables is:
+#   load_LRM_database("connectomedb2025", species = "human"|"mouse"|"rat"|"pig")
+# This is also the package default: load_LRM_database() loads human by default.
+# Direct data() access works but is discouraged in favour of the loader.
+
+
+#' ConnectomeDB2025 ligand-receptor database -- human
+#'
+#' Human ligand-receptor pairs from ConnectomeDB2025, bundled within the
+#' package. This is the table loaded when
+#' \code{load_LRM_database("connectomedb2025", species = "human")} is called,
+#' and also when \code{load_LRM_database()} is called with no arguments
+#' (the package default).
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair. Key
+#' columns:
+#' \describe{
+#'   \item{\code{ligand}}{Gene symbol for the ligand (character).}
+#'   \item{\code{receptor}}{Gene symbol for the receptor (character).}
+#' }
+#' Additional annotation columns (evidence category, subcellular location,
+#' literature support, etc.) are retained from the source database.
+#'
+#' @source ConnectomeDB2025. \url{https://connectomedb.org}.
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{connectomedb2025_mouse}},
+#'   \code{\link{connectomedb2025_rat}}, \code{\link{connectomedb2025_pig}}.
+#'
+#' @docType data
+#' @name connectomedb2025_human
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("connectomedb2025", species = "human")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+#' ConnectomeDB2025 ligand-receptor database -- mouse
+#'
+#' Mouse ortholog-mapped ligand-receptor pairs from ConnectomeDB2025, bundled
+#' within the package. This is the table loaded when
+#' \code{load_LRM_database("connectomedb2025", species = "mouse")} is called.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair. Key
+#' columns:
+#' \describe{
+#'   \item{\code{ligand}}{Mouse gene symbol for the ligand (character).}
+#'   \item{\code{receptor}}{Mouse gene symbol for the receptor (character).}
+#' }
+#' Additional annotation columns are retained where ortholog mapping was
+#' possible.
+#'
+#' @source ConnectomeDB2025. \url{https://connectomedb.org}.
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{connectomedb2025_human}},
+#'   \code{\link{connectomedb2025_rat}}, \code{\link{connectomedb2025_pig}}.
+#'
+#' @docType data
+#' @name connectomedb2025_mouse
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("connectomedb2025", species = "mouse")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+#' ConnectomeDB2025 ligand-receptor database -- rat
+#'
+#' Rat ortholog-mapped ligand-receptor pairs from ConnectomeDB2025, bundled
+#' within the package. This is the table loaded when
+#' \code{load_LRM_database("connectomedb2025", species = "rat")} is called.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair. Key
+#' columns:
+#' \describe{
+#'   \item{\code{ligand}}{Rat gene symbol for the ligand (character).}
+#'   \item{\code{receptor}}{Rat gene symbol for the receptor (character).}
+#' }
+#' Additional annotation columns are retained where ortholog mapping was
+#' possible.
+#'
+#' @source ConnectomeDB2025. \url{https://connectomedb.org}.
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{connectomedb2025_human}},
+#'   \code{\link{connectomedb2025_mouse}}, \code{\link{connectomedb2025_pig}}.
+#'
+#' @docType data
+#' @name connectomedb2025_rat
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("connectomedb2025", species = "rat")
+#' head(db)
+#' nrow(db)
+#' }
+NULL
+
+
+#' ConnectomeDB2025 ligand-receptor database -- pig
+#'
+#' Pig ortholog-mapped ligand-receptor pairs from ConnectomeDB2025, bundled
+#' within the package. This is the table loaded when
+#' \code{load_LRM_database("connectomedb2025", species = "pig")} is called.
+#' Note: pig is supported by ConnectomeDB2025 and FANTOM5; OmniPath does
+#' not provide pig ligand-receptor data.
+#'
+#' @format A \code{data.frame} with one row per ligand-receptor pair. Key
+#' columns:
+#' \describe{
+#'   \item{\code{ligand}}{Pig gene symbol for the ligand (character).}
+#'   \item{\code{receptor}}{Pig gene symbol for the receptor (character).}
+#' }
+#' Additional annotation columns are retained where ortholog mapping was
+#' possible.
+#'
+#' @source ConnectomeDB2025. \url{https://connectomedb.org}.
+#'
+#' @seealso \code{\link{load_LRM_database}} for the recommended user
+#'   interface; \code{\link{connectomedb2025_human}},
+#'   \code{\link{connectomedb2025_mouse}}, \code{\link{connectomedb2025_rat}}.
+#'
+#' @docType data
+#' @name connectomedb2025_pig
+#' @keywords datasets
+#'
+#' @examples
+#' \donttest{
+#' db <- load_LRM_database("connectomedb2025", species = "pig")
 #' head(db)
 #' nrow(db)
 #' }

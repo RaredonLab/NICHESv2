@@ -9,7 +9,7 @@
 #          modes are supported:
 #
 #   "spatial" - physical kNN or radius neighbourhood from x/y coordinates
-#   "sampled" - NICHES v1-style stratified random sampling of cell barcodes
+#   "nonspatial" - NICHES v1-style stratified random sampling of cell barcodes
 #               within each directed type pair crossing; optional PCA-based
 #               neighbourhood smoothing of expression before scoring
 #
@@ -34,19 +34,19 @@
 #' @param count.mtx   Gene x cell matrix. Row names = genes; col names = cells.
 #' @param meta.data   \code{data.frame}, row names = cell barcodes.
 #' @param LRM.db      \code{"fantom5"}, \code{"omnipath"}, or a data.frame.
-#' @param mode        \code{"spatial"} (default) or \code{"sampled"}.
+#' @param mode        \code{"spatial"} (default) or \code{"nonspatial"}.
 #' @param species     Species code passed through to \code{load_LRM_database()}.
 #' @param cell.type.col Column in \code{meta.data} with cell type labels.
-#'   Required for \code{mode = "sampled"}.
+#'   Required for \code{mode = "nonspatial"}.
 #' @param ligand.col  Default \code{"ligand"}.
 #' @param receptor.col Default \code{"receptor"}.
 #' @param k           kNN size. Spatial mode only.
 #' @param rad         Radius. Spatial mode only.
-#' @param seed        Random seed. Sampled mode only. Default \code{42L}.
-#' @param max.cells   Per-crossing edge cap. Sampled mode only. Default
+#' @param seed        Random seed. Nonspatial mode only. Default \code{42L}.
+#' @param max.cells   Per-crossing edge cap. Nonspatial mode only. Default
 #'   \code{NULL}.
 #' @param smooth      Logical. Enable PCA neighbourhood smoothing before
-#'   scoring. Sampled mode only. Default \code{FALSE}.
+#'   scoring. Nonspatial mode only. Default \code{FALSE}.
 #' @param smooth.k    Neighbours for smoothing (k+1 cells averaged). Default
 #'   \code{9L}. Sampled + smooth only.
 #' @param n.pcs       PCA components for neighbour search. Default \code{30L}.
@@ -63,7 +63,7 @@
 .create_NICHESObject_single <- function(count.mtx,
                                  meta.data,
                                  LRM.db,
-                                 mode             = c("spatial", "sampled"),
+                                 mode             = c("spatial", "nonspatial"),
                                  species          = "human",
                                  cell.type.col    = NULL,
                                  ligand.col       = "ligand",
@@ -112,7 +112,7 @@
       stop("[create_NICHESObject] mode = 'spatial' requires either 'k' or 'rad'.")
   } else {
     if (is.null(cell.type.col))
-      stop("[create_NICHESObject] mode = 'sampled' requires 'cell.type.col' to be specified.")
+      stop("[create_NICHESObject] mode = 'nonspatial' requires 'cell.type.col' to be specified.")
     if (!is.character(cell.type.col) || length(cell.type.col) != 1L)
       stop("[create_NICHESObject] 'cell.type.col' must be a single character string.")
     if (!cell.type.col %in% colnames(meta.data))
@@ -162,12 +162,12 @@
 
   ## SECTION 3: Prepare scoring matrix ----
   #
-  # Spatial and sampled (smooth = FALSE): original count.mtx passed directly.
-  # Sampled (smooth = TRUE): sampled barcode columns are replaced with their
+  # Spatial and nonspatial (smooth = FALSE): original count.mtx passed directly.
+  # Nonspatial (smooth = TRUE): sampled barcode columns are replaced with their
   #   PCA-neighbourhood-averaged raw counts before scoring. The PCA is computed
   #   from a temporary normalised matrix and discarded immediately.
 
-  if (mode == "sampled" && smooth) {
+  if (mode == "nonspatial" && smooth) {
     if (verbose) message(sprintf(
       "[create_NICHESObject] Smoothing expression (smooth.k = %d, n.pcs = %d) ...",
       smooth.k, n.pcs
@@ -302,7 +302,7 @@
   attr(obj, "mode") <- mode
 
   if (verbose) {
-    smooth.note <- if (mode == "sampled" && smooth)
+    smooth.note <- if (mode == "nonspatial" && smooth)
       sprintf(" | smoothed (k=%d, PCs=%d)", smooth.k, n.pcs) else ""
     message(sprintf(
       "[create_NICHESObject] Done. mode='%s'%s | %d cells | %d edges | %d LRMs | %d non-zero signals.",

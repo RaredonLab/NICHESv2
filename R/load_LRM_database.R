@@ -1,6 +1,6 @@
 # load_LRM_database.R -----------------------------------------------------
 # Load a ligand-receptor pair database, either from a built-in
-# shorthand ("fantom5", "omnipath") or from a user-supplied
+# shorthand ("connectomedb2025", "fantom5", "omnipath") or from a user-supplied
 # data.frame. Always returns a standardised data.frame with at least
 # two columns: "ligand" and "receptor".
 #
@@ -23,6 +23,12 @@
 #'
 #' @section Built-in databases:
 #' \describe{
+#'   \item{\code{"connectomedb2025"}}{
+#'     ConnectomeDB2025 ligand-receptor pairs (default), bundled within the
+#'     package for human, mouse, rat, and pig. No internet access or additional
+#'     packages required. Includes experimentally verified and orthology-inferred
+#'     interactions with evidence labels and subcellular location annotations.
+#'   }
 #'   \item{\code{"fantom5"}}{
 #'     Ramilowski et al. (2015) FANTOM5 ligand-receptor pairs, bundled within
 #'     the package for human, mouse, rat, and pig. No internet access or
@@ -44,13 +50,14 @@
 #' \code{"COL1A1_COL1A2"} for the collagen I heterodimer. The scoring
 #' functions in NICHESv2 handle complexes automatically.
 #'
-#' @param db            Character string (\code{"fantom5"} or \code{"omnipath"})
-#'   OR a \code{data.frame} / \code{data.table} with at least two columns
-#'   containing ligand and receptor gene symbols.
+#' @param db            Character string (\code{"connectomedb2025"} (default),
+#'   \code{"fantom5"}, or \code{"omnipath"}) OR a \code{data.frame} /
+#'   \code{data.table} with at least two columns containing ligand and receptor
+#'   gene symbols.
 #' @param species       Species for built-in databases. One of \code{"human"}
 #'   (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
-#'   (FANTOM5 only -- OmniPath does not support pig). Ignored silently when
-#'   \code{db} is a \code{data.frame}.
+#'   (ConnectomeDB2025 and FANTOM5 only; OmniPath does not support pig).
+#'   Ignored silently when \code{db} is a \code{data.frame}.
 #' @param ligand.col    Column name for ligand symbols when \code{db} is a
 #'   \code{data.frame}. Default: \code{"ligand"}.
 #' @param receptor.col  Column name for receptor symbols when \code{db} is a
@@ -62,11 +69,14 @@
 #'   \code{NA} in ligand or receptor are silently removed.
 #'
 #' @examples
-#' # FANTOM5 ships bundled with the package -- always available, no internet.
+#' # ConnectomeDB2025 is the default -- no db argument needed.
 #' \donttest{
-#' lrm.human <- load_LRM_database("fantom5", species = "human")
-#' lrm.rat   <- load_LRM_database("fantom5", species = "rat")
+#' lrm.human <- load_LRM_database(species = "human")
 #' head(lrm.human)
+#'
+#' # FANTOM5 -- bundled, always available, no internet.
+#' lrm.f5  <- load_LRM_database("fantom5", species = "human")
+#' lrm.rat <- load_LRM_database("fantom5", species = "rat")
 #'
 #' # User-supplied table -- species argument is ignored. Column names are
 #' # remapped to canonical "ligand" / "receptor".
@@ -85,34 +95,36 @@
 #' }
 #'
 #' @export
-load_LRM_database <- function(db,
-                               species      = "human",
-                               ligand.col   = "ligand",
-                               receptor.col = "receptor",
-                               verbose      = TRUE) {
+load_LRM_database <- function(db           = "connectomedb2025",
+                              species      = "human",
+                              ligand.col   = "ligand",
+                              receptor.col = "receptor",
+                              verbose      = TRUE) {
 
   # -- Dispatch on type --------------------------------------------------------
   if (is.character(db) && length(db) == 1L) {
     db.name <- tolower(db)
 
-    if (db.name == "omnipath") {
+    if (db.name == "connectomedb2025") {
+      result <- .load_connectomedb2025(species, verbose)
+    } else if (db.name == "omnipath") {
       result <- .load_omnipath(species, verbose)
     } else if (db.name == "fantom5") {
       result <- .load_fantom5(species, verbose)
     } else {
       stop(sprintf(
-        "[load_LRM_database] Unknown built-in database '%s'.\n  Supported shorthands: 'omnipath', 'fantom5'.\n  To use a custom table, supply a data.frame directly.",
+        "[load_LRM_database] Unknown built-in database '%s'.\n  Supported shorthands: 'connectomedb2025', 'omnipath', 'fantom5'.\n  To use a custom table, supply a data.frame directly.",
         db
       ))
     }
-
-  } else if (is.data.frame(db) || is.data.table(db)) {
+    
+  } else if (is.data.frame(db)) {
     result <- .load_custom(db, ligand.col, receptor.col, verbose)
-
+    
   } else {
     stop(
       "[load_LRM_database] 'db' must be either a character string ",
-      "('omnipath' or 'fantom5') or a data.frame."
+      "('connectomedb2025', 'omnipath', or 'fantom5') or a data.frame."
     )
   }
 
@@ -167,6 +179,45 @@ load_LRM_database <- function(db,
     ))
 
   result
+}
+
+
+#' @noRd
+.load_connectomedb2025 <- function(species, verbose) {
+  
+  valid.species <- c("human", "mouse", "rat", "pig")
+  if (!species %in% valid.species)
+    stop(sprintf(
+      "[load_LRM_database] Invalid species '%s' for ConnectomeDB2025.\n  Supported species: %s.",
+      species, paste(valid.species, collapse = ", ")
+    ))
+  
+  data.name <- paste0("connectomedb2025_", species)
+  
+  if (verbose)
+    message(sprintf(
+      "[load_LRM_database] Loading ConnectomeDB2025 (%s) from bundled package data ...",
+      species
+    ))
+  
+  env <- new.env(parent = emptyenv())
+  utils::data(list = data.name, package = "NICHESv2", envir = env)
+  cdb <- env[[data.name]]
+  cdb <- unique(cdb)
+  
+  if (!all(c("ligand", "receptor") %in% colnames(cdb)))
+    stop(sprintf(
+      "[load_LRM_database] Bundled 'connectomedb2025_%s' is missing 'ligand' or 'receptor' columns.\n  Re-run data-raw/build_connectomedb2025.R to rebuild the bundled data.",
+      species
+    ))
+  
+  if (verbose)
+    message(sprintf(
+      "[load_LRM_database] ConnectomeDB2025 (%s): %d unique LR pairs loaded.",
+      species, nrow(cdb)
+    ))
+  
+  cdb
 }
 
 

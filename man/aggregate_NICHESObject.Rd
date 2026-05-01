@@ -53,7 +53,7 @@ directly for finer control.
   \item \code{\link{add_neighborhood_composition}}: computes cell-type
     composition of each cell's local neighborhood from \code{$edge.list}
     and \code{$cell.meta}. \emph{Skipped if \code{cell.type.col = NULL}
-    or if the object mode is \code{"sampled"}.}
+    or if the object mode is \code{"nonspatial"}.}
 }
 }
 

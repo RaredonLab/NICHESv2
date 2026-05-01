@@ -1,5 +1,5 @@
 # smooth_expression.R -----------------------------------------------------
-# PCA + kNN smoothing of a count matrix for sampled-mode workflows.
+# PCA + kNN smoothing of a count matrix for nonspatial-mode workflows.
 # Internal helper used by .create_NICHESObject_single().
 
 #' Smooth a count matrix by averaging k nearest neighbors in PCA space

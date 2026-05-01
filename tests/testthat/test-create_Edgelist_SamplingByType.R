@@ -116,11 +116,11 @@ test_that("create_Edgelist_SamplingByType: different seed gives different output
 
 # ── Attributes ────────────────────────────────────────────────────────────────
 
-test_that("create_Edgelist_SamplingByType: mode attribute is 'sampled'", {
+test_that("create_Edgelist_SamplingByType: mode attribute is 'nonspatial'", {
   meta <- make_sampling_meta()
   el   <- create_Edgelist_SamplingByType(meta, cell.type.col = "celltype",
                                          seed = 42L)
-  expect_equal(attr(el, "mode"), "sampled")
+  expect_equal(attr(el, "mode"), "nonspatial")
 })
 
 test_that("create_Edgelist_SamplingByType: n.cells attribute matches nrow(meta)", {
