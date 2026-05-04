@@ -53,20 +53,21 @@ test_that("add_neighborhood_edge_agg: keyed on (cell, LRM)", {
 
 # -- Column structure ----------------------------------------------------------
 
-test_that("add_neighborhood_edge_agg: all 23 expected columns are present", {
+test_that("add_neighborhood_edge_agg: all 27 expected columns are present", {
   expected.cols <- c(
     "cell", "LRM",
-    "count.in", "count.out", "count.cross", "count.autocrine", "count.total",
-    "score.in.sum",        "score.out.sum",        "score.cross.sum",
-    "score.autocrine.sum", "score.total.sum",
-    "score.in.mean",       "score.out.mean",        "score.cross.mean",
-    "score.autocrine.mean","score.total.mean",
-    "score.in.cmean",      "score.out.cmean",       "score.cross.cmean",
-    "score.autocrine.cmean","score.total.cmean",
+    "count.in", "count.out", "count.cross",
+    "count.self.autocrine", "count.other.autocrine", "count.total",
+    "score.in.sum",               "score.out.sum",               "score.cross.sum",
+    "score.self.autocrine.sum",   "score.other.autocrine.sum",   "score.total.sum",
+    "score.in.mean",              "score.out.mean",               "score.cross.mean",
+    "score.self.autocrine.mean",  "score.other.autocrine.mean",  "score.total.mean",
+    "score.in.cmean",             "score.out.cmean",              "score.cross.cmean",
+    "score.self.autocrine.cmean", "score.other.autocrine.cmean", "score.total.cmean",
     "score.inout.ratio"
   )
   expect_true(all(expected.cols %in% colnames(agg.dt)))
-  expect_equal(ncol(agg.dt), 23L)
+  expect_equal(ncol(agg.dt), 27L)
 })
 
 
@@ -74,7 +75,7 @@ test_that("add_neighborhood_edge_agg: all 23 expected columns are present", {
 
 test_that("add_neighborhood_edge_agg: count columns are non-negative integers", {
   count.cols <- c("count.in", "count.out", "count.cross",
-                  "count.autocrine", "count.total")
+                  "count.self.autocrine", "count.other.autocrine", "count.total")
   for (col in count.cols) {
     expect_true(is.integer(agg.dt[[col]]),
                 label = paste(col, "is integer"))
@@ -83,12 +84,16 @@ test_that("add_neighborhood_edge_agg: count columns are non-negative integers", 
   }
 })
 
-test_that("add_neighborhood_edge_agg: count.total equals sum of four category counts", {
+test_that("add_neighborhood_edge_agg: count.total equals sum of five category counts", {
   expect_true(all(
     agg.dt$count.total ==
-      agg.dt$count.in + agg.dt$count.out +
-      agg.dt$count.cross + agg.dt$count.autocrine
+      agg.dt$count.in + agg.dt$count.out + agg.dt$count.cross +
+      agg.dt$count.self.autocrine + agg.dt$count.other.autocrine
   ))
+})
+
+test_that("add_neighborhood_edge_agg: count.self.autocrine is always 0 or 1", {
+  expect_true(all(agg.dt$count.self.autocrine %in% c(0L, 1L)))
 })
 
 
@@ -113,7 +118,7 @@ test_that("add_neighborhood_edge_agg: score.inout.ratio equals score.in.sum / sc
 # -- score.cat.cmean NA rule ---------------------------------------------------
 
 test_that("add_neighborhood_edge_agg: score.cat.cmean is NA iff count.cat == 0", {
-  cats <- c("in", "out", "cross", "autocrine", "total")
+  cats <- c("in", "out", "cross", "self.autocrine", "other.autocrine", "total")
   for (cat in cats) {
     cmean.col <- paste0("score.", cat, ".cmean")
     count.col <- paste0("count.", cat)

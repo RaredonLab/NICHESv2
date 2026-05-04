@@ -2,48 +2,69 @@
 % Please edit documentation in R/add_cell_meta.R
 \name{add_cell_meta}
 \alias{add_cell_meta}
-\title{Add or Update Columns in \code{$cell.meta}}
+\title{Replace \code{$cell.meta} on a NICHESObject}
 \usage{
-add_cell_meta(niches.obj, new.meta, rebuild.edge.meta = TRUE)
+add_cell_meta(niches.obj, new.meta, rebuild.edge.meta = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{niches.obj}{A \code{NICHESObject}.}
 
-\item{new.meta}{A \code{data.frame} or \code{data.table} with a
-\code{"cell"} column matching barcodes in \code{niches.obj$cell.list}.}
+\item{new.meta}{A \code{data.frame} or \code{data.table} with either
+a \code{"cell"} column or rownames matching barcodes in
+\code{niches.obj$cell.list}.}
 
 \item{rebuild.edge.meta}{Logical. If \code{TRUE} (default), regenerates
-\code{niches.obj$edge.meta} via the internal \code{.build_edge_meta()}
-helper so the new metadata columns appear on each edge. Set to
-\code{FALSE} to skip the rebuild (useful when adding many columns in
-batch -- call once manually at the end).}
+\code{niches.obj$edge.meta} via \code{.build_edge_meta()} so new metadata
+columns appear on each edge. Set to \code{FALSE} when calling repeatedly
+in batch -- call once manually at the end.}
+
+\item{verbose}{Logical. If \code{TRUE} (default), emits messages
+for dropped extra cells and stale aggregation slots.}
 }
 \value{
 Updated \code{NICHESObject}.
 }
 \description{
-Joins new metadata onto an existing NICHESObject's \code{$cell.meta} table
-and (by default) rebuilds \code{$edge.meta} so the new columns are
-propagated as \code{Sending.*} / \code{Receiving.*} / \code{Joint.*}
-columns on every edge.
+Fully replaces \code{niches.obj$cell.meta} with \code{new.meta} and
+(by default) rebuilds \code{$edge.meta} so the new columns propagate as
+\code{Sending.*} / \code{Receiving.*} / \code{Joint.*} columns on every
+edge.
+
+The replacement is complete: any column present in the existing
+\code{$cell.meta} but absent from \code{new.meta} is dropped. The user
+is responsible for supplying all columns they wish to retain, including
+spatial coordinates (\code{x}, \code{y}).
+
+\code{new.meta} must cover every cell in \code{niches.obj$cell.list}.
+Extra rows (cells not in \code{$cell.list}) are silently dropped with a
+message when \code{verbose = TRUE}.
 }
 \examples{
 \donttest{
 data(NICHESv2_example)
 
-# Tag each cell with a synthetic region label and propagate to edges
+# Build a complete replacement metadata table
 new.meta <- data.frame(
-  cell   = NICHESv2_example$cell.list,
-  region = sample(c("core", "edge"),
-                  length(NICHESv2_example$cell.list),
-                  replace = TRUE)
+  cell     = NICHESv2_example$cell.list,
+  x        = NICHESv2_example$cell.meta$x,
+  y        = NICHESv2_example$cell.meta$y,
+  celltype = NICHESv2_example$cell.meta$celltype,
+  region   = sample(c("core", "edge"),
+                    length(NICHESv2_example$cell.list),
+                    replace = TRUE),
+  stringsAsFactors = FALSE
 )
-obj.tagged <- add_cell_meta(NICHESv2_example, new.meta)
+obj.updated <- add_cell_meta(NICHESv2_example, new.meta)
 
-# The categorical column appears as Sending.*/Receiving.*/Joint.* on edges
-head(obj.tagged$edge.meta[, c("SendingCell", "ReceivingCell",
-                              "Sending.region", "Receiving.region",
-                              "Joint.region")])
+# New column propagates to edges
+head(obj.updated$edge.meta[, c("SendingCell", "ReceivingCell",
+                               "Joint.region")])
 }
 
+}
+\seealso{
+\code{\link{add_meta_column}} to append or overwrite a single
+  column without replacing the full table;
+  \code{\link{add_neighborhood_composition}} and
+  \code{\link{aggregate_NICHESObject}} to recompute stale aggregations.
 }

@@ -1,5 +1,5 @@
 # NICHESv2 -- Package Design & Status
-# Updated: 2026-04-30
+# Updated: 2026-05-04
 
 ================================================================================
 COLLABORATION & DELIVERY CONVENTIONS (read at session start)
@@ -9,7 +9,22 @@ File delivery modes:
   Mode 1 -- targeted edits to existing files: provide exact Old/New text
              blocks the user applies manually via str_replace or copy-paste.
              Always show the minimal change needed, not the whole file.
-  Mode 2 -- new files: deliver the complete file content, user copies to R/.
+  Mode 2 -- new files: deliver the complete file content as a downloadable
+             file via the present_files tool. User copies to the appropriate
+             directory (R/, tests/testthat/, etc.).
+
+Mode 1 formatting rules (no exceptions):
+  - Every edit is presented as a separate numbered block: "Edit N of M"
+  - Old and New code blocks are always SEPARATE -- never combined or diffed.
+    The user copy-pastes the Old block to find the location, then replaces
+    with the New block. Mixing them makes copy-paste error-prone.
+  - Edits within a file are listed in TOP-TO-BOTTOM text order, not ranked
+    by importance. If an edit is optional, label it "optional" with a brief
+    one-line explanation immediately after the edit heading.
+  - No grep verification counts are needed for new files (Mode 2). For
+    Mode 1 edits, only add grep checks when the old text could plausibly
+    match in multiple places -- if the old block is unique by inspection,
+    skip the grep.
 
 Before writing any code:
   - Ask for uploads of all files that will be modified; read them fully first.
@@ -69,8 +84,10 @@ NICHESObject -- 15 SLOTS
 ================================================================================
 
 $cell.list     chr vector   -- barcodes (colnames of count.mtx), all modes
-$cell.data     data.table   -- SPARSE: cell|gene|score|score.norm; key(cell,gene)
-                               score.norm = gene/total within cell; raw counts always
+$cell.data     data.table   -- SPARSE: cell|gene|score|score.norm[|count]; key(cell,gene)
+                               score.norm = gene/total within cell; count column
+                               added optionally via add_cell_rawcounts(); new rows
+                               appended for (cell,gene) where count>0 and score=0
 $cell.meta     data.table   -- cell|x|y|<meta cols>; key: cell
 $edge.list     data.table   -- edge|SendingCell|ReceivingCell; key: edge
 $edge.data     data.table   -- SPARSE: edge|LRM|score|score.norm; key(edge,LRM)
@@ -97,7 +114,7 @@ When add_neighborhoods(overwrite=TRUE) is called, stale $neighborhood.edge.agg
 and $neighborhood.composition entries are cleared automatically with a message.
 
 Object attributes:
-  attr(obj,"mode")             = "spatial"|"sampled"
+  attr(obj,"mode")             = "spatial"|"nonspatial"
   attr(obj,"sample.col")       = col name string (if split by sample)
   attr(obj,"edge.filter.mode") = set by add_neighborhoods(); always
                                  "both_in_neighborhood" from create_NICHESObject()
@@ -113,9 +130,12 @@ Each lives in its own file under R/.
 
 -- LR DATABASE --
 load_LRM_database(db, species, ligand.col, receptor.col, verbose)
-  db: "omnipath" | "fantom5" | user data.frame
+  db: "connectomedb2025" (default) | "fantom5" | "omnipath" | user data.frame
+  ConnectomeDB2025: human/mouse/rat/pig from bundled .rda; no internet required.
+    Default: load_LRM_database() with no arguments loads human ConnectomeDB2025.
   FANTOM5: human/mouse/rat/pig from bundled .rda; no internet, no OmnipathR
   OmniPath: human/mouse/rat via import_ligrecextra_interactions(organism=<code>)
+    (pig not supported by OmniPath)
   -> data.frame with "ligand", "receptor"
 
 -- EDGE LIST CONSTRUCTORS --
@@ -126,7 +146,7 @@ create_Edgelist_PseudoBulk(meta.data, cell.type.col)
   -> data.table(from|to) with type labels; deterministic
 
 create_Edgelist_SamplingByType(meta.data, cell.type.col, seed=42L, max.cells)
-  -> data.table(from|to) with barcodes; attrs: mode="sampled"
+  -> data.table(from|to) with barcodes; attrs: mode="nonspatial"
 
 -- SCORING --
 compute_CellToCell(count.mtx, edge.list, LRM.db, ligand.col, receptor.col,
@@ -180,10 +200,39 @@ extract_neighborhoods(edge.list, edge.filter.mode, remove.autocrine,
 add_segmentation(niches.obj, seg.sf)
   Hard error if any cell missing polygon.
 
-add_cell_meta(niches.obj, new.meta, rebuild.edge.meta=TRUE)
-  Joins new metadata onto $cell.meta; calls build_edge_meta() to refresh
-  $edge.meta unless suppressed.
+add_cell_meta(niches.obj, new.meta, rebuild.edge.meta=TRUE, verbose=TRUE)
+  FULL REPLACEMENT of $cell.meta -- not a merge. $cell.meta becomes exactly
+  new.meta. Columns in the old $cell.meta absent from new.meta are dropped.
+  User is responsible for supplying all columns they wish to retain, including
+  spatial coordinates (x, y). Hard error if any cell in $cell.list is missing
+  from new.meta. Extra rows in new.meta are silently dropped with a verbose
+  message. Accepts a "cell" column or rownames as cell barcodes. Rebuilds
+  $edge.meta by default. Emits a staleness message if
+  $aggregations$neighborhood.composition is populated.
   FILE: R/add_cell_meta.R
+
+add_meta_column(niches.obj, col.name, col.values,
+                rebuild.edge.meta=TRUE, verbose=TRUE)
+  Appends or overwrites a SINGLE column in $cell.meta from a named vector
+  (names = cell barcodes). All other columns in $cell.meta are preserved.
+  Hard error if any cell in $cell.list is missing from names(col.values).
+  Emits a message if col.name already exists (then overwrites).
+  Rebuilds $edge.meta by default. Emits a staleness message if
+  $aggregations$neighborhood.composition is populated.
+  FILE: R/add_meta_column.R
+
+add_cell_rawcounts(niches.obj, count.mtx, verbose=TRUE)
+  Adds a "count" column to $cell.data from a user-supplied gene x cell raw
+  count matrix (base matrix or dgCMatrix). Provenance only -- not used by
+  any other NICHESv2 function.
+  Row expansion (Option B): new rows appended for (cell,gene) pairs where
+  count>0 but score=0; new rows carry score=0, score.norm=0.
+  Hard error if any cell in $cell.list is missing from colnames(count.mtx).
+  Genes in $gene.list absent from rownames(count.mtx) get count=NA with
+  a verbose message. Non-negative integer checks on stored values emit
+  warnings (independent); pipeline continues regardless.
+  Emits message if "count" column already exists (then overwrites).
+  FILE: R/add_cell_rawcounts.R
 
 merge_NICHESObjects(..., verbose=TRUE)
   Accepts: positional args | pre-built list | explicit list() call.
@@ -208,12 +257,6 @@ CellToCell_InSitu(niches.obj, LRM.list, folder, ..., n.cores)
   Batch PNG; socket cluster; pre-computes all.edges before workers.
 
 CellToCell_InSitu_Single_LRM(niches.obj, LRM, ..., precomputed.bg=NULL)
-
--- LEGACY AGGREGATION --
-Aggregate_CellToCell_Edges(niches.obj, stat)
-  -> list($sending, $receiving): full cell x LRM grid, zero-filled.
-  NOTE: This is the legacy aggregation function predating the $aggregations
-  slot design. Kept for backward compatibility.
 
 -- AGGREGATION (current design) --
 aggregate_NICHESObject(niches.obj, cell.type.col=NULL, n.cores=1L, verbose=TRUE)
@@ -248,7 +291,7 @@ add_neighborhood_composition(niches.obj, cell.type.col, include.self=TRUE,
                               normalize=TRUE, verbose=TRUE)
   Source: $edge.list + $cell.meta only. No neighborhood slot dependency.
   Neighbor = any cell sharing an edge (either direction), deduplicated.
-  Spatial mode only (hard error for sampled mode).
+  Spatial mode only (hard error for nonspatial mode).
   Always overwrites -- no overwrite parameter.
   Column names: gsub("[^A-Za-z0-9.]",".",type) + .neighbor.count/.neighbor.prop
   Zero-filled against full dataset type universe.
@@ -303,7 +346,8 @@ Internal helpers in dedicated files:
 globalVariables declarations live in utils.R (NOT NICHESv2-package.R).
 Organized in per-function comment blocks at the bottom of utils.R.
 Current blocks: score/LRM/cell/edge core names, add_neighborhood_edge_agg
-columns, add_neighborhood_composition columns.
+columns, add_neighborhood_composition columns, add_cell_rawcounts columns
+(count, i.count, gene).
 
 
 ================================================================================
@@ -320,32 +364,41 @@ Bundled data (data/):
     LazyData: false. Access via load_LRM_database("fantom5", ...) only.
   ncomms8866_human/mouse/rat/pig.rda -- FANTOM5 LR pairs, species-converted
     per Raredon et al. 2019. Loaded internally via utils::data().
+  connectomedb2025_human/mouse/rat/pig.rda -- ConnectomeDB2025 LR pairs,
+    produced by data-raw/build_connectomedb2025.R. Default database.
+    Access via load_LRM_database("connectomedb2025", species=...) or
+    load_LRM_database() (no args = human ConnectomeDB2025).
+    Loaded internally via utils::data(). Direct data() access discouraged.
 
 Tests (all passing):
-  test-compute_CellToCell.R               test-create_Edgelist_Spatial.R
-  test-compute_PseudoBulk_Connectivity.R  test-create_Edgelist_PseudoBulk.R
-  test-create_NICHESObject.R              test-create_Edgelist_SamplingByType.R
-  test-merge_NICHESObjects.R              test-utilities.R
-  test-add_segmentation.R                 test-Aggregate_CellToCell_Edges.R
-  test-CellToCell_InSitu.R
-  test-extract_NICHESInputs_Seurat.R
-  test-extract_NICHESInputs_AnnData.R
-  test-compute_LRM_Score.R                (use NICHESv2::: to call internal functions)
-  test-smooth_expression.R                (use NICHESv2::: to call internal functions)
-  test-extract_neighborhoods.R
-  test-add_neighborhoods.R
+  helper-testutils.R              -- keep (make_grid_coord utility)
+  test-compute_LRM_Score.R        test-create_Edgelist_Spatial.R
+  test-smooth_expression.R        test-create_Edgelist_PseudoBulk.R
+  test-extract_neighborhoods.R    test-create_Edgelist_SamplingByType.R
+  test-add_neighborhoods.R        test-compute_CellToCell.R
+  test-merge_NICHESObjects.R      test-compute_PseudoBulk_Connectivity.R
+  test-Explore_Radius_Neighborhood.R  test-create_NICHESObject.R
+  test-extract_NICHESInputs_Seurat.R  test-load_LRM_database.R
+  test-extract_NICHESInputs_AnnData.R test-add_cell_meta.R
+  test-add_segmentation.R             test-add_meta_column.R
+  test-CellToCell_InSitu.R            test-NICHESObject_methods.R
+  test-add_neighborhood_edge_agg.R    test-add_neighborhood_composition.R
+  test-aggregate_NICHESObject.R       test-add_cell_rawcounts.R
 
-  TODO: test-add_neighborhood_edge_agg.R, test-add_neighborhood_composition.R,
-        test-aggregate_NICHESObject.R
+Fixture strategy:
+  - data(NICHESv2_example): add_cell_meta, add_meta_column,
+    add_cell_rawcounts, add_segmentation, CellToCell_InSitu,
+    NICHESObject_methods, add_neighborhood_edge_agg,
+    add_neighborhood_composition, aggregate_NICHESObject
+  - Inline synthesis: all other files
+  - helper-testdata.R and inst/testdata/ DELETED
+  - NICHESv2_example now always has neighborhood slots populated
+  - No aggregation slots pre-populated in fixture
 
-Fixtures: data-raw/build_NICHESv2_example.R -- re-run when schema or bundled
-  data changes. Produces data/NICHESv2_inputs.rda and data/NICHESv2_example.rda.
-  No inst/ folder; inst/testdata/ was deleted.
-  NICHESv2_example now has neighborhood slots populated (always, by design).
-  No aggregation slots pre-populated in fixture.
-
-Intentional skips (3): full-batch InSitu (>5 LRMs), irlba-absent path,
-  replaced placeholder in test-compute_PseudoBulk_Connectivity.R
+Intentional skips (3):
+  - Full-batch InSitu (> 5 LRMs)
+  - irlba-absent path
+  - Replaced placeholder in test-compute_PseudoBulk_Connectivity.R
 
 R CMD check status: 0 errors | 0 warnings | 1 note
   (N1: timestamp/network issue on dev machine -- unfixable in code, ignore)
@@ -383,6 +436,16 @@ irlba/Matrix:  fastpath=FALSE in smooth_expression() AND no center argument
 data.table composite key join:
   NEVER dt1[dt2, on="col"] when dt2 has composite key.
   Use: idx <- match(dt1$col, dt2$col); dt1[, new := dt2$other[idx]]
+
+data.table reference semantics in add_*() functions:
+  data.table uses pass-by-reference for := assignments. When a function
+  receives a NICHESObject and modifies a data.table slot with :=, it will
+  silently mutate the caller's original object even though R appears to
+  pass by value. Fix: always call copy() on the slot before any := assignment.
+    niches.obj$cell.data <- copy(niches.obj$cell.data)
+    niches.obj$cell.data[, new.col := ...]
+  This was hit in add_meta_column() and add_cell_rawcounts(). Apply
+  defensively to any new add_*() function that modifies a data.table slot.
 
 socket cluster + asNamespace():
   clusterExport(cl, c("compute_LRM_Score",".parse_complex",".genes_available"),
@@ -497,20 +560,35 @@ Aggregation slot design (current):
   aggregate_NICHESObject() has no methods, overwrite, by.direction, include.self,
   or normalize parameters -- these are all fixed internally.
 
+add_cell_meta() / add_meta_column() staleness rule:
+  Both functions emit a MESSAGE (not a warning, not an error) when
+  $aggregations$neighborhood.composition is non-NULL at call time. The message
+  tells the user to recompute. The pipeline is never blocked.
+  add_cell_meta() always emits the message (full meta replacement invalidates
+  any prior composition result unconditionally).
+  add_meta_column() emits a conditional message: "may be stale if <col.name>
+  was the cell.type.col used to compute it" -- because only a column that was
+  used as the cell type grouping variable actually invalidates the result.
+
 autocrine edge classification in add_neighborhood_edge_agg():
   The "autocrine" category captures ALL self-loop edges (SendingCell ==
   ReceivingCell) in the neighborhood, not only those where the focal cell
   is the self-looping cell. A neighbor cell B with a self-loop B->B
   contributes to the focal cell's count.autocrine. This is intentional --
   it captures autocrine signaling activity within the local environment.
+  NOTE: a future design change will split "autocrine" into two sub-categories:
+    self.autocrine  -- the focal cell's own self-loop edge only (count = 0 or 1)
+    other.autocrine -- self-loop edges of other cells in the neighborhood
+  See PENDING DECISIONS item 11 for the full design spec.
 
 Non-spatial mode and neighborhood composition:
-  add_neighborhood_composition() hard-errors for mode="sampled". In sampled
-  mode, edges are statistically paired and do not reflect physical proximity,
-  so composition would reflect sampling design not local tissue structure.
-  add_neighborhood_edge_agg() works in sampled mode but interpretation shifts:
-  results reflect signaling among co-occurring cell pairs, not a spatial
-  microenvironment. Document this distinction clearly in vignettes.
+  add_neighborhood_composition() hard-errors for mode="nonspatial". In
+  nonspatial mode, edges are statistically paired and do not reflect physical
+  proximity, so composition would reflect sampling design not local tissue
+  structure. add_neighborhood_edge_agg() works in nonspatial mode but
+  interpretation shifts: results reflect signaling among co-occurring cell
+  pairs, not a spatial microenvironment. Document this distinction clearly
+  in vignettes.
 
 print.NICHESObject neighborhood display:
   The print method now shows neighborhood slot contents explicitly:
@@ -518,35 +596,47 @@ print.NICHESObject neighborhood display:
   And the slot legend shows all three neighborhood slots individually.
   The old "reserved (NULL)" text has been removed.
 
+ConnectomeDB2025 access pattern:
+  connectomedb2025_<species>.rda files are accessed ONLY via
+  load_LRM_database("connectomedb2025", species = ...). Direct data() calls
+  work but are discouraged (consistent with FANTOM5 pattern). The default
+  call load_LRM_database() with no arguments loads human ConnectomeDB2025.
+  Column validation (.load_connectomedb2025() checks for "ligand" and
+  "receptor" columns) runs before the verbose message, so a corrupt bundled
+  object will hard-error with a clear re-run instruction.
+
 
 ================================================================================
 TEST SUITE STATUS
 ================================================================================
 
 Full rewrite completed. All test files pass under both devtools::test() and
-R CMD check. Coverage: ~220+ test_that blocks.
+R CMD check. Coverage: ~270+ test_that blocks.
 
 File structure (all in tests/testthat/):
-  helper-testutils.R              -- keep (make_grid_coord utility)
-  test-compute_LRM_Score.R        test-create_Edgelist_Spatial.R
-  test-smooth_expression.R        test-create_Edgelist_PseudoBulk.R
-  test-extract_neighborhoods.R    test-create_Edgelist_SamplingByType.R
-  test-add_neighborhoods.R        test-compute_CellToCell.R
-  test-merge_NICHESObjects.R      test-compute_PseudoBulk_Connectivity.R
+  helper-testutils.R                  -- keep (make_grid_coord utility)
+  test-compute_LRM_Score.R            test-create_Edgelist_Spatial.R
+  test-smooth_expression.R            test-create_Edgelist_PseudoBulk.R
+  test-extract_neighborhoods.R        test-create_Edgelist_SamplingByType.R
+  test-add_neighborhoods.R            test-compute_CellToCell.R
+  test-merge_NICHESObjects.R          test-compute_PseudoBulk_Connectivity.R
   test-Explore_Radius_Neighborhood.R  test-create_NICHESObject.R
   test-extract_NICHESInputs_Seurat.R  test-load_LRM_database.R
   test-extract_NICHESInputs_AnnData.R test-add_cell_meta.R
-  test-add_segmentation.R         test-Aggregate_CellToCell_Edges.R
-  test-CellToCell_InSitu.R        test-NICHESObject_methods.R
+  test-add_segmentation.R             test-add_meta_column.R
+  test-CellToCell_InSitu.R            test-NICHESObject_methods.R
+  test-add_neighborhood_edge_agg.R    test-add_neighborhood_composition.R
+  test-aggregate_NICHESObject.R       test-add_cell_rawcounts.R
 
 Fixture strategy:
-  - data(NICHESv2_example): add_cell_meta, add_segmentation,
-    Aggregate_CellToCell_Edges, CellToCell_InSitu, NICHESObject_methods,
-    add_neighborhood_edge_agg, add_neighborhood_composition,
-    aggregate_NICHESObject examples
+  - data(NICHESv2_example): add_cell_meta, add_meta_column,
+    add_cell_rawcounts, add_segmentation, CellToCell_InSitu,
+    NICHESObject_methods, add_neighborhood_edge_agg,
+    add_neighborhood_composition, aggregate_NICHESObject
   - Inline synthesis: all other files
   - helper-testdata.R and inst/testdata/ DELETED
   - NICHESv2_example now always has neighborhood slots populated
+  - No aggregation slots pre-populated in fixture
 
 Intentional skips (3):
   - Full-batch InSitu (> 5 LRMs)
@@ -571,34 +661,56 @@ PENDING DECISIONS
    vectors once rather than per LRM pair; pre-filter silent LRM pairs.
    Identified but not yet implemented.
 
-4. Aggregate_CellToCell_Edges future design: sparse dgCMatrix (cells x LRMs)
-   plus inverted index $active -- pending advisor discussion.
+4. [RESOLVED] Aggregate_CellToCell_Edges() deleted. Replaced by the current
+   aggregation design: aggregate_NICHESObject(), add_neighborhood_edge_agg(),
+   add_neighborhood_composition().
 
 5. PCA kNN smoothing validation PAUSED:
    Advisor hesitant to apply smoothing to actual project data. Function
    remains exported and tested, but no further validation work until advisor
    decision is resolved. Dataset choice consequently also paused.
 
-6. Rename "sampled" mode to "nonspatial": affects attr(obj,"mode"),
-   create_NICHESObject mode argument, and all internal checks. Do in a
-   dedicated session to avoid partial changes. TODO.
+6. [RESOLVED] Rename "sampled" mode to "nonspatial": completed. All R source
+   files, test files, and attributes updated via sed + manual fix.
 
 7. compare_neighborhood_modes() future function: compare the same aggregation
    statistic across objects built with different neighborhood parameters.
    Returns a standalone data.table (not stored in object). Not yet designed.
 
-8. Aggregation test suite: write together as a group.
-   Needed files:
+8. [RESOLVED] Aggregation test suite complete:
      test-add_neighborhood_edge_agg.R
      test-add_neighborhood_composition.R
      test-aggregate_NICHESObject.R
+   All passing.
 
-9. README and vignettes: update after aggregation test suite is complete.
-   Add aggregate_NICHESObject() to the standard workflow in README.
+9. README updated this session. Vignettes still pending:
    Vignette 1 (eval=TRUE): add minimal aggregation section using bundled data.
    Vignettes 2-3 (eval=FALSE): update workflow if warranted.
 
-10. score.total.cmean bug in add_neighborhood_edge_agg(): currently
+10. score.total.cmean formula in add_neighborhood_edge_agg(): currently
     score.total.cmean = score.total.sum / count.total which is correct.
     Confirm this is the intended formula (re-derived from total, not summed
     from directional cmeans) before closing.
+
+11. Split autocrine category in add_neighborhood_edge_agg():
+    Current design has one "autocrine" category capturing ALL self-loop edges
+    (SendingCell == ReceivingCell) in the neighborhood. Advisor request:
+    split into two sub-categories:
+      self.autocrine  -- the focal (central) cell's own self-loop edge only.
+                         count is always 0 or 1 per (cell, LRM).
+      other.autocrine -- self-loop edges of non-focal cells within the
+                         neighborhood (i.e., neighbor B's B->B edge).
+    Impact:
+      - add_neighborhood_edge_agg.R: classification logic, new columns,
+        score.total.* must sum across 5 categories (in, out, cross,
+        self.autocrine, other.autocrine), count.total likewise.
+      - Column count increases from 23 to 27 (two new count cols +
+        six new score cols replacing the four autocrine cols).
+      - test-add_neighborhood_edge_agg.R: column list, count.total identity
+        test, cmean NA rule loop, and any autocrine-specific value tests
+        all need updating.
+      - NICHESv2_package_design.md: EXPORTED FUNCTIONS section for
+        add_neighborhood_edge_agg(), KEY GOTCHAS autocrine entry.
+    Before starting: upload R/add_neighborhood_edge_agg.R and
+    tests/testthat/test-add_neighborhood_edge_agg.R. Read both fully.
+    Confirm the full change plan before writing any code.

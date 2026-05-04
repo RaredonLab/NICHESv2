@@ -17,15 +17,16 @@ transcriptomics data.
 
 NICHESv2 computes ligand-receptor (LR) signalling scores between pairs of
 cells and organises results in a memory-efficient, long-format S3 object
-(`NICHESObject`). Three edge-definition modes are supported — spatial
-nearest-neighbour, type-stratified sampling, and pseudo-bulk — so the same
+(`NICHESObject`). Three edge-definition modes are supported -- spatial
+nearest-neighbour, type-stratified sampling, and pseudo-bulk -- so the same
 downstream workflow applies to both spatially resolved and conventional
 scRNA-seq datasets.
 
 Expression data can be supplied as a raw sparse matrix, a Seurat V4/V5
 object, or an AnnData (`.h5ad`) file. Built-in LR database loaders cover
-FANTOM5 (bundled, four species, no internet required) and OmniPath, and
-any user-supplied data frame is also accepted. Multi-gene receptor complexes
+ConnectomeDB2025 (bundled, four species, no internet required, default),
+FANTOM5 (bundled, four species, no internet required), and OmniPath; any
+user-supplied data frame is also accepted. Multi-gene receptor complexes
 are supported via underscore delimiting (`gene1_gene2`).
 
 ---
@@ -43,13 +44,13 @@ if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 remotes::install_github("RaredonLab/NICHESv2", ref = "dev")
 ```
 
-**Optional — install only what you need:**
+**Optional -- install only what you need:**
 
 ```r
 # Seurat V4 / V5 input support
 install.packages("SeuratObject")
 
-# AnnData (.h5ad) input support — no Python required
+# AnnData (.h5ad) input support -- no Python required
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install("rhdf5")
 
@@ -75,10 +76,10 @@ data(NICHESv2_example)
 print(NICHESv2_example)          # slot summary and object attributes
 dim(NICHESv2_example)            # cells x LRMs
 
-# Aggregate per-edge scores to the cell level
-agg <- Aggregate_CellToCell_Edges(NICHESv2_example, stat = "mean")
-head(agg$sending)                # cell x LRM matrix, sending perspective
-head(agg$receiving)              # cell x LRM matrix, receiving perspective
+# Aggregate neighborhood edge signals and cell-type composition
+obj <- aggregate_NICHESObject(NICHESv2_example, cell.type.col = "celltype")
+head(obj$aggregations$neighborhood.edge.agg)   # per-(cell, LRM) scores
+head(obj$aggregations$neighborhood.composition) # neighbor cell-type proportions
 
 # Visualise one LR pair in situ
 CellToCell_InSitu_Single_LRM(
@@ -118,17 +119,19 @@ For Seurat and AnnData input workflows, vignettes are in preparation.
 - **Three edge modes:** spatial k-NN or radius-based neighbours (including
   autocrine self-loops), type-stratified random sampling, and pseudo-bulk
   all-type-pairs
-- **LR databases:** FANTOM5 bundled for human, mouse, rat, and pig (no
-  internet required); OmniPath via `OmnipathR`; user-supplied data frames
-  accepted; multi-gene complexes supported via underscore delimiting
+- **LR databases:** ConnectomeDB2025 bundled as the default for human, mouse,
+  rat, and pig (no internet required); FANTOM5 also bundled for the same four
+  species; OmniPath via `OmnipathR` for human, mouse, and rat; user-supplied
+  data frames accepted; multi-gene complexes supported via underscore delimiting
 - **Memory-efficient storage:** scores held in long-format sparse
-  `data.table`s inside the 14-slot `NICHESObject` S3 class — footprint
-  scales with dataset density, not total dimensions
+  `data.table`s inside the 15-slot `NICHESObject` S3 class -- footprint
+  scales with dataset density, not total dimensions; the `$aggregations` slot
+  stores named aggregation tables computed on demand
 - **Multi-sample support:** `sample.col` argument in `create_NICHESObject()`
   processes samples independently and merges results; barcode uniqueness
   enforced as a hard error
 - **Flexible data ingest:** raw sparse matrix, Seurat V4/V5
-  (`extract_NICHESInputs_Seurat()`), or AnnData via `rhdf5` only —
+  (`extract_NICHESInputs_Seurat()`), or AnnData via `rhdf5` only --
   no Python, conda, or basilisk required
   (`extract_NICHESInputs_AnnData()`)
 - **Cross-platform parallelism:** socket clusters only
@@ -136,11 +139,21 @@ For Seurat and AnnData input workflows, vignettes are in preparation.
 - **In-situ visualisation:** `CellToCell_InSitu()` exports batch PNGs for
   any list of LR pairs; `CellToCell_InSitu_Single_LRM()` for interactive
   single-pair inspection
-- **Neighborhood analysis:** `add_neighborhoods()` populates per-cell edge
-  and cell-neighbour lists; three `edge.filter.mode` options control which
-  edges are included in each neighborhood
-- **Aggregation:** `Aggregate_CellToCell_Edges()` returns zero-filled full
-  cell × LRM grids from both sending and receiving perspectives
+- **Neighborhood analysis:** neighborhood slots (`$neighborhood.cell.list`,
+  `$neighborhood.edge.list`, `$neighborhood.meta`) are always populated
+  at construction by `create_NICHESObject()`; `add_neighborhoods()` allows
+  re-computation with different parameters; three `edge.filter.mode` options
+  control which edges are included
+- **Aggregation:** `aggregate_NICHESObject()` populates `$aggregations` in
+  one call -- `add_neighborhood_edge_agg()` produces per-(cell, LRM)
+  directional scores (in, out, cross, self.autocrine, other.autocrine) and
+  `add_neighborhood_composition()` produces per-cell neighbor cell-type
+  proportions; both always fully recompute and replace their slots
+- **Metadata management:** `add_cell_meta()` replaces `$cell.meta` in full
+  and rebuilds `$edge.meta`; `add_meta_column()` appends or overwrites a
+  single named-vector column without disturbing the rest of the table;
+  object attributes track `mode` (`"spatial"` or `"nonspatial"`) and
+  `sample.col`
 
 ---
 
