@@ -2,18 +2,18 @@
 # Unified neighborhood edge aggregation for NICHESv2.
 #
 # For each focal cell and each LRM pair, every edge in the cell's neighborhood
-# is classified into exactly one of four mutually exclusive categories relative
+# is classified into exactly one of five mutually exclusive categories relative
 # to the focal cell:
 #
-#   out       -- focal cell is the SendingCell   (non-autocrine)
-#   in        -- focal cell is the ReceivingCell (non-autocrine)
-#   cross     -- focal cell is neither endpoint  (non-autocrine)
-#   autocrine -- SendingCell == ReceivingCell     (any cell in neighborhood)
+#   out             -- focal cell is the SendingCell   (non-autocrine)
+#   in              -- focal cell is the ReceivingCell (non-autocrine)
+#   cross           -- focal cell is neither endpoint  (non-autocrine)
+#   self.autocrine  -- SendingCell == ReceivingCell == focal cell (own self-loop)
+#   other.autocrine -- SendingCell == ReceivingCell != focal cell (neighbor self-loop)
 #
-# Note: the autocrine category captures ALL self-loop edges in the
-# neighborhood, not only those where the focal cell is the self-looping cell.
-# A neighbor cell B with a self-loop B->B contributes to the focal cell's
-# autocrine counts.
+# self.autocrine and other.autocrine together replace the former single
+# "autocrine" category. count.self.autocrine is always 0 or 1 per (cell, LRM)
+# because a cell can have at most one self-loop edge.
 #
 # All three score methods (sum, mean, cmean) and score.inout.ratio are always
 # computed. The slot is always fully replaced on each call (no incremental
@@ -35,10 +35,12 @@
 #'
 #' For each focal cell and each LRM pair, aggregates LR communication scores
 #' across all edges in the cell's neighborhood. Each neighborhood edge is
-#' classified into one of four mutually exclusive categories relative to the
+#' classified into one of five mutually exclusive categories relative to the
 #' focal cell: \code{out} (focal cell sends), \code{in} (focal cell receives),
-#' \code{cross} (neither endpoint is the focal cell), or \code{autocrine}
-#' (SendingCell == ReceivingCell, any cell in the neighborhood).
+#' \code{cross} (neither endpoint is the focal cell), \code{self.autocrine}
+#' (focal cell's own self-loop: SendingCell == ReceivingCell == focal cell), or
+#' \code{other.autocrine} (a neighbor cell's self-loop: SendingCell ==
+#' ReceivingCell != focal cell).
 #'
 #' All three score methods (\code{sum}, \code{mean}, \code{cmean}) and the
 #' in/out ratio are always computed. The slot is always fully replaced on each
@@ -50,11 +52,13 @@
 #' \code{$aggregations$neighborhood.edge.agg}. Only \code{(cell, LRM)} pairs
 #' with at least one non-zero-score neighborhood edge are included.
 #'
-#' @section Four-way edge classification:
+#' @section Five-way edge classification:
 #' For a focal cell F and an edge (S -> R) in F's neighborhood:
 #' \describe{
-#'   \item{\code{autocrine}}{S == R. Self-loop edge involving any cell in the
-#'     neighborhood. Checked first, before directional classification.}
+#'   \item{\code{self.autocrine}}{S == R == F. F's own self-loop edge. Checked
+#'     first. \code{count.self.autocrine} is always 0 or 1 per (cell, LRM).}
+#'   \item{\code{other.autocrine}}{S == R != F. A neighbor cell's self-loop
+#'     edge; F is not the self-looping cell.}
 #'   \item{\code{out}}{S == F and S != R. Focal cell is the sender.}
 #'   \item{\code{in}}{R == F and S != R. Focal cell is the receiver.}
 #'   \item{\code{cross}}{S != F and R != F and S != R. Edge between two
@@ -65,10 +69,11 @@
 #' Count columns (always produced):
 #' \describe{
 #'   \item{\code{count.in}, \code{count.out}, \code{count.cross},
-#'     \code{count.autocrine}}{Number of non-zero-score edges in each category
-#'     for this LRM. Because \code{$edge.data} is sparse, every stored row
-#'     represents an active edge.}
-#'   \item{\code{count.total}}{Sum of all four category counts.}
+#'     \code{count.self.autocrine}, \code{count.other.autocrine}}{Number of
+#'     non-zero-score edges in each category for this LRM. Because
+#'     \code{$edge.data} is sparse, every stored row represents an active edge.
+#'     \code{count.self.autocrine} is always 0 or 1 per (cell, LRM).}
+#'   \item{\code{count.total}}{Sum of all five category counts.}
 #' }
 #' Score columns (all three methods always produced, for each category):
 #' \describe{
@@ -146,11 +151,13 @@ add_neighborhood_edge_agg <- function(
   cell.edge.dt[, SendingCell   := el$SendingCell[el.idx]]
   cell.edge.dt[, ReceivingCell := el$ReceivingCell[el.idx]]
 
-  # Classify each (focal cell, edge) into one of four categories.
-  # Autocrine is checked first: SendingCell == ReceivingCell defines a
-  # self-loop regardless of which cell is focal.
+  # Classify each (focal cell, edge) into one of five categories.
+  # Self-loop detection (SendingCell == ReceivingCell) is checked first and
+  # immediately sub-divided: self.autocrine when the focal cell is the
+  # self-looping cell; other.autocrine when a neighbor cell is.
   cell.edge.dt[, edge.type := data.table::fcase(
-    SendingCell == ReceivingCell,                         "autocrine",
+    SendingCell == ReceivingCell & SendingCell == cell,   "self.autocrine",
+    SendingCell == ReceivingCell & SendingCell != cell,   "other.autocrine",
     SendingCell == cell & SendingCell != ReceivingCell,   "out",
     ReceivingCell == cell & SendingCell != ReceivingCell, "in",
     default = "cross"
@@ -177,11 +184,11 @@ add_neighborhood_edge_agg <- function(
 
   ## Worker function -----------------------------------------------------------
   # Processes one LRM's slice. Always computes all counts, all three score
-  # methods (sum/mean/cmean) for all four categories, and score.inout.ratio.
+  # methods (sum/mean/cmean) for all five categories, and score.inout.ratio.
   .nbr_edge_worker <- function(lrm.dt, total.nbr.edges) {
 
     lrm.id   <- lrm.dt$LRM[1L]
-    all.cats <- c("in", "out", "cross", "autocrine")
+    all.cats <- c("in", "out", "cross", "self.autocrine", "other.autocrine")
 
     ## Aggregate counts and sums per (cell, edge.type) -----------------------
     agg <- lrm.dt[,
@@ -199,7 +206,8 @@ add_neighborhood_edge_agg <- function(
       old = all.cats, new = paste0("count.", all.cats)
     )
     cnt.wide[, count.total :=
-               count.in + count.out + count.cross + count.autocrine]
+               count.in + count.out + count.cross +
+               count.self.autocrine + count.other.autocrine]
 
     ## Pivot score sums to wide ----------------------------------------------
     sum.wide <- data.table::dcast(
@@ -211,8 +219,8 @@ add_neighborhood_edge_agg <- function(
       old = all.cats, new = paste0("score.", all.cats, ".sum")
     )
     sum.wide[, score.total.sum :=
-               score.in.sum + score.out.sum +
-               score.cross.sum + score.autocrine.sum]
+               score.in.sum + score.out.sum + score.cross.sum +
+               score.self.autocrine.sum + score.other.autocrine.sum]
 
     ## Merge counts and sums -------------------------------------------------
     result <- merge(cnt.wide, sum.wide, by = "cell", all = TRUE)
@@ -282,13 +290,16 @@ add_neighborhood_edge_agg <- function(
 
   # Enforce column order: identity | counts | sums | means | cmeans | ratio
   count.order <- c("count.in", "count.out", "count.cross",
-                   "count.autocrine", "count.total")
+                   "count.self.autocrine", "count.other.autocrine", "count.total")
   sum.order   <- c("score.in.sum",   "score.out.sum",   "score.cross.sum",
-                   "score.autocrine.sum",   "score.total.sum")
+                   "score.self.autocrine.sum",   "score.other.autocrine.sum",
+                   "score.total.sum")
   mean.order  <- c("score.in.mean",  "score.out.mean",  "score.cross.mean",
-                   "score.autocrine.mean",  "score.total.mean")
+                   "score.self.autocrine.mean",  "score.other.autocrine.mean",
+                   "score.total.mean")
   cmean.order <- c("score.in.cmean", "score.out.cmean", "score.cross.cmean",
-                   "score.autocrine.cmean", "score.total.cmean")
+                   "score.self.autocrine.cmean", "score.other.autocrine.cmean",
+                   "score.total.cmean")
   col.order <- c(
     "cell", "LRM",
     intersect(count.order,         colnames(agg.dt)),

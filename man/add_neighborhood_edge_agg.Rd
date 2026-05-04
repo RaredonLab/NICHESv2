@@ -21,10 +21,12 @@ The input \code{niches.obj} with
 \description{
 For each focal cell and each LRM pair, aggregates LR communication scores
 across all edges in the cell's neighborhood. Each neighborhood edge is
-classified into one of four mutually exclusive categories relative to the
+classified into one of five mutually exclusive categories relative to the
 focal cell: \code{out} (focal cell sends), \code{in} (focal cell receives),
-\code{cross} (neither endpoint is the focal cell), or \code{autocrine}
-(SendingCell == ReceivingCell, any cell in the neighborhood).
+\code{cross} (neither endpoint is the focal cell), \code{self.autocrine}
+(focal cell's own self-loop: SendingCell == ReceivingCell == focal cell), or
+\code{other.autocrine} (a neighbor cell's self-loop: SendingCell ==
+ReceivingCell != focal cell).
 }
 \details{
 All three score methods (\code{sum}, \code{mean}, \code{cmean}) and the
@@ -37,12 +39,14 @@ Results are stored as a sparse data.table keyed on \code{(cell, LRM)} at
 \code{$aggregations$neighborhood.edge.agg}. Only \code{(cell, LRM)} pairs
 with at least one non-zero-score neighborhood edge are included.
 }
-\section{Four-way edge classification}{
+\section{Five-way edge classification}{
 
 For a focal cell F and an edge (S -> R) in F's neighborhood:
 \describe{
-  \item{\code{autocrine}}{S == R. Self-loop edge involving any cell in the
-    neighborhood. Checked first, before directional classification.}
+  \item{\code{self.autocrine}}{S == R == F. F's own self-loop edge. Checked
+    first. \code{count.self.autocrine} is always 0 or 1 per (cell, LRM).}
+  \item{\code{other.autocrine}}{S == R != F. A neighbor cell's self-loop
+    edge; F is not the self-looping cell.}
   \item{\code{out}}{S == F and S != R. Focal cell is the sender.}
   \item{\code{in}}{R == F and S != R. Focal cell is the receiver.}
   \item{\code{cross}}{S != F and R != F and S != R. Edge between two
@@ -55,10 +59,11 @@ For a focal cell F and an edge (S -> R) in F's neighborhood:
 Count columns (always produced):
 \describe{
   \item{\code{count.in}, \code{count.out}, \code{count.cross},
-    \code{count.autocrine}}{Number of non-zero-score edges in each category
-    for this LRM. Because \code{$edge.data} is sparse, every stored row
-    represents an active edge.}
-  \item{\code{count.total}}{Sum of all four category counts.}
+    \code{count.self.autocrine}, \code{count.other.autocrine}}{Number of
+    non-zero-score edges in each category for this LRM. Because
+    \code{$edge.data} is sparse, every stored row represents an active edge.
+    \code{count.self.autocrine} is always 0 or 1 per (cell, LRM).}
+  \item{\code{count.total}}{Sum of all five category counts.}
 }
 Score columns (all three methods always produced, for each category):
 \describe{

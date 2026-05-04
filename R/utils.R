@@ -83,16 +83,24 @@ utils::globalVariables(c(
   # plot internals
   ".plot.val",
   
-  # add_neighborhood_edge_agg -- unified four-category edge aggregation
+  # add_neighborhood_edge_agg -- unified five-category edge aggregation
   "edge.type",
   "n.cat", "score.cat.sum",
-  "count.in",        "count.out",        "count.cross",        "count.autocrine",  "count.total",
+  "count.in",        "count.out",        "count.cross",
+  "count.self.autocrine",  "count.other.autocrine",  "count.total",
   "n.edges",
-  "score.in.sum",    "score.out.sum",    "score.cross.sum",    "score.autocrine.sum",    "score.total.sum",
-  "score.in.mean",   "score.out.mean",   "score.cross.mean",   "score.autocrine.mean",   "score.total.mean",
-  "score.in.cmean",  "score.out.cmean",  "score.cross.cmean",  "score.autocrine.cmean",  "score.total.cmean",
+  "score.in.sum",         "score.out.sum",         "score.cross.sum",
+  "score.self.autocrine.sum",   "score.other.autocrine.sum",   "score.total.sum",
+  "score.in.mean",        "score.out.mean",        "score.cross.mean",
+  "score.self.autocrine.mean",  "score.other.autocrine.mean",  "score.total.mean",
+  "score.in.cmean",       "score.out.cmean",       "score.cross.cmean",
+  "score.self.autocrine.cmean", "score.other.autocrine.cmean", "score.total.cmean",
   "score.inout.ratio",
   
   # add_neighborhood_composition -- composition columns
-  "cell.type", "cell.type.polished"
+  "cell.type", "cell.type.polished",
+  
+  # add_cell_rawcounts -- raw count column and data.table join variable
+  "gene",
+  "count", "i.count"
 ))
