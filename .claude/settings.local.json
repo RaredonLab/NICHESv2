@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/msbr/GitHub/NICHESv2-msbr log --oneline -20)"
+    ]
+  }
+}
