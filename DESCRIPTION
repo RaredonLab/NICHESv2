@@ -20,7 +20,7 @@ BugReports: https://github.com/RaredonLab/NICHESv2/issues
 Encoding: UTF-8
 VignetteBuilder: knitr
 LazyData: false
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: R (>= 4.1.0)
 Imports:
     data.table (>= 1.14.0),
