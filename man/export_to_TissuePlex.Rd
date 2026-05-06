@@ -9,7 +9,8 @@ export_to_TissuePlex(
   output.path,
   x.col = "x",
   y.col = "y",
-  celltype.col = "celltype"
+  celltype.col = "celltype",
+  n.threads = NULL
 )
 }
 \arguments{
@@ -26,13 +27,20 @@ Parent directories are created automatically.}
 
 \item{celltype.col}{Name of the cell-type column in \code{$cell.meta}, or
 \code{NULL} to omit cell-type columns (default \code{"celltype"}).}
+
+\item{n.threads}{Number of threads for \code{data.table} operations
+(\code{NULL} uses the current \code{getDTthreads()} setting).  On a
+MacBook Pro, setting this to the number of performance cores (e.g. 8–12)
+significantly speeds up joins and string operations on large datasets.}
 }
 \value{
 Invisibly returns \code{output.path}.
 }
 \description{
 Writes a Parquet file that TissuePlex can load directly as its edge layer.
-Each row represents one (directed edge, LRM) pair.  Only edges present in
-\code{$edge.data} (i.e. edges with at least one non-zero LR score) are
-exported.
+Every edge in \code{$edge.list} is exported.  Edges present in
+\code{$edge.data} produce one row per (edge, LRM) pair with real scores;
+edges absent from \code{$edge.data} (no active LR signal) produce a single
+placeholder row with \code{NA} for all LRM fields.  This ensures TissuePlex
+can render the full tissue graph even for edges with no scored LR pairs.
 }

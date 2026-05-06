@@ -3,6 +3,13 @@
 ## Prerequisite: run run_NICHESv2_Xenium_PPLR.R first so the RDS file exists.
 ## The output directory is printed at the end and can be pointed at directly
 ## in TissuePlex as a new dataset.
+##
+## All edges in $edge.list are exported.  Scored edges (in $edge.data) produce
+## one row per LRM; unscored edges produce one placeholder row with NA for LRM
+## fields — this lets TissuePlex render the full tissue graph.
+##
+## For large objects (10 M+ edges) set n.threads to your MacBook's
+## performance-core count (e.g. 10 on M3 Pro) to maximise throughput.
 
 library(NICHESv2)
 library(data.table)
@@ -34,7 +41,8 @@ export_to_TissuePlex(
   output.path  = tp.edges,
   x.col        = "x",
   y.col        = "y",
-  celltype.col = "Type.6"
+  celltype.col = "Type.6",
+  n.threads    = 10L          # set to number of performance cores on your Mac
 )
 
 # ── 3. Sanity-check the output ────────────────────────────────────────────────
