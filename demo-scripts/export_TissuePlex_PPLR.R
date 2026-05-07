@@ -42,7 +42,7 @@ export_to_TissuePlex(
   x.col        = "x",
   y.col        = "y",
   celltype.col = "Type.6",
-  n.threads    = 10L          # set to number of performance cores on your Mac
+  n.threads    = 8L          # set to number of performance cores on your Mac
 )
 
 # ── 3. Sanity-check the output ────────────────────────────────────────────────
