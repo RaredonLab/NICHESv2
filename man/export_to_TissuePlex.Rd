@@ -30,7 +30,7 @@ Parent directories are created automatically.}
 
 \item{n.threads}{Number of threads for \code{data.table} operations
 (\code{NULL} uses the current \code{getDTthreads()} setting).  On a
-MacBook Pro, setting this to the number of performance cores (e.g. 8–12)
+MacBook Pro, setting this to the number of performance cores (e.g. 8--12)
 significantly speeds up joins and string operations on large datasets.}
 }
 \value{

@@ -18,12 +18,11 @@
 #'   \code{NULL} to omit cell-type columns (default \code{"celltype"}).
 #' @param n.threads   Number of threads for \code{data.table} operations
 #'   (\code{NULL} uses the current \code{getDTthreads()} setting).  On a
-#'   MacBook Pro, setting this to the number of performance cores (e.g. 8–12)
+#'   MacBook Pro, setting this to the number of performance cores (e.g. 8--12)
 #'   significantly speeds up joins and string operations on large datasets.
 #'
 #' @return Invisibly returns \code{output.path}.
 #' @export
-#' @import data.table
 export_to_TissuePlex <- function(object,
                                   output.path,
                                   x.col        = "x",
@@ -49,9 +48,9 @@ export_to_TissuePlex <- function(object,
   edge.meta <- object$edge.meta
 
   if (is.null(edge.list) || nrow(edge.list) == 0L)
-    stop("NICHESObject$edge.list is empty — nothing to export")
+    stop("NICHESObject$edge.list is empty -- nothing to export")
   if (is.null(edge.meta) || nrow(edge.meta) == 0L)
-    stop("NICHESObject$edge.meta is empty — nothing to export")
+    stop("NICHESObject$edge.meta is empty -- nothing to export")
 
   # Derived column names in edge.meta (Sending.<col>, Receiving.<col>)
   send.x <- paste0("Sending.",   x.col)
@@ -84,9 +83,7 @@ export_to_TissuePlex <- function(object,
     }
   }
 
-  # ── LRM catalogue: unique LRMs with lrm_id + pre-split ligand/receptor ──────
-  # Splitting here (on the small catalogue) rather than on every output row is
-  # the key efficiency win for large datasets.
+  ## LRM catalogue: unique LRMs with lrm_id + pre-split ligand/receptor ----
   has.edge.data <- !is.null(edge.data) && nrow(edge.data) > 0L
 
   if (has.edge.data) {
@@ -109,16 +106,15 @@ export_to_TissuePlex <- function(object,
     )
   }
 
-  # ── edge.meta: pull only the columns we need ─────────────────────────────────
+  ## edge.meta: pull only the columns we need ----
   meta.cols <- c("edge", "SendingCell", "ReceivingCell",
                  send.x, send.y, recv.x, recv.y)
   if (has.celltype) meta.cols <- c(meta.cols, send.type, recv.type)
   meta.sub  <- edge.meta[, .SD, .SDcols = meta.cols]
   data.table::setkeyv(meta.sub, "edge")
 
-  # ── Combine scored rows (edge.data) with placeholders for unscored edges ─────
+  ## Combine scored rows (edge.data) with placeholders for unscored edges ----
   if (has.edge.data) {
-    # data.table anti-join: edges in edge.list but absent from edge.data
     scored.edge.dt   <- unique(edge.data[, .(edge)])
     all.edge.dt      <- data.table::data.table(edge = edge.list[["edge"]])
     unscored         <- all.edge.dt[!scored.edge.dt, on = "edge"]
@@ -139,7 +135,7 @@ export_to_TissuePlex <- function(object,
       n.unscored <- 0L
     }
   } else {
-    # No edge.data at all — every edge gets a placeholder row
+    # No edge.data at all -- every edge gets a placeholder row
     combined <- data.table::data.table(
       edge       = edge.list[["edge"]],
       LRM        = NA_character_,
@@ -149,17 +145,16 @@ export_to_TissuePlex <- function(object,
     n.unscored <- nrow(edge.list)
   }
 
-  # ── Join lrm_id + pre-split ligand/receptor from catalogue ───────────────────
-  # Right join: keeps all combined rows; NA-LRM rows get NA lrm_id/ligand/receptor
+  ## Join lrm_id + pre-split ligand/receptor from catalogue ----
   out <- lrm.catalogue[combined, on = "LRM"]
 
-  # ── Join coordinates + SendingCell/ReceivingCell from edge.meta ──────────────
+  ## Join coordinates + SendingCell/ReceivingCell from edge.meta ----
   out <- meta.sub[out, on = "edge"]
 
-  # ── Derived column ─────────────────────────────────────────────────────────────
+  ## Derived column ----
   out[, is_autocrine := (SendingCell == ReceivingCell)]
 
-  # ── Rename to TissuePlex schema ───────────────────────────────────────────────
+  ## Rename to TissuePlex schema ----
   data.table::setnames(out,
     old = c("SendingCell",  "ReceivingCell",  "LRM", "score.norm",
             send.x, send.y, recv.x, recv.y),
@@ -175,7 +170,7 @@ export_to_TissuePlex <- function(object,
     out[, receiving_type := NA_character_]
   }
 
-  # ── Select and order final columns ────────────────────────────────────────────
+  ## Select and order final columns ----
   final.cols <- c(
     "edge", "sending_cell", "receiving_cell", "is_autocrine",
     "lrm", "lrm_id", "ligand", "receptor",
@@ -185,7 +180,7 @@ export_to_TissuePlex <- function(object,
   )
   out <- out[, .SD, .SDcols = final.cols]
 
-  # ── Write ──────────────────────────────────────────────────────────────────────
+  ## Write ----
   dir.create(dirname(normalizePath(output.path, mustWork = FALSE)),
              showWarnings = FALSE, recursive = TRUE)
 
@@ -193,7 +188,7 @@ export_to_TissuePlex <- function(object,
 
   n.scored <- nrow(edge.list) - n.unscored
   message(sprintf(
-    "Wrote %d rows | %d scored edges (%d LRMs) | %d unscored edges → %s",
+    "Wrote %d rows | %d scored edges (%d LRMs) | %d unscored edges -> %s",
     nrow(out), n.scored, length(unique.lrms), n.unscored, output.path
   ))
 
