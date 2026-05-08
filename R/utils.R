@@ -59,30 +59,30 @@
 utils::globalVariables(c(
   # data.table j-expression alias (.(col1, col2) == list(col1, col2))
   ".",
-  
+
   # edge-table columns
   "edge", "from", "to",
   "SendingCell", "ReceivingCell",
   "SendingType", "ReceivingType",
-  
+
   # LRM / score columns
   "LRM", "ligand", "receptor",
   "score", "score.norm", "score.stat",
-  
+
   # cell / spatial columns
   "cell", "x", "y",
   "x.from", "y.from", "x.to", "y.to",
-  
+
   # neighborhood columns
   "neighbor", "radius",
   "mean.neighbors", "sd.neighbors",
-  
+
   # summary stat columns (used as column *names*, not functions)
   "median", "sd",
-  
+
   # plot internals
   ".plot.val",
-  
+
   # add_neighborhood_edge_agg -- unified five-category edge aggregation
   "edge.type",
   "n.cat", "score.cat.sum",
@@ -96,11 +96,14 @@ utils::globalVariables(c(
   "score.in.cmean",       "score.out.cmean",       "score.cross.cmean",
   "score.self.autocrine.cmean", "score.other.autocrine.cmean", "score.total.cmean",
   "score.inout.ratio",
-  
+
   # add_neighborhood_composition -- composition columns
   "cell.type", "cell.type.polished",
-  
+
   # add_cell_rawcounts -- raw count column and data.table join variable
   "gene",
-  "count", "i.count"
+  "count", "i.count",
+
+  # export_to_TissuePlex -- TissuePlex export columns
+  "is_autocrine", "sending_type", "receiving_type"
 ))

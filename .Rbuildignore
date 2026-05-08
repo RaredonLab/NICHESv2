@@ -10,3 +10,9 @@
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^\.claude$
+^\.github$
+^CLAUDE\.md$
+^demo-scripts$
+^package management$
+
