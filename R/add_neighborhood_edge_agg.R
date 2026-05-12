@@ -113,17 +113,17 @@ add_neighborhood_edge_agg <- function(
     n.cores = 1L,
     verbose = TRUE
 ) {
-
+  
   ## Input validation ----------------------------------------------------------
   if (!inherits(niches.obj, "NICHESObject"))
     stop("[add_neighborhood_edge_agg] 'niches.obj' must be a NICHESObject.",
          call. = FALSE)
-
+  
   n.cores <- as.integer(n.cores)
   if (is.na(n.cores) || n.cores < 1L)
     stop("[add_neighborhood_edge_agg] 'n.cores' must be a positive integer.",
          call. = FALSE)
-
+  
   ## Neighborhood slot guard ---------------------------------------------------
   if (is.null(niches.obj$neighborhood.edge.list))
     stop(
@@ -131,7 +131,7 @@ add_neighborhood_edge_agg <- function(
       "Run add_neighborhoods() first.",
       call. = FALSE
     )
-
+  
   ## Build (cell, edge, edge.type) flat table ----------------------------------
   # Unroll neighborhood.edge.list: one row per (focal cell, neighborhood edge).
   nbr.lens     <- lengths(niches.obj$neighborhood.edge.list)
@@ -139,18 +139,18 @@ add_neighborhood_edge_agg <- function(
     cell = rep(names(niches.obj$neighborhood.edge.list), nbr.lens),
     edge = unlist(niches.obj$neighborhood.edge.list, use.names = FALSE)
   )
-
+  
   if (nrow(cell.edge.dt) == 0L)
     stop("[add_neighborhood_edge_agg] No edges found in any neighborhood.",
          call. = FALSE)
-
+  
   # Attach SendingCell and ReceivingCell via match-based lookup (avoids
   # composite-key join gotcha).
   el     <- niches.obj$edge.list
   el.idx <- match(cell.edge.dt$edge, el$edge)
   cell.edge.dt[, SendingCell   := el$SendingCell[el.idx]]
   cell.edge.dt[, ReceivingCell := el$ReceivingCell[el.idx]]
-
+  
   # Classify each (focal cell, edge) into one of five categories.
   # Self-loop detection (SendingCell == ReceivingCell) is checked first and
   # immediately sub-divided: self.autocrine when the focal cell is the
@@ -163,39 +163,35 @@ add_neighborhood_edge_agg <- function(
     default = "cross"
   )]
   cell.edge.dt[, c("SendingCell", "ReceivingCell") := NULL]
-
-  ## Join edge.data to get per-(cell, edge, LRM) scores -----------------------
-  # edge.data is SPARSE: every stored row has score > 0. No filter needed.
+  
+  ## Extract edge scores (sparse: every stored row has score > 0) -------------
   edge.data.sub <- niches.obj$edge.data[, .(edge, LRM, score)]
-  flat <- merge(cell.edge.dt, edge.data.sub,
-                by = "edge", allow.cartesian = TRUE)
-  # flat: edge | cell | edge.type | LRM | score
-
+  
   ## Precompute total neighborhood edges per cell (LRM-agnostic denominator) --
   # Used as denominator for score.*.mean. Precomputed once, passed to workers.
   total.nbr.edges <- niches.obj$neighborhood.meta[, .(cell, n.edges)]
-
+  
   if (verbose)
     message(sprintf(
       "[add_neighborhood_edge_agg] Aggregating %d LRM pairs | %d neighborhood edges ...",
       length(niches.obj$LRM.list),
       nrow(cell.edge.dt)
     ))
-
+  
   ## Worker function -----------------------------------------------------------
   # Processes one LRM's slice. Always computes all counts, all three score
   # methods (sum/mean/cmean) for all five categories, and score.inout.ratio.
   .nbr_edge_worker <- function(lrm.dt, total.nbr.edges) {
-
+    
     lrm.id   <- lrm.dt$LRM[1L]
     all.cats <- c("in", "out", "cross", "self.autocrine", "other.autocrine")
-
+    
     ## Aggregate counts and sums per (cell, edge.type) -----------------------
     agg <- lrm.dt[,
-      .(n.cat = .N, score.cat.sum = sum(score)),
-      by = .(cell, edge.type)
+                  .(n.cat = .N, score.cat.sum = sum(score)),
+                  by = .(cell, edge.type)
     ]
-
+    
     ## Pivot counts to wide --------------------------------------------------
     cnt.wide <- data.table::dcast(
       agg, cell ~ edge.type, value.var = "n.cat", fill = 0L
@@ -203,12 +199,12 @@ add_neighborhood_edge_agg <- function(
     for (cat in setdiff(all.cats, colnames(cnt.wide)))
       cnt.wide[, (cat) := 0L]
     data.table::setnames(cnt.wide,
-      old = all.cats, new = paste0("count.", all.cats)
+                         old = all.cats, new = paste0("count.", all.cats)
     )
     cnt.wide[, count.total :=
                count.in + count.out + count.cross +
                count.self.autocrine + count.other.autocrine]
-
+    
     ## Pivot score sums to wide ----------------------------------------------
     sum.wide <- data.table::dcast(
       agg, cell ~ edge.type, value.var = "score.cat.sum", fill = 0
@@ -216,15 +212,15 @@ add_neighborhood_edge_agg <- function(
     for (cat in setdiff(all.cats, colnames(sum.wide)))
       sum.wide[, (cat) := 0]
     data.table::setnames(sum.wide,
-      old = all.cats, new = paste0("score.", all.cats, ".sum")
+                         old = all.cats, new = paste0("score.", all.cats, ".sum")
     )
     sum.wide[, score.total.sum :=
                score.in.sum + score.out.sum + score.cross.sum +
                score.self.autocrine.sum + score.other.autocrine.sum]
-
+    
     ## Merge counts and sums -------------------------------------------------
     result <- merge(cnt.wide, sum.wide, by = "cell", all = TRUE)
-
+    
     ## Mean: LRM-agnostic denominator (total neighborhood edges) -------------
     idx     <- match(result$cell, total.nbr.edges$cell)
     n.edges <- total.nbr.edges$n.edges[idx]
@@ -235,7 +231,7 @@ add_neighborhood_edge_agg <- function(
     # Guard: cells absent from neighborhood.meta (should not occur)
     for (col in grep("\\.mean$", colnames(result), value = TRUE))
       result[is.na(get(col)), (col) := 0]
-
+    
     ## Cmean: denominator is the category count (conditional mean) -----------
     for (cat in all.cats)
       result[, (paste0("score.", cat, ".cmean")) :=
@@ -248,19 +244,24 @@ add_neighborhood_edge_agg <- function(
     result[, score.total.cmean := data.table::fifelse(
       count.total > 0L, score.total.sum / count.total, NA_real_
     )]
-
+    
     ## In/out ratio ----------------------------------------------------------
     result[, score.inout.ratio := data.table::fifelse(
       score.out.sum > 0, score.in.sum / score.out.sum, NA_real_
     )]
-
+    
     result[, LRM := lrm.id]
     result
   }
-
-  ## Split by LRM and dispatch to workers -------------------------------------
-  lrm.split <- split(flat, by = "LRM", keep.by = TRUE)
-
+  
+  ## Split edge.data by LRM; merge with cell.edge.dt inside each worker call --
+  # Splitting BEFORE merging avoids a single giant intermediate table:
+  # cell.edge.dt has many rows per edge (one per focal cell) and edge.data.sub
+  # has many rows per edge (one per LRM); their full join can exceed 2^31 rows
+  # on large datasets. Each per-LRM slice has unique edge values so no
+  # allow.cartesian is needed for the per-LRM merge.
+  lrm.split <- split(edge.data.sub, by = "LRM", keep.by = TRUE)
+  
   if (n.cores > 1L) {
     cl <- parallel::makeCluster(n.cores)
     on.exit(parallel::stopCluster(cl), add = TRUE)
@@ -270,24 +271,30 @@ add_neighborhood_edge_agg <- function(
     })
     parallel::clusterExport(
       cl,
-      varlist = c(".nbr_edge_worker", "total.nbr.edges"),
+      varlist = c(".nbr_edge_worker", "total.nbr.edges", "cell.edge.dt"),
       envir   = environment()
     )
     results <- parallel::parLapply(
       cl, lrm.split,
-      function(lrm.dt) .nbr_edge_worker(lrm.dt, total.nbr.edges)
+      function(lrm.score.dt) {
+        lrm.dt <- merge(cell.edge.dt, lrm.score.dt, by = "edge")
+        .nbr_edge_worker(lrm.dt, total.nbr.edges)
+      }
     )
   } else {
     results <- lapply(
       lrm.split,
-      function(lrm.dt) .nbr_edge_worker(lrm.dt, total.nbr.edges)
+      function(lrm.score.dt) {
+        lrm.dt <- merge(cell.edge.dt, lrm.score.dt, by = "edge")
+        .nbr_edge_worker(lrm.dt, total.nbr.edges)
+      }
     )
   }
-
+  
   ## Assemble final table -----------------------------------------------------
   agg.dt <- rbindlist(results, fill = TRUE)
   setkeyv(agg.dt, c("cell", "LRM"))
-
+  
   # Enforce column order: identity | counts | sums | means | cmeans | ratio
   count.order <- c("count.in", "count.out", "count.cross",
                    "count.self.autocrine", "count.other.autocrine", "count.total")
@@ -309,10 +316,10 @@ add_neighborhood_edge_agg <- function(
     intersect("score.inout.ratio", colnames(agg.dt))
   )
   setcolorder(agg.dt, col.order)
-
+  
   ## Always replace the slot --------------------------------------------------
   niches.obj$aggregations$neighborhood.edge.agg <- agg.dt
-
+  
   if (verbose)
     message(sprintf(
       "[add_neighborhood_edge_agg] Done. %d rows | %d cells | %d LRM pairs.",
@@ -320,6 +327,6 @@ add_neighborhood_edge_agg <- function(
       uniqueN(agg.dt$cell),
       uniqueN(agg.dt$LRM)
     ))
-
+  
   niches.obj
 }
