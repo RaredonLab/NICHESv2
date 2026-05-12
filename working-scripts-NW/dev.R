@@ -41,3 +41,12 @@ devtools::test()
 devtools::check()
 
 
+niches.obj <- readRDS("~/Desktop/for_Docker/RQ32878-002_Slide_2_PPLR_726-2/Rat-PPLR-Run1/NICHESv2_PPLR_rad25.rds")
+
+cell.type.col <- 'Type.6'
+
+niches.obj <- aggregate_NICHESObject(
+  niches.obj,
+  cell.type.col = cell.type.col,
+  n.cores       = 4L
+)
