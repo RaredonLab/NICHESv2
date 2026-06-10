@@ -72,6 +72,9 @@ PARALLELISM (CRITICAL -- no exceptions):
   socket clusters ONLY: parallel::makeCluster + parLapply + on.exit(stopCluster)
   NEVER mclapply (Unix-only, crashes on macOS with ggplot2).
   Always clusterEvalQ: data.table::setDTthreads(1)
+  Exception: add_neighborhood_edge_agg() uses sparse matrix multiplication
+  (Matrix package) instead of socket clusters. n.cores retained for API
+  compatibility only -- not used. New matrix-based functions follow same pattern.
 
 NAMESPACE: Never hand-edit. Use @import data.table / @import ggplot2 in
   NICHESv2-package.R. Run devtools::document() TWICE after changes.
@@ -259,31 +262,38 @@ CellToCell_InSitu(niches.obj, LRM.list, folder, ..., n.cores)
 CellToCell_InSitu_Single_LRM(niches.obj, LRM, ..., precomputed.bg=NULL)
 
 -- AGGREGATION (current design) --
-aggregate_NICHESObject(niches.obj, cell.type.col=NULL, n.cores=1L, verbose=TRUE)
+aggregate_NICHESObject(niches.obj, cell.type.col=NULL, n.cores=1L,
+                       chunk.size=50L, verbose=TRUE)
   Convenience wrapper. Calls add_neighborhood_edge_agg() then optionally
   add_neighborhood_composition(). Both steps always fully recompute and
   replace their slots -- no incremental update mode (Seurat convention).
+  chunk.size is passed through to add_neighborhood_edge_agg().
   FILE: R/aggregate_NICHESObject.R
 
-add_neighborhood_edge_agg(niches.obj, n.cores=1L, verbose=TRUE)
-  Four-category unified edge aggregation. For each (cell, LRM) pair,
+add_neighborhood_edge_agg(niches.obj, n.cores=1L, chunk.size=50L, verbose=TRUE)
+  Five-category unified edge aggregation. For each (cell, LRM) pair,
   classifies every neighborhood edge into one of:
-    out       -- focal cell is SendingCell (non-autocrine)
-    in        -- focal cell is ReceivingCell (non-autocrine)
-    cross     -- focal cell is neither endpoint (non-autocrine)
-    autocrine -- SendingCell == ReceivingCell (ANY cell in neighborhood)
-  Note: autocrine captures all self-loop edges in the neighborhood, not
-  only those where the focal cell itself is the self-looping cell.
-  Always computes all three score methods (sum, mean, cmean) for all four
+    out             -- focal cell is SendingCell (non-autocrine)
+    in              -- focal cell is ReceivingCell (non-autocrine)
+    cross           -- focal cell is neither endpoint (non-autocrine)
+    self.autocrine  -- SendingCell == ReceivingCell == focal cell
+    other.autocrine -- SendingCell == ReceivingCell != focal cell
+  Implementation: sparse matrix multiplication (Matrix package). Builds
+  five binary A matrices (cells x edges) once, then multiplies by the
+  score matrix B (edges x LRMs) in batches of chunk.size LRMs. Bounds
+  peak memory while reducing iterations from n.lrms to
+  ceil(n.lrms / chunk.size). n.cores retained for API compatibility only.
+  Always computes all three score methods (sum, mean, cmean) for all five
   categories plus totals and score.inout.ratio. Always replaces slot.
   Requires neighborhood slots to be populated.
   -> $aggregations$neighborhood.edge.agg keyed (cell,LRM)
-  Column structure:
-    count.in | count.out | count.cross | count.autocrine | count.total
+  Column structure (27 columns):
+    count.in | count.out | count.cross |
+    count.self.autocrine | count.other.autocrine | count.total
     score.{cat}.sum   -- total score per category
     score.{cat}.mean  -- sum / n.edges in neighborhood (LRM-agnostic denom)
     score.{cat}.cmean -- sum / count.{cat}; NA when count == 0
-    score.total.*     -- sum across all four categories
+    score.total.*     -- sum across all five categories
     score.inout.ratio -- score.in.sum / score.out.sum; NA when out == 0
   FILE: R/add_neighborhood_edge_agg.R
 
@@ -557,8 +567,10 @@ Aggregation slot design (current):
     $neighborhood.composition -- always replaced on each call (no overwrite param)
   Both functions follow the Seurat convention: call = recompute + replace.
   add_neighborhood_edge_agg() has no methods or overwrite parameters.
+    chunk.size (default 50L) controls LRM batch size for memory management.
   aggregate_NICHESObject() has no methods, overwrite, by.direction, include.self,
   or normalize parameters -- these are all fixed internally.
+    chunk.size (default 50L) is passed through to add_neighborhood_edge_agg().
 
 add_cell_meta() / add_meta_column() staleness rule:
   Both functions emit a MESSAGE (not a warning, not an error) when
@@ -571,15 +583,14 @@ add_cell_meta() / add_meta_column() staleness rule:
   used as the cell type grouping variable actually invalidates the result.
 
 autocrine edge classification in add_neighborhood_edge_agg():
-  The "autocrine" category captures ALL self-loop edges (SendingCell ==
-  ReceivingCell) in the neighborhood, not only those where the focal cell
-  is the self-looping cell. A neighbor cell B with a self-loop B->B
-  contributes to the focal cell's count.autocrine. This is intentional --
-  it captures autocrine signaling activity within the local environment.
-  NOTE: a future design change will split "autocrine" into two sub-categories:
-    self.autocrine  -- the focal cell's own self-loop edge only (count = 0 or 1)
-    other.autocrine -- self-loop edges of other cells in the neighborhood
-  See PENDING DECISIONS item 11 for the full design spec.
+  [RESOLVED] The single "autocrine" category has been split into two:
+    self.autocrine  -- SendingCell == ReceivingCell == focal cell.
+                       count is always 0 or 1 per (cell, LRM).
+    other.autocrine -- SendingCell == ReceivingCell != focal cell.
+                       Captures self-loop edges of neighbor cells.
+  Classification priority: self-loop check runs first (before out/in/cross),
+  then subdivides by whether the focal cell is the self-looping cell.
+  Total column count is now 27 (up from 23).
 
 Non-spatial mode and neighborhood composition:
   add_neighborhood_composition() hard-errors for mode="nonspatial". In
@@ -692,25 +703,8 @@ PENDING DECISIONS
     Confirm this is the intended formula (re-derived from total, not summed
     from directional cmeans) before closing.
 
-11. Split autocrine category in add_neighborhood_edge_agg():
-    Current design has one "autocrine" category capturing ALL self-loop edges
-    (SendingCell == ReceivingCell) in the neighborhood. Advisor request:
-    split into two sub-categories:
-      self.autocrine  -- the focal (central) cell's own self-loop edge only.
-                         count is always 0 or 1 per (cell, LRM).
-      other.autocrine -- self-loop edges of non-focal cells within the
-                         neighborhood (i.e., neighbor B's B->B edge).
-    Impact:
-      - add_neighborhood_edge_agg.R: classification logic, new columns,
-        score.total.* must sum across 5 categories (in, out, cross,
-        self.autocrine, other.autocrine), count.total likewise.
-      - Column count increases from 23 to 27 (two new count cols +
-        six new score cols replacing the four autocrine cols).
-      - test-add_neighborhood_edge_agg.R: column list, count.total identity
-        test, cmean NA rule loop, and any autocrine-specific value tests
-        all need updating.
-      - NICHESv2_package_design.md: EXPORTED FUNCTIONS section for
-        add_neighborhood_edge_agg(), KEY GOTCHAS autocrine entry.
-    Before starting: upload R/add_neighborhood_edge_agg.R and
-    tests/testthat/test-add_neighborhood_edge_agg.R. Read both fully.
-    Confirm the full change plan before writing any code.
+11. [RESOLVED] Split autocrine category in add_neighborhood_edge_agg():
+    Completed. Single "autocrine" category replaced by self.autocrine and
+    other.autocrine. Column count increased from 23 to 27. Implementation
+    uses sparse matrix multiplication with chunked LRM batching (chunk.size
+    parameter, default 50L) to bound peak memory on large datasets.
