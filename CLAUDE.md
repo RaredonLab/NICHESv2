@@ -72,9 +72,9 @@ LR scoring (`compute_CellToCell()` → `compute_LRM_Score()`): supports `"produc
 
 `$aggregations` starts as an empty list. Aggregations are populated on demand:
 
-- `add_neighborhood_edge_agg()` — adds `$aggregations$neighborhood.edge.agg`: 27-column table with directional per-(cell, LRM) scores (in, out, cross, self.autocrine, other.autocrine; sum/mean/cmean variants and in/out ratio)
+- `add_neighborhood_edge_agg()` — adds `$aggregations$neighborhood.edge.agg`: 27-column table with directional per-(cell, LRM) scores (in, out, cross, self.autocrine, other.autocrine; sum/mean/cmean variants and in/out ratio). Uses sparse matrix multiplication internally: five binary A matrices (cells × edges) are built once and multiplied by the score matrix B (edges × LRMs) in batches of `chunk.size` LRMs (default 50). This bounds peak memory while reducing iterations from n.lrms to ceil(n.lrms / chunk.size).
 - `add_neighborhood_composition()` — adds `$aggregations$neighborhood.composition`: per-cell neighbor cell-type proportions
-- `aggregate_NICHESObject()` calls both as a convenience wrapper
+- `aggregate_NICHESObject()` calls both as a convenience wrapper; accepts `chunk.size` and passes it through to `add_neighborhood_edge_agg()`
 
 ### Neighborhood filtering
 
@@ -88,6 +88,8 @@ LR scoring (`compute_CellToCell()` → `compute_LRM_Score()`): supports `"produc
 ### Parallelism
 
 Always use `parallel::makeCluster()` (socket clusters). **Never use `mclapply`** — it is not cross-platform. The `n.cores` parameter in user-facing functions wires directly to socket clusters.
+
+**Exception**: `add_neighborhood_edge_agg()` uses sparse matrix multiplication (Matrix package) instead of socket clusters. Its `n.cores` parameter is retained for API compatibility only and is not used. New functions that adopt a similar matrix-based approach should follow the same pattern: keep `n.cores` in the signature, validate it, but skip cluster creation.
 
 ### LR databases
 
