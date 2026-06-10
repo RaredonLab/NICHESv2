@@ -2,7 +2,7 @@
 # Convenience wrapper that runs the full aggregation pipeline on a
 # NICHESObject in a single call. Calls the following functions in order:
 #
-#   1. add_neighborhood_edge_agg()     -- four-category edge aggregation
+#   1. add_neighborhood_edge_agg()     -- five-category edge aggregation
 #   2. add_neighborhood_composition()  -- cell-type composition
 #      (skipped if cell.type.col = NULL or mode = "nonspatial")
 #
@@ -26,9 +26,10 @@
 #' \enumerate{
 #'   \item \code{\link{add_neighborhood_edge_agg}}: for each focal cell and
 #'     each LRM pair, aggregates scores across all neighborhood edges using
-#'     a four-way classification (in, out, cross, autocrine). All three
-#'     score methods (sum, mean, cmean) and the in/out ratio are always
-#'     computed.
+#'     a five-way classification (in, out, cross, self.autocrine,
+#'     other.autocrine). All three score methods (sum, mean, cmean) and the
+#'     in/out ratio are always computed. LRM pairs are processed in batches
+#'     of \code{chunk.size} to bound peak memory.
 #'   \item \code{\link{add_neighborhood_composition}}: computes cell-type
 #'     composition of each cell's local neighborhood from \code{$edge.list}
 #'     and \code{$cell.meta}. \emph{Skipped if \code{cell.type.col = NULL}
@@ -48,13 +49,19 @@
 #'   \code{$cell.meta} holding cell type annotations, passed to
 #'   \code{\link{add_neighborhood_composition}}. When \code{NULL} (default),
 #'   step 2 is skipped.
-#' @param n.cores       Positive integer. Socket-cluster workers passed to
-#'   \code{\link{add_neighborhood_edge_agg}}. Default \code{1L}.
+#' @param n.cores       Positive integer. Retained for API compatibility;
+#'   passed to \code{\link{add_neighborhood_edge_agg}} but not currently used
+#'   by the sparse matrix implementation. Default \code{1L}.
+#' @param chunk.size    Positive integer. Number of LRM pairs processed per
+#'   sparse matrix batch in \code{\link{add_neighborhood_edge_agg}}. Smaller
+#'   values reduce peak memory; larger values are marginally faster. Default
+#'   \code{50L}. Reduce to \code{20L}–\code{30L} on memory-constrained
+#'   machines (e.g. laptops); increase on HPC nodes with abundant RAM.
 #' @param verbose       Logical. Emit progress messages. Default \code{TRUE}.
 #'
 #' @return The input \code{niches.obj} with \code{$aggregations} populated:
 #' \describe{
-#'   \item{\code{$neighborhood.edge.agg}}{Always populated (four-category
+#'   \item{\code{$neighborhood.edge.agg}}{Always populated (five-category
 #'     edge aggregation keyed on \code{(cell, LRM)}, with all three score
 #'     methods and in/out ratio).}
 #'   \item{\code{$neighborhood.composition}}{Populated when
@@ -86,6 +93,7 @@ aggregate_NICHESObject <- function(
     niches.obj,
     cell.type.col = NULL,
     n.cores       = 1L,
+    chunk.size    = 50L,
     verbose       = TRUE
 ) {
 
@@ -94,9 +102,13 @@ aggregate_NICHESObject <- function(
     stop("[aggregate_NICHESObject] 'niches.obj' must be a NICHESObject.",
          call. = FALSE)
 
-  n.cores <- as.integer(n.cores)
+  n.cores    <- as.integer(n.cores)
+  chunk.size <- as.integer(chunk.size)
   if (is.na(n.cores) || n.cores < 1L)
     stop("[aggregate_NICHESObject] 'n.cores' must be a positive integer.",
+         call. = FALSE)
+  if (is.na(chunk.size) || chunk.size < 1L)
+    stop("[aggregate_NICHESObject] 'chunk.size' must be a positive integer.",
          call. = FALSE)
 
   if (verbose)
@@ -108,8 +120,9 @@ aggregate_NICHESObject <- function(
 
   niches.obj <- add_neighborhood_edge_agg(
     niches.obj,
-    n.cores = n.cores,
-    verbose = verbose
+    n.cores    = n.cores,
+    chunk.size = chunk.size,
+    verbose    = verbose
   )
 
   ## Step 2: Neighborhood composition -----------------------------------------

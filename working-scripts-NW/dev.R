@@ -48,5 +48,8 @@ cell.type.col <- 'Type.6'
 niches.obj <- aggregate_NICHESObject(
   niches.obj,
   cell.type.col = cell.type.col,
-  n.cores       = 4L
+  n.cores       = 6L
 )
+
+# Save the aggregated object with datestamp
+saveRDS(niches.obj, file = "/Users/nw426/Desktop/NICHESv2/NICHESv2_PPLR_rad25_aggregated_2026-06-10.rds")

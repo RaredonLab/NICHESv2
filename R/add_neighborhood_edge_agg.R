@@ -26,7 +26,7 @@
 #
 # Sources: $neighborhood.edge.list, $neighborhood.meta, $edge.list, $edge.data
 #
-# DEPS: data.table, parallel
+# DEPS: data.table, Matrix
 
 
 ## NEIGHBORHOOD EDGE AGGREGATION ----
@@ -88,8 +88,13 @@
 #' }
 #'
 #' @param niches.obj A \code{NICHESObject} with neighborhood slots populated.
-#' @param n.cores    Positive integer. Socket-cluster workers for parallel
-#'   computation over LRM pairs. Default \code{1L}.
+#' @param n.cores    Positive integer. Retained for API compatibility; not used
+#'   in the current sparse matrix implementation. Default \code{1L}.
+#' @param chunk.size Positive integer. Number of LRM pairs processed per sparse
+#'   matrix batch. Smaller values reduce peak memory at the cost of slightly
+#'   more overhead; larger values are faster but require more RAM. Default
+#'   \code{50L} (≈12 batches for 558 LRMs). Reduce to \code{20L}–\code{30L}
+#'   on memory-constrained machines.
 #' @param verbose    Logical. Emit progress messages. Default \code{TRUE}.
 #'
 #' @return The input \code{niches.obj} with
@@ -110,8 +115,9 @@
 #' @export
 add_neighborhood_edge_agg <- function(
     niches.obj,
-    n.cores = 1L,
-    verbose = TRUE
+    n.cores  = 1L,
+    chunk.size = 50L,
+    verbose  = TRUE
 ) {
   
   ## Input validation ----------------------------------------------------------
@@ -119,9 +125,13 @@ add_neighborhood_edge_agg <- function(
     stop("[add_neighborhood_edge_agg] 'niches.obj' must be a NICHESObject.",
          call. = FALSE)
   
-  n.cores <- as.integer(n.cores)
+  n.cores    <- as.integer(n.cores)
+  chunk.size <- as.integer(chunk.size)
   if (is.na(n.cores) || n.cores < 1L)
     stop("[add_neighborhood_edge_agg] 'n.cores' must be a positive integer.",
+         call. = FALSE)
+  if (is.na(chunk.size) || chunk.size < 1L)
+    stop("[add_neighborhood_edge_agg] 'chunk.size' must be a positive integer.",
          call. = FALSE)
   
   ## Neighborhood slot guard ---------------------------------------------------
@@ -173,127 +183,202 @@ add_neighborhood_edge_agg <- function(
   
   if (verbose)
     message(sprintf(
-      "[add_neighborhood_edge_agg] Aggregating %d LRM pairs | %d neighborhood edges ...",
+      "[add_neighborhood_edge_agg] Aggregating %d cells x %d LRMs x %d neighborhood edges (chunk.size = %d) ...",
+      length(unique(cell.edge.dt$cell)),
       length(niches.obj$LRM.list),
-      nrow(cell.edge.dt)
+      nrow(cell.edge.dt),
+      chunk.size
     ))
-  
-  ## Worker function -----------------------------------------------------------
-  # Processes one LRM's slice. Always computes all counts, all three score
-  # methods (sum/mean/cmean) for all five categories, and score.inout.ratio.
-  .nbr_edge_worker <- function(lrm.dt, total.nbr.edges) {
-    
-    lrm.id   <- lrm.dt$LRM[1L]
-    all.cats <- c("in", "out", "cross", "self.autocrine", "other.autocrine")
-    
-    ## Aggregate counts and sums per (cell, edge.type) -----------------------
-    agg <- lrm.dt[,
-                  .(n.cat = .N, score.cat.sum = sum(score)),
-                  by = .(cell, edge.type)
-    ]
-    
-    ## Pivot counts to wide --------------------------------------------------
-    cnt.wide <- data.table::dcast(
-      agg, cell ~ edge.type, value.var = "n.cat", fill = 0L
-    )
-    for (cat in setdiff(all.cats, colnames(cnt.wide)))
-      cnt.wide[, (cat) := 0L]
-    data.table::setnames(cnt.wide,
-                         old = all.cats, new = paste0("count.", all.cats)
-    )
-    cnt.wide[, count.total :=
-               count.in + count.out + count.cross +
-               count.self.autocrine + count.other.autocrine]
-    
-    ## Pivot score sums to wide ----------------------------------------------
-    sum.wide <- data.table::dcast(
-      agg, cell ~ edge.type, value.var = "score.cat.sum", fill = 0
-    )
-    for (cat in setdiff(all.cats, colnames(sum.wide)))
-      sum.wide[, (cat) := 0]
-    data.table::setnames(sum.wide,
-                         old = all.cats, new = paste0("score.", all.cats, ".sum")
-    )
-    sum.wide[, score.total.sum :=
-               score.in.sum + score.out.sum + score.cross.sum +
-               score.self.autocrine.sum + score.other.autocrine.sum]
-    
-    ## Merge counts and sums -------------------------------------------------
-    result <- merge(cnt.wide, sum.wide, by = "cell", all = TRUE)
-    
-    ## Mean: LRM-agnostic denominator (total neighborhood edges) -------------
-    idx     <- match(result$cell, total.nbr.edges$cell)
-    n.edges <- total.nbr.edges$n.edges[idx]
-    for (cat in all.cats)
-      result[, (paste0("score.", cat, ".mean")) :=
-               get(paste0("score.", cat, ".sum")) / n.edges]
-    result[, score.total.mean := score.total.sum / n.edges]
-    # Guard: cells absent from neighborhood.meta (should not occur)
-    for (col in grep("\\.mean$", colnames(result), value = TRUE))
-      result[is.na(get(col)), (col) := 0]
-    
-    ## Cmean: denominator is the category count (conditional mean) -----------
-    for (cat in all.cats)
-      result[, (paste0("score.", cat, ".cmean")) :=
-               data.table::fifelse(
-                 get(paste0("count.", cat)) > 0L,
-                 get(paste0("score.", cat, ".sum")) /
-                   get(paste0("count.", cat)),
-                 NA_real_
-               )]
-    result[, score.total.cmean := data.table::fifelse(
-      count.total > 0L, score.total.sum / count.total, NA_real_
-    )]
-    
-    ## In/out ratio ----------------------------------------------------------
-    result[, score.inout.ratio := data.table::fifelse(
-      score.out.sum > 0, score.in.sum / score.out.sum, NA_real_
-    )]
-    
-    result[, LRM := lrm.id]
-    result
+
+  ## Chunked sparse matrix multiplication approach ----------------------------
+  # Build 5 binary A matrices (cells x edges) once, then process LRMs in
+  # batches of chunk.size. Each chunk multiplies A_t %*% B_chunk (score) and
+  # A_t %*% B.ind_chunk (count), extracts the non-zero (cell, LRM) entries,
+  # and discards the chunk matrices before processing the next batch.
+  #
+  # This bounds peak memory to one chunk at a time while still reducing the
+  # number of iterations from n.lrms to ceil(n.lrms / chunk.size).
+  #
+  # n.cores is retained for API compatibility; not used (sparse matmul is
+  # single-threaded; socket-cluster overhead exceeds gain for 5 tasks).
+
+  all.cats  <- c("in", "out", "cross", "self.autocrine", "other.autocrine")
+
+  # Index mappings
+  all.cells <- unique(cell.edge.dt$cell)
+  all.lrms  <- niches.obj$LRM.list
+  n.cells   <- length(all.cells)
+  n.lrms    <- length(all.lrms)
+
+  # Restrict edge.data to edges that actually appear in neighbourhoods
+  nbr.edge.set <- unique(cell.edge.dt$edge)
+  ed.sub       <- edge.data.sub[edge %in% nbr.edge.set]
+  common.edges <- unique(ed.sub$edge)
+  n.e          <- length(common.edges)
+
+  if (n.e == 0L) {
+    if (verbose)
+      message("[add_neighborhood_edge_agg] No scored edges in any neighbourhood. Returning empty result.")
+    niches.obj$aggregations$neighborhood.edge.agg <- data.table::data.table()
+    return(niches.obj)
   }
-  
-  ## Split edge.data by LRM; merge with cell.edge.dt inside each worker call --
-  # Splitting BEFORE merging avoids a single giant intermediate table:
-  # cell.edge.dt has many rows per edge (one per focal cell) and edge.data.sub
-  # has many rows per edge (one per LRM); their full join can exceed 2^31 rows
-  # on large datasets. Each per-LRM slice has unique edge values so no
-  # allow.cartesian is needed for the per-LRM merge.
-  lrm.split <- split(edge.data.sub, by = "LRM", keep.by = TRUE)
-  
-  if (n.cores > 1L) {
-    cl <- parallel::makeCluster(n.cores)
-    on.exit(parallel::stopCluster(cl), add = TRUE)
-    parallel::clusterEvalQ(cl, {
-      library(data.table)
-      data.table::setDTthreads(1L)
-    })
-    parallel::clusterExport(
-      cl,
-      varlist = c(".nbr_edge_worker", "total.nbr.edges", "cell.edge.dt"),
-      envir   = environment()
-    )
-    results <- parallel::parLapply(
-      cl, lrm.split,
-      function(lrm.score.dt) {
-        lrm.dt <- merge(cell.edge.dt, lrm.score.dt, by = "edge")
-        .nbr_edge_worker(lrm.dt, total.nbr.edges)
-      }
-    )
-  } else {
-    results <- lapply(
-      lrm.split,
-      function(lrm.score.dt) {
-        lrm.dt <- merge(cell.edge.dt, lrm.score.dt, by = "edge")
-        .nbr_edge_worker(lrm.dt, total.nbr.edges)
-      }
-    )
+
+  # Restrict cell.edge.dt to common edges and build index vectors
+  ce.sub    <- cell.edge.dt[edge %in% common.edges]
+  c.idx.vec <- match(ce.sub$cell, all.cells)
+  e.idx.vec <- match(ce.sub$edge, common.edges)
+
+  # Build A matrices once — one per edge type (cells x edges), binary.
+  # These are reused across all LRM chunks.
+  A.list <- vector("list", 5L); names(A.list) <- all.cats
+  for (cat in all.cats) {
+    mask <- ce.sub$edge.type == cat
+    if (any(mask))
+      A.list[[cat]] <- Matrix::sparseMatrix(
+        i = c.idx.vec[mask], j = e.idx.vec[mask], x = 1L,
+        dims = c(n.cells, n.e)
+      )
   }
-  
-  ## Assemble final table -----------------------------------------------------
-  agg.dt <- rbindlist(results, fill = TRUE)
-  setkeyv(agg.dt, c("cell", "LRM"))
+
+  # Precompute edge-level index for fast chunk subsetting
+  ed.sub.edge.idx <- match(ed.sub$edge, common.edges)
+  ed.sub.lrm      <- ed.sub$LRM
+  ed.sub.score    <- ed.sub$score
+
+  # Split LRMs into chunks and process each independently
+  lrm.chunks   <- split(seq_len(n.lrms),
+                        ceiling(seq_len(n.lrms) / chunk.size))
+  n.chunks     <- length(lrm.chunks)
+  chunk.results <- vector("list", n.chunks)
+
+  for (k in seq_len(n.chunks)) {
+
+    chunk.l.idx  <- lrm.chunks[[k]]           # column indices into all.lrms
+    chunk.lrms   <- all.lrms[chunk.l.idx]
+    n.chunk      <- length(chunk.lrms)
+
+    # Build B_chunk (n.e x n.chunk) and B.ind_chunk for this set of LRMs
+    rows.k  <- ed.sub.lrm %in% chunk.lrms
+    e.idx.k <- ed.sub.edge.idx[rows.k]
+    l.idx.k <- match(ed.sub.lrm[rows.k], chunk.lrms)
+    keep.k  <- !is.na(e.idx.k) & !is.na(l.idx.k)
+
+    if (!any(keep.k)) {
+      chunk.results[[k]] <- NULL
+      next
+    }
+
+    B.k <- Matrix::sparseMatrix(
+      i = e.idx.k[keep.k], j = l.idx.k[keep.k], x = ed.sub.score[rows.k][keep.k],
+      dims = c(n.e, n.chunk)
+    )
+    B.ind.k <- Matrix::sparseMatrix(
+      i = e.idx.k[keep.k], j = l.idx.k[keep.k], x = 1L,
+      dims = c(n.e, n.chunk)
+    )
+
+    # 10 matrix products for this chunk
+    mat.sum.k <- vector("list", 5L); names(mat.sum.k) <- all.cats
+    mat.cnt.k <- vector("list", 5L); names(mat.cnt.k) <- all.cats
+    zero.k    <- Matrix::sparseMatrix(i = integer(0L), j = integer(0L),
+                                      dims = c(n.cells, n.chunk))
+    for (cat in all.cats) {
+      if (is.null(A.list[[cat]])) {
+        mat.sum.k[[cat]] <- zero.k
+        mat.cnt.k[[cat]] <- zero.k
+      } else {
+        mat.sum.k[[cat]] <- A.list[[cat]] %*% B.k
+        mat.cnt.k[[cat]] <- A.list[[cat]] %*% B.ind.k
+      }
+    }
+
+    # Identify active (cell, LRM) pairs in this chunk
+    cnt.total.k <- Reduce("+", mat.cnt.k)
+    nz.k        <- Matrix::summary(cnt.total.k)   # data.frame: i, j, x
+
+    if (nrow(nz.k) == 0L) {
+      chunk.results[[k]] <- NULL
+      next
+    }
+
+    nz.mat.k <- cbind(nz.k$i, nz.k$j)
+
+    # Build partial result table for this chunk
+    cdt <- data.table::data.table(
+      cell = all.cells[nz.mat.k[, 1L]],
+      LRM  = chunk.lrms[nz.mat.k[, 2L]]
+    )
+    for (cat in all.cats) {
+      cdt[, paste0("count.", cat) := as.integer(mat.cnt.k[[cat]][nz.mat.k])]
+      cdt[, paste0("score.", cat, ".sum") := as.numeric(mat.sum.k[[cat]][nz.mat.k])]
+    }
+
+    chunk.results[[k]] <- cdt
+
+    # Explicitly drop chunk matrices to free memory before next iteration
+    rm(B.k, B.ind.k, mat.sum.k, mat.cnt.k, cnt.total.k, nz.k, nz.mat.k, cdt)
+    gc(verbose = FALSE)
+
+    if (verbose && (k %% max(1L, n.chunks %/% 5L) == 0L || k == n.chunks))
+      message(sprintf("  [add_neighborhood_edge_agg] chunk %d / %d done.", k, n.chunks))
+  }
+
+  ## Assemble final table from chunk results -----------------------------------
+  agg.dt <- data.table::rbindlist(
+    Filter(Negate(is.null), chunk.results),
+    fill = TRUE, use.names = TRUE
+  )
+  rm(chunk.results, A.list); gc(verbose = FALSE)
+
+  if (nrow(agg.dt) == 0L) {
+    if (verbose)
+      message("[add_neighborhood_edge_agg] No active (cell, LRM) pairs found. Returning empty result.")
+    niches.obj$aggregations$neighborhood.edge.agg <- agg.dt
+    return(niches.obj)
+  }
+
+  data.table::setkeyv(agg.dt, c("cell", "LRM"))
+
+  # Fill any category columns absent from all chunks with zero
+  for (cat in all.cats) {
+    cnt.col <- paste0("count.", cat);      if (is.null(agg.dt[[cnt.col]])) agg.dt[, (cnt.col) := 0L]
+    sum.col <- paste0("score.", cat, ".sum"); if (is.null(agg.dt[[sum.col]])) agg.dt[, (sum.col) := 0]
+  }
+
+  agg.dt[, count.total :=
+           count.in + count.out + count.cross +
+           count.self.autocrine + count.other.autocrine]
+  agg.dt[, score.total.sum :=
+           score.in.sum + score.out.sum + score.cross.sum +
+           score.self.autocrine.sum + score.other.autocrine.sum]
+
+  ## Mean: LRM-agnostic denominator (total neighbourhood edges) ---------------
+  idx     <- match(agg.dt$cell, total.nbr.edges$cell)
+  n.edges <- total.nbr.edges$n.edges[idx]
+  for (cat in all.cats)
+    agg.dt[, paste0("score.", cat, ".mean") :=
+             get(paste0("score.", cat, ".sum")) / n.edges]
+  agg.dt[, score.total.mean := score.total.sum / n.edges]
+  # Guard: cells absent from neighborhood.meta (should not occur)
+  for (col in grep("\\.mean$", colnames(agg.dt), value = TRUE))
+    agg.dt[is.na(get(col)), (col) := 0]
+
+  ## Cmean: conditional mean (denominator = category count) -------------------
+  for (cat in all.cats)
+    agg.dt[, paste0("score.", cat, ".cmean") :=
+             data.table::fifelse(
+               get(paste0("count.", cat)) > 0L,
+               get(paste0("score.", cat, ".sum")) / get(paste0("count.", cat)),
+               NA_real_
+             )]
+  agg.dt[, score.total.cmean := data.table::fifelse(
+    count.total > 0L, score.total.sum / count.total, NA_real_
+  )]
+
+  ## In/out ratio --------------------------------------------------------------
+  agg.dt[, score.inout.ratio := data.table::fifelse(
+    score.out.sum > 0, score.in.sum / score.out.sum, NA_real_
+  )]
   
   # Enforce column order: identity | counts | sums | means | cmeans | ratio
   count.order <- c("count.in", "count.out", "count.cross",
