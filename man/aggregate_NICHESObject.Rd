@@ -8,6 +8,7 @@ aggregate_NICHESObject(
   niches.obj,
   cell.type.col = NULL,
   n.cores = 1L,
+  chunk.size = 50L,
   verbose = TRUE
 )
 }
@@ -20,15 +21,22 @@ populated.}
 \code{\link{add_neighborhood_composition}}. When \code{NULL} (default),
 step 2 is skipped.}
 
-\item{n.cores}{Positive integer. Socket-cluster workers passed to
-\code{\link{add_neighborhood_edge_agg}}. Default \code{1L}.}
+\item{n.cores}{Positive integer. Retained for API compatibility;
+passed to \code{\link{add_neighborhood_edge_agg}} but not currently used
+by the sparse matrix implementation. Default \code{1L}.}
+
+\item{chunk.size}{Positive integer. Number of LRM pairs processed per
+sparse matrix batch in \code{\link{add_neighborhood_edge_agg}}. Smaller
+values reduce peak memory; larger values are marginally faster. Default
+\code{50L}. Reduce to \code{20L}–\code{30L} on memory-constrained
+machines (e.g. laptops); increase on HPC nodes with abundant RAM.}
 
 \item{verbose}{Logical. Emit progress messages. Default \code{TRUE}.}
 }
 \value{
 The input \code{niches.obj} with \code{$aggregations} populated:
 \describe{
-  \item{\code{$neighborhood.edge.agg}}{Always populated (four-category
+  \item{\code{$neighborhood.edge.agg}}{Always populated (five-category
     edge aggregation keyed on \code{(cell, LRM)}, with all three score
     methods and in/out ratio).}
   \item{\code{$neighborhood.composition}}{Populated when
@@ -47,9 +55,10 @@ directly for finer control.
 \enumerate{
   \item \code{\link{add_neighborhood_edge_agg}}: for each focal cell and
     each LRM pair, aggregates scores across all neighborhood edges using
-    a four-way classification (in, out, cross, autocrine). All three
-    score methods (sum, mean, cmean) and the in/out ratio are always
-    computed.
+    a five-way classification (in, out, cross, self.autocrine,
+    other.autocrine). All three score methods (sum, mean, cmean) and the
+    in/out ratio are always computed. LRM pairs are processed in batches
+    of \code{chunk.size} to bound peak memory.
   \item \code{\link{add_neighborhood_composition}}: computes cell-type
     composition of each cell's local neighborhood from \code{$edge.list}
     and \code{$cell.meta}. \emph{Skipped if \code{cell.type.col = NULL}
