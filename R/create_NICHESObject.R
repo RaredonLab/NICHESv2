@@ -166,9 +166,7 @@
 #'   \code{\link{create_Edgelist_SamplingByType}} for the edge-list
 #'     constructors invoked internally;
 #'   \code{\link{load_LRM_database}} for the LR-database loader;
-#'   \code{\link{aggregate_NICHESObject}},
-#'   \code{\link{CellToCell_InSitu}} for downstream summarisation and
-#'     plotting.
+#'   \code{\link{aggregate_NICHESObject}} for downstream summarisation.
 #'
 #' @examples
 #' \donttest{

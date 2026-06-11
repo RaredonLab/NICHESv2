@@ -77,7 +77,7 @@ NULL
 #' \code{k = 5}, ligand--receptor scoring with \code{method = "product"},
 #' and proportional normalisation. Used by the example blocks of downstream
 #' functions including \code{\link{add_neighborhoods}},
-#' \code{\link{CellToCell_InSitu}}, \code{\link{add_cell_meta}}, and the
+#' \code{\link{add_cell_meta}}, and the
 #' S3 methods of \code{NICHESObject}.
 #'
 #' Two slot families are intentionally left \code{NULL}:

@@ -1,12 +1,12 @@
 ---
-title: "Spatial-Mode Workflow: Visium Data with In Situ Connectivity Maps"
+title: "Spatial-Mode Workflow: Visium Data"
 date: "`r Sys.Date()`"
 output:
   prettydoc::html_pretty:
     theme: cayman
     highlight: github
 vignette: >
-  %\VignetteIndexEntry{Spatial-Mode Workflow: Visium Data with In Situ Connectivity Maps}
+  %\VignetteIndexEntry{Spatial-Mode Workflow: Visium Data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -241,27 +241,3 @@ head(niches.stx$edge.data, 3)
 
 ---
 
-## Step 5 — In situ connectivity map
-
-`CellToCell_InSitu_Single_LRM()` maps the LRM score of every edge onto the
-tissue coordinate system, drawing each edge as a coloured line segment between
-sending and receiving spots.
-
-Here we visualise **Gnas|Adcy1** — Gnas (G protein alpha subunit) signalling
-to Adcy1 (adenylate cyclase 1). The resulting map reveals a striking cortical
-arc: high-scoring edges concentrate in the cortex, which wraps around subcortical
-structures along the lateral and inferior edges of the anterior section. This
-spatial pattern is consistent with the known high expression of adenylate
-cyclase in cortical neurons and reflects the power of spatial mode to localise
-signalling to anatomically coherent regions.
-
-```{r insitu-plot, eval=FALSE}
-CellToCell_InSitu_Single_LRM(
-  niches.obj    = niches.stx,
-  LRM           = "Gnas|Adcy1",
-  bg.alpha      = 0.3,
-  bg.linewidth  = 0.2,
-  sig.linewidth = 0.3,
-  sig.alpha     = 0.7
-)
-```

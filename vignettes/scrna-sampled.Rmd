@@ -304,11 +304,8 @@ that directional pair across the full FANTOM5 LRM catalogue.
 ## What's next
 
 This vignette covered the sampled-mode workflow for annotated scRNA-seq data
-without spatial coordinates. Because sampled mode does not assign physical
-positions to cells, in-situ plotting is not available — `CellToCell_InSitu()`
-requires spatial coordinates in `$cell.meta`.
+without spatial coordinates.
 
 For spatially resolved data (Visium, MERFISH, Xenium, etc.), see the next
 vignette: **Spatial-Mode Workflow**, which covers radius parameter selection
-with `Explore_Radius_Neighborhood()` and in-situ LRM connectivity maps with
-`CellToCell_InSitu_Single_LRM()`.
+with `Explore_Radius_Neighborhood()`.
