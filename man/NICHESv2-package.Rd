@@ -20,8 +20,7 @@ on the original NICHES package with:
   \item Per-edge and per-cell \strong{normalised scores} alongside raw
     counts.
   \item Parallel LR computation via \code{mclapply} on Unix/macOS.
-  \item Flexible aggregation (\code{aggregate_NICHESObject}) and
-    batch spatial visualisation (\code{CellToCell_InSitu}).
+  \item Flexible aggregation (\code{aggregate_NICHESObject}).
 }
 }
 \section{Typical workflow}{
@@ -51,14 +50,7 @@ dim(niches.obj)            # cells / genes / edges / LRMs
 # 4. Aggregate neighborhood edge signals
 niches.obj <- aggregate_NICHESObject(niches.obj, cell.type.col = "celltype")
 
-# 5. Visualise a single LRM pair in situ
-p <- CellToCell_InSitu_Single_LRM(niches.obj, LRM = "MIF|CD74")
-print(p)
-
-# 6. Batch-save PNGs for all LRM pairs
-CellToCell_InSitu(niches.obj, folder = "niches_plots")
-
-# 7. Subset to a cell population
+# 5. Subset to a cell population
 b.cells <- niches.obj$cell.meta[celltype == "B_cell", cell]
 sub.obj  <- niches.obj[b.cells]
 }
@@ -110,7 +102,7 @@ knowledge for multicellular omics analysis. \emph{Molecular Systems Biology},
 }
 \seealso{
 \code{\link{create_NICHESObject}}, \code{\link{aggregate_NICHESObject}},
-\code{\link{CellToCell_InSitu}}, \code{\link{load_LRM_database}}
+\code{\link{load_LRM_database}}
 }
 \author{
 NICHESv2 Authors

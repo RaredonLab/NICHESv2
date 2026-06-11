@@ -10,10 +10,10 @@ Authors@R: c(
            role  = "aut"))
 Description: Computes ligand-receptor (LR) signalling scores between spatially
     neighbouring cells in single-cell spatial transcriptomics data. Returns a
-    NICHESObject (15-slot S3 class) with per-cell aggregation, batch in situ
-    visualisation, and flexible downstream analysis. Supports single-gene and
-    multi-gene complex ligands/receptors (underscore-delimited). Built-in
-    loaders for ConnectomeDB2025 (default), FANTOM5, and OmniPath LR databases.
+    NICHESObject (15-slot S3 class) with per-cell aggregation and flexible
+    downstream analysis. Supports single-gene and multi-gene complex
+    ligands/receptors (underscore-delimited). Built-in loaders for
+    ConnectomeDB2025 (default), FANTOM5, and OmniPath LR databases.
 License: MIT + file LICENSE
 URL: https://github.com/RaredonLab/NICHESv2
 BugReports: https://github.com/RaredonLab/NICHESv2/issues
@@ -30,8 +30,7 @@ Imports:
     dbscan (>= 1.1.0),
     ggplot2 (>= 3.4.0),
     irlba (>= 2.3.0),
-    parallel,
-    scales
+    parallel
 Suggests:
     SeuratObject,
     rhdf5,
