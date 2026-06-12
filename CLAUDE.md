@@ -59,7 +59,7 @@ Key string separators (used throughout):
 
 **Barcodes must be globally unique across all samples** when using `sample.col`.
 
-The single-partition pipeline (in order): validate inputs → build edge list → optional smoothing → score LR pairs via `compute_CellToCell()` → assemble slots → extract neighborhoods.
+The single-partition pipeline (in order): validate inputs → build edge list → score LR pairs via `compute_CellToCell()` → assemble slots → extract neighborhoods.
 
 Edge list construction:
 - **Spatial kNN** (`k=`): `RANN::nn2`; only mutual edges are kept
@@ -107,7 +107,6 @@ Custom data frames are also accepted; must have `ligand` and `receptor` columns 
 
 ### Known issues
 
-- `smooth = TRUE` is untested end-to-end in `create_NICHESObject()` (nonspatial mode only)
 - `[.NICHESObject` subsetting does not propagate `mode` or `sample.col` attributes
 
 ## Repository layout notes

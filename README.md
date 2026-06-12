@@ -36,7 +36,7 @@ are supported via underscore delimiting (`gene1_gene2`).
 ```r
 # 1. Install CRAN dependencies first (avoids timeouts on GitHub install)
 install.packages(c(
-  "data.table", "Matrix", "RANN", "dbscan", "irlba", "ggplot2", "scales"
+  "data.table", "Matrix", "RANN", "dbscan", "ggplot2"
 ))
 
 # 2. Install NICHESv2 from the dev branch
@@ -81,11 +81,6 @@ obj <- aggregate_NICHESObject(NICHESv2_example, cell.type.col = "celltype")
 head(obj$aggregations$neighborhood.edge.agg)   # per-(cell, LRM) scores
 head(obj$aggregations$neighborhood.composition) # neighbor cell-type proportions
 
-# Visualise one LR pair in situ
-CellToCell_InSitu_Single_LRM(
-  niches.obj = NICHESv2_example,
-  LRM        = NICHESv2_example$LRM.list[1]
-)
 ```
 
 ### Build a NICHESObject from raw inputs
@@ -136,9 +131,6 @@ For Seurat and AnnData input workflows, vignettes are in preparation.
   (`extract_NICHESInputs_AnnData()`)
 - **Cross-platform parallelism:** socket clusters only
   (`parallel::makeCluster` + `parLapply`); never `mclapply`
-- **In-situ visualisation:** `CellToCell_InSitu()` exports batch PNGs for
-  any list of LR pairs; `CellToCell_InSitu_Single_LRM()` for interactive
-  single-pair inspection
 - **Neighborhood analysis:** neighborhood slots (`$neighborhood.cell.list`,
   `$neighborhood.edge.list`, `$neighborhood.meta`) are always populated
   at construction by `create_NICHESObject()`; `add_neighborhoods()` allows
