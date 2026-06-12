@@ -18,9 +18,6 @@ create_NICHESObject(
   rad = NULL,
   seed = 42L,
   max.cells = NULL,
-  smooth = FALSE,
-  smooth.k = 9L,
-  n.pcs = 30L,
   method = c("product", "minimum"),
   normalize.method = c("prop", "none"),
   gene.meta = NULL,
@@ -82,19 +79,6 @@ sampling. Default \code{42L}. Nonspatial mode only.}
 \item{max.cells}{Integer or \code{NULL}. Per cell-type-pair edge cap.
 Default \code{NULL} (no cap). Nonspatial mode only.}
 
-\item{smooth}{Logical. Enable PCA-based neighbourhood smoothing of
-the count matrix before scoring. Default \code{FALSE}. Nonspatial mode
-only; see the PCA-based smoothing section above.}
-
-\item{smooth.k}{Integer. Number of nearest neighbours used for
-smoothing (cell + \code{smooth.k} neighbours are averaged). Default
-\code{9L}. Used only when \code{smooth = TRUE}.}
-
-\item{n.pcs}{Integer. Number of principal components for the
-neighbour search underlying smoothing. Default \code{30L}, capped
-internally at \code{min(n.pcs, ncells - 1, ngenes - 1)}. Used only
-when \code{smooth = TRUE}.}
-
 \item{method}{Per-edge LR scoring method. \code{"product"} (default)
 multiplies sender ligand expression by receiver receptor expression;
 \code{"minimum"} takes the elementwise minimum. Both handle gene
@@ -135,8 +119,7 @@ The primary entry point for NICHESv2. Supports two analysis modes:
   \item{\code{"spatial"}}{Edges defined by physical proximity using kNN or
     radius in x/y space. Requires \code{x} and \code{y} in \code{meta.data}.}
   \item{\code{"nonspatial"}}{NICHES v1-style type-stratified sampling. Requires
-    \code{cell.type.col}. Optional PCA-based neighbourhood smoothing via
-    \code{smooth = TRUE}.}
+    \code{cell.type.col}.}
 }
 
 For pseudobulk (type-averaged) connectivity use
@@ -181,18 +164,6 @@ which is what \code{Seurat::RenameCells()} does automatically).
 
 Outer iteration over samples is always sequential; the inner pipeline
 uses \code{n.cores} for parallelism, so socket clusters are never nested.
-}
-
-\section{PCA-based smoothing (nonspatial mode only)}{
-
-When \code{smooth = TRUE}, the count matrix is denoised before scoring by
-replacing each cell's expression with the mean of its \code{smooth.k}
-nearest neighbours in PC space (computed from \code{n.pcs} principal
-components via \code{irlba}). Smoothing reduces dropout-driven zeros in
-single-cell data but is approximate -- only the columns used for scoring
-are replaced; \code{$cell.data} continues to reflect the original raw
-counts. This branch is not exercised by the bundled tests; review results
-carefully before relying on it for downstream analysis.
 }
 
 \examples{

@@ -29,7 +29,6 @@ Imports:
     RANN (>= 2.6.1),
     dbscan (>= 1.1.0),
     ggplot2 (>= 3.4.0),
-    irlba (>= 2.3.0),
     parallel
 Suggests:
     SeuratObject,

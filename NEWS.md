@@ -67,8 +67,6 @@ release will accompany the methods paper.
   inner scoring uses the full `n.cores` allocation.
 - Hard barcode-uniqueness error across samples; tip: prefix barcodes with
   `paste0(sample.id, "_", barcode)` before calling.
-- Optional PCA-based kNN expression smoothing (`smooth = TRUE`; see Known
-  Limitations below).
 - Neighborhood slots are always populated at construction; no separate
   `add_neighborhoods()` call required for the default configuration.
 - Two bundled datasets for immediate exploration and reproducible examples:
@@ -108,13 +106,6 @@ release will accompany the methods paper.
   package version string.
 - `extract_NICHESInputs_AnnData()` -- reads `.h5ad` via `rhdf5` only; no
   Python, conda, basilisk, or zellkonverter required; requires R >= 4.2.
-
-### Visualisation
-
-- `CellToCell_InSitu()` -- batch PNG export for a list of LR pairs via socket
-  cluster parallelism; background is pre-computed once before workers start.
-- `CellToCell_InSitu_Single_LRM()` -- single-pair in-situ plot; accepts a
-  `precomputed.bg` argument to skip redundant background computation.
 
 ### Aggregation
 
@@ -163,10 +154,6 @@ release will accompany the methods paper.
 
 ## Known limitations
 
-- **`smooth = TRUE` is untested end-to-end.** The smoothing branch in
-  `create_NICHESObject()` has no integration test coverage. The underlying
-  `smooth_expression()` function is unit-tested and correct, but the call site
-  in the dispatcher should be verified before use on real data.
 - **`[.NICHESObject` does not propagate attributes.** Subsetting a
   NICHESObject with `[` does not copy `mode` or `sample.col` attributes to
   the result. Fix is known and scheduled for 0.1.1.
