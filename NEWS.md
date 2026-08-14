@@ -37,8 +37,10 @@ release will accompany the methods paper.
   ConnectomeDB2025 pairs.
 - FANTOM5 bundled as pre-filtered `.rda` objects for human, mouse, rat, and
   pig; no internet connection required.
-- OmniPath loaded via `import_ligrecextra_interactions()` for human, mouse,
-  and rat (pig not supported by OmniPath).
+- OmniPath loaded for human, mouse, and rat (pig not supported by OmniPath).
+  Uses `OmnipathR::import_ligrecextra_interactions()` when available, with a
+  base-R REST fallback for resilience against upstream service outages (see
+  Bug fixes below).
 - User-supplied data frames accepted directly with `ligand.col` and
   `receptor.col` arguments for non-standard column names.
 
@@ -149,6 +151,25 @@ release will accompany the methods paper.
   The following columns have been removed and must be updated in any
   downstream code: `count.autocrine`, `score.autocrine.sum`,
   `score.autocrine.mean`, `score.autocrine.cmean`.
+
+---
+
+## Bug fixes
+
+- **OmniPath loading no longer fails when ancillary services are down.**
+  Ported from NICHESv1 (PR #72 / issue #70). Newer OmnipathR (>= ~3.17,
+  including 4.1.0) resolves the `organism` argument through
+  `OmnipathR::ncbi_taxid()`, which builds an organism-name table by
+  downloading and coalescing species lists from Ensembl, OMA, and UniProt.
+  When one of those services is unreachable (e.g. omabrowser.org returning
+  HTTP 502), that step aborts with `"Can't combine `..1` and `..3`"` even
+  though the OmniPath interaction server itself is fine. `load_LRM_database("omnipath")`
+  now first attempts the standard OmnipathR path (with its console logging
+  muted) and, on failure, falls back to querying the OmniPath REST API
+  directly with the known NCBI taxon id, bypassing the organism-name lookup.
+  If both paths fail, an informative network error is raised. The fallback is
+  base-R only (`utils::download.file` / `utils::read.delim`) and adds no new
+  dependencies.
 
 ---
 
