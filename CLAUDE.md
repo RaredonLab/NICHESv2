@@ -96,9 +96,11 @@ Always use `parallel::makeCluster()` (socket clusters). **Never use `mclapply`**
 Three built-in options via `load_LRM_database()`:
 - `"connectomedb2025"` (default) — bundled `.rda` files, human/mouse/rat/pig, no internet required
 - `"fantom5"` — bundled `.rda` files, same four species
-- `"omnipath"` — requires `OmnipathR` (Suggests) and internet access
+- `"omnipath"` — requires internet access; uses `OmnipathR` (Suggests) when available, with a base-R REST fallback
 
 Custom data frames are also accepted; must have `ligand` and `receptor` columns (configurable via `ligand.col`/`receptor.col`).
+
+**OmniPath resilient loading** (ported from NICHESv1 PR #72 / issue #70): newer OmnipathR (≥ ~3.17, incl. 4.1.0) resolves the `organism` argument via `ncbi_taxid()`, which downloads/coalesces species tables from Ensembl, OMA, and UniProt — when any of those ancillary services is unreachable the call aborts with `"Can't combine ..1 and ..3"` even though the OmniPath interaction server is fine. `.load_omnipath()` therefore delegates to `.niches_fetch_omnipath_ligrec()`, which (1) tries the standard OmnipathR path with its logger muted, (2) falls back to a direct OmniPath REST query (`omnipathdb.org/interactions?datasets=ligrecextra&organisms=<taxid>`) using the already-known NCBI taxon id, bypassing the organism-name lookup, and (3) raises an informative network error only if both fail. Fallback is base-R only (`utils::download.file`/`read.delim`), no new dependencies. All four OmniPath helpers live in `R/load_LRM_database.R`.
 
 ### Data ingest
 
