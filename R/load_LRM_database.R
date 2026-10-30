@@ -14,7 +14,7 @@
 #' Load a Ligand-Receptor Pair Database
 #'
 #' @description
-#' Returns a standardised ligand-receptor pair table for use as the
+#' Returns a standardized ligand-receptor pair table for use as the
 #' \code{LRM.db} argument of \code{create_NICHESObject()} and
 #' \code{compute_CellToCell()}. Two curated databases can be loaded by name;
 #' alternatively, any user-supplied \code{data.frame} is accepted and column
@@ -89,9 +89,9 @@
 #'                               receptor.col = "Receptor")
 #' }
 #'
-#' # OmniPath requires the OmnipathR package and internet access; not run.
-#' \dontrun{
-#' lrm.op <- load_LRM_database("omnipath", species = "mouse")
+#' # OmniPath needs internet access, so this runs in interactive sessions only.
+#' if (interactive()) {
+#'   lrm.op <- load_LRM_database("omnipath", species = "mouse")
 #' }
 #'
 #' @export

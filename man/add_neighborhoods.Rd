@@ -47,7 +47,7 @@ This function calls \code{\link{extract_neighborhoods}} internally.
 If the neighborhood slots are already populated and \code{overwrite = FALSE}
 (the default), a hard error is raised. Pass \code{overwrite = TRUE} to
 recompute; any stale neighborhood-dependent aggregation slots
-(\code{$aggregations$neighborhood.centric.edge.agg} and
+(\code{$aggregations$neighborhood.edge.agg} and
 \code{$aggregations$neighborhood.composition}) are cleared automatically.
 }
 \examples{

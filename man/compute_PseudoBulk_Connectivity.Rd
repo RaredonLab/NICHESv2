@@ -40,7 +40,7 @@ Default \code{"receptor"}.}
 \item{method}{Scoring method: \code{"product"} (default) or
 \code{"minimum"}.}
 
-\item{normalize.method}{Normalisation for \code{score.norm}:
+\item{normalize.method}{Normalization for \code{score.norm}:
 \code{"prop"} (default, proportional per type-pair) or \code{"none"}.}
 
 \item{n.cores}{CPU cores. Default 1. Socket cluster -- works on all
@@ -60,7 +60,7 @@ type-to-type crossings including autocrine (A -> A).
 
 Unlike \code{create_NICHESObject()}, this function does \strong{not} build
 a \code{NICHESObject}. It returns a compact \code{data.table} directly
-suitable for heatmap or network visualisation of type-level communication.
+suitable for heatmap or network visualization of type-level communication.
 This is intentional -- the pseudobulk output is type-level rather than
 cell-level and does not benefit from the full NICHESObject slot structure.
 }
@@ -74,7 +74,7 @@ One row per (type-pair x non-zero LRM):
   \item{\code{ligand}}{Ligand gene or complex.}
   \item{\code{receptor}}{Receptor gene or complex.}
   \item{\code{score}}{Raw LR signal (product or minimum of mean expressions).}
-  \item{\code{score.norm}}{Score normalised proportionally per type-pair edge
+  \item{\code{score.norm}}{Score normalized proportionally per type-pair edge
     (sums to 1.0 across all LRMs for a given sending-receiving pair), or equal
     to \code{score} when \code{normalize.method = "none"}.}
 }

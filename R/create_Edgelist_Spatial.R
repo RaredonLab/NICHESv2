@@ -11,14 +11,14 @@
 
 
 # ==============================================================================
-#' Build a Spatial Neighbourhood Edge List from 2-D Cell Coordinates
+#' Build a Spatial Neighborhood Edge List from 2-D Cell Coordinates
 #'
 #' @description
-#' Constructs a directed edge list representing spatial cell neighbourhoods.
+#' Constructs a directed edge list representing spatial cell neighborhoods.
 #' Two computation modes are available for inter-cell edges:
 #'
 #' \itemize{
-#'   \item \strong{kNN mode} -- finds \code{k} nearest neighbours per cell via a
+#'   \item \strong{kNN mode} -- finds \code{k} nearest neighbors per cell via a
 #'     kd-tree (\code{RANN::nn2}). Only \emph{mutual} edges are retained (A->B
 #'     kept only if B->A also exists). Non-mutual edges are discarded.
 #'   \item \strong{Radius mode} -- finds all cells within Euclidean distance
@@ -31,9 +31,9 @@
 #'
 #' @param coord   \code{data.frame}. First column = x, second column = y.
 #'   \strong{Row names must be unique cell identifiers.}
-#' @param k       \code{integer} or \code{NULL}. Number of nearest neighbours
+#' @param k       \code{integer} or \code{NULL}. Number of nearest neighbors
 #'   (kNN mode). Positive integer.
-#' @param rad     \code{numeric} or \code{NULL}. Neighbourhood radius (radius
+#' @param rad     \code{numeric} or \code{NULL}. Neighborhood radius (radius
 #'   mode). Positive finite number in the same units as \code{coord}.
 #' @param n.cores \code{integer}. CPU cores. Default 1. Uses socket-based
 #'   clusters (\code{parallel::makeCluster}) which work on all platforms

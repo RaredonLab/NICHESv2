@@ -19,8 +19,9 @@ extract_NICHESInputs_Seurat(
 Common alternatives: \code{"SCT"}, \code{"Spatial"}, \code{"Xenium"}.}
 
 \item{layer}{Character. The data layer (V5) or slot (V4) to extract.
-Default \code{"counts"} (raw UMI counts, recommended for NICHESv2).
-Other options: \code{"data"} (log-normalised), \code{"scale.data"}
+Default \code{"counts"} (raw UMI counts), a starting point rather than a
+recommendation: this choice affects which edges score highest.
+Other options: \code{"data"} (log-normalized), \code{"scale.data"}
 (scaled; V4 only).}
 
 \item{verbose}{Logical. If \code{TRUE} (default), prints a summary of what
@@ -60,16 +61,23 @@ returned \code{meta.data} yourself before calling
 }
 }
 \examples{
-\dontrun{
+if (requireNamespace("SeuratObject", quietly = TRUE)) {
+  data(NICHESv2_inputs)
+  seurat.obj <- SeuratObject::CreateSeuratObject(
+    counts    = NICHESv2_inputs$count.mtx,
+    meta.data = NICHESv2_inputs$meta.data
+  )
   inputs <- extract_NICHESInputs_Seurat(seurat.obj, assay = "RNA",
-                                         layer = "counts")
+                                        layer = "counts", verbose = FALSE)
   niches.obj <- create_NICHESObject(
     count.mtx = inputs$count.mtx,
-    meta.data  = inputs$meta.data,
-    LRM.db     = lrm.db,
-    mode       = "spatial",
-    k          = 6
+    meta.data = inputs$meta.data,
+    LRM.db    = NICHESv2_inputs$LRM.db,
+    mode      = "spatial",
+    k         = 5L,
+    verbose   = FALSE
   )
+  niches.obj
 }
 
 }

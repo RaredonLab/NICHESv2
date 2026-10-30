@@ -73,4 +73,10 @@ neighborhood slots in one step. \code{extract_neighborhoods()} is
 exposed for power users and for testing pipelines that build edge
 lists outside the standard \code{create_NICHESObject()} workflow.
 }
+\examples{
+data(NICHESv2_example)
+nbhd <- extract_neighborhoods(NICHESv2_example$edge.list, verbose = FALSE)
+head(nbhd$neighborhood.meta)
+
+}
 \keyword{internal}

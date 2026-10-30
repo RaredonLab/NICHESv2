@@ -15,11 +15,13 @@
 }
 \value{
 A new \code{NICHESObject} restricted to the retained cells and
-  their fully-internal edges. Gene and LRM slots are unchanged.
+  their fully-internal edges, with their neighborhood entries and
+  aggregation rows unchanged. Gene and LRM slots are unchanged.
 }
 \description{
 Filters all cell-indexed slots (\code{$cell.list}, \code{$cell.data},
-\code{$cell.meta}) and all edge-indexed slots
+\code{$cell.meta}, the three neighborhood slots and every table in
+\code{$aggregations}) to the cells in \code{i}, and all edge-indexed slots
 (\code{$edge.list}, \code{$edge.data}, \code{$edge.meta}) to keep only
 edges where \strong{both} sending and receiving cells are in \code{i}.
 If \code{$segmentation} is populated, it is filtered to retain only rows
@@ -31,6 +33,25 @@ Cell barcodes in \code{i} that are not present in \code{x$cell.list} are
 silently dropped. If the intersection is empty the function errors rather
 than returning an unusable empty object.
 }
+\section{Neighborhoods and aggregations after subsetting}{
+
+A retained cell keeps its neighborhood entries and aggregation rows
+unchanged, so they still describe its whole neighborhood in the full
+object, including neighbors outside \code{i}. Aggregate the full object
+first, then subset. Summing a cell's edges in \code{$edge.data} can give
+less than its aggregation row, because the edge slots hold only edges
+between retained cells; a \code{\link{export_to_TissuePlex}} export of the
+subset shows those edges only.
+
+Aggregations cannot be recomputed on a subset whose neighborhoods include
+removed edges: \code{\link{add_neighborhood_edge_agg}} and
+\code{\link{add_neighborhood_composition}} stop with an error. To analyze
+the subset as a separate tissue instead, call
+\code{add_neighborhoods(obj, overwrite = TRUE)} first. This rebuilds the
+neighborhoods from the retained edges and clears the carried-over
+aggregation tables.
+}
+
 \examples{
 \donttest{
 set.seed(1L)

@@ -36,7 +36,7 @@
 
 ## Normalisation helpers ----
 
-#' Proportional normalisation within group.
+#' Proportional normalization within group.
 #' Divides each value by the group total. Returns 0 when the group total is 0.
 #' @noRd
 .prop_norm <- function(x) {
@@ -44,6 +44,47 @@
   if (s == 0) rep(0, length(x)) else x / s
 }
 
+
+
+## Random number state helpers ----
+
+#' Capture the caller's random number state for .restore_rng().
+#' Returns NULL when the session has not used the generator yet.
+#' @noRd
+.save_rng <- function() {
+  get0(".Random.seed", envir = globalenv(), inherits = FALSE)
+}
+
+#' Restore a random number state captured by .save_rng().
+#' @noRd
+.restore_rng <- function(rng.state) {
+  if (!is.null(rng.state)) {
+    assign(".Random.seed", rng.state, envir = globalenv())
+  } else if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    rm(".Random.seed", envir = globalenv())
+  }
+  invisible(NULL)
+}
+
+
+## Subset guard for aggregation functions ----
+
+#' Stop if neighborhoods list edges that are absent from $edge.list, as they
+#' are after subsetting. Recomputing would mix partial sums with full counts.
+#' @noRd
+.stop_if_neighborhood_edges_missing <- function(niches.obj, caller) {
+  nbr.edges <- unlist(niches.obj$neighborhood.edge.list, use.names = FALSE)
+  if (length(nbr.edges) > 0L && !all(nbr.edges %chin% niches.obj$edge.list$edge))
+    stop(
+      "[", caller, "] This object is a subset whose neighborhoods include ",
+      "edges to removed cells, so aggregations cannot be recomputed on it. ",
+      "Aggregate the full object before subsetting (the results carry over), ",
+      "or run add_neighborhoods(obj, overwrite = TRUE) first to analyze the ",
+      "subset as a separate tissue.",
+      call. = FALSE
+    )
+  invisible(NULL)
+}
 
 
 ## Null-coalescing operator ----

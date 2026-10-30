@@ -1,23 +1,24 @@
 Package: NICHESv2
 Type: Package
 Title: Spatial Cell-to-Cell Ligand-Receptor Communication Analysis
-Version: 0.0.9000
+Version: 1.0.0
 Authors@R: c(
     person("Nuoya", "Wang",
            email = "nuoya.wang@yale.edu",
-           role  = c("aut", "cre")),
+           role  = c("aut", "cre", "cph")),
     person("Micha Sam Brickman", "Raredon",
-           role  = "aut"))
-Description: Computes ligand-receptor (LR) signalling scores between spatially
-    neighbouring cells in single-cell spatial transcriptomics data. Returns a
-    NICHESObject (15-slot S3 class) with per-cell aggregation and flexible
-    downstream analysis. Supports single-gene and multi-gene complex
-    ligands/receptors (underscore-delimited). Built-in loaders for
-    ConnectomeDB2025 (default), FANTOM5, and OmniPath LR databases.
+           role  = c("aut", "cph")))
+Description: Computes ligand-receptor (LR) signaling scores between pairs of
+    cells in spatial and non-spatial single-cell transcriptomics data. Results
+    are held in a memory-efficient, sparse long-format S3 class with per-cell
+    neighborhood aggregation for downstream analysis. Supports single-gene and
+    multi-gene complex ligands and receptors. Built-in loaders are provided for
+    the ConnectomeDB2025 (default), FANTOM5, and OmniPath LR databases.
 License: MIT + file LICENSE
 URL: https://github.com/RaredonLab/NICHESv2
 BugReports: https://github.com/RaredonLab/NICHESv2/issues
 Encoding: UTF-8
+Language: en-US
 VignetteBuilder: knitr
 LazyData: false
 RoxygenNote: 7.3.2
@@ -29,7 +30,9 @@ Imports:
     RANN (>= 2.6.1),
     dbscan (>= 1.1.0),
     ggplot2 (>= 3.4.0),
-    parallel
+    parallel,
+    stats,
+    utils
 Suggests:
     SeuratObject,
     rhdf5,
@@ -37,7 +40,6 @@ Suggests:
     arrow,
     testthat (>= 3.0.0),
     withr,
-    devtools,
     sf,
     knitr,
     rmarkdown,

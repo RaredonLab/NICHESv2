@@ -53,6 +53,11 @@
 #' exposed for power users and for testing pipelines that build edge
 #' lists outside the standard \code{create_NICHESObject()} workflow.
 #'
+#' @examples
+#' data(NICHESv2_example)
+#' nbhd <- extract_neighborhoods(NICHESv2_example$edge.list, verbose = FALSE)
+#' head(nbhd$neighborhood.meta)
+#'
 #' @keywords internal
 #' @export
 extract_neighborhoods <- function(edge.list,

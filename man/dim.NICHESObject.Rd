@@ -14,7 +14,7 @@ Named integer vector of length four with names \code{cells},
   \code{genes}, \code{edges}, \code{LRMs}.
 }
 \description{
-Returns the four headline counts that characterise a \code{NICHESObject}:
+Returns the four headline counts that characterize a \code{NICHESObject}:
 the number of cells, genes, edges, and ligand--receptor (LRM) pairs.
 Provided so that \code{dim(obj)} works on a \code{NICHESObject} the same
 way it does on a matrix.

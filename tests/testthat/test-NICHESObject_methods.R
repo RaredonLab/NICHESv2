@@ -144,3 +144,88 @@ test_that("[.NICHESObject: subsetting with all cells returns equivalent object",
   expect_equal(length(sub.obj), length(NICHESv2_example))
   expect_setequal(sub.obj$cell.list, NICHESv2_example$cell.list)
 })
+
+test_that("[.NICHESObject: neighborhood slots keep retained cells' entries unchanged", {
+  data(NICHESv2_example)
+  keep    <- NICHESv2_example$cell.list[1:30]
+  sub.obj <- NICHESv2_example[keep]
+  expect_setequal(names(sub.obj$neighborhood.cell.list), keep)
+  expect_setequal(names(sub.obj$neighborhood.edge.list), keep)
+  expect_setequal(sub.obj$neighborhood.meta$cell, keep)
+  for (cl in keep) {
+    expect_identical(sub.obj$neighborhood.cell.list[[cl]],
+                     NICHESv2_example$neighborhood.cell.list[[cl]])
+    expect_identical(sub.obj$neighborhood.edge.list[[cl]],
+                     NICHESv2_example$neighborhood.edge.list[[cl]])
+  }
+  expect_equal(sub.obj$neighborhood.meta[order(cell)]$n.edges,
+               NICHESv2_example$neighborhood.meta[cell %in% keep][order(cell)]$n.edges)
+})
+
+test_that("[.NICHESObject: aggregation rows carry over unchanged for retained cells", {
+  data(NICHESv2_example)
+  full <- aggregate_NICHESObject(NICHESv2_example, cell.type.col = "celltype",
+                                 verbose = FALSE)
+  keep <- NICHESv2_example$cell.list[1:30]
+  sub.obj <- full[keep]
+  for (nm in names(full$aggregations)) {
+    expect_setequal(sub.obj$aggregations[[nm]]$cell,
+                    intersect(full$aggregations[[nm]]$cell, keep))
+    expect_equal(sub.obj$aggregations[[nm]],
+                 full$aggregations[[nm]][cell %in% keep])
+  }
+})
+
+test_that("[.NICHESObject: neighborhood settings are preserved after subsetting", {
+  data(NICHESv2_example)
+  sub.obj <- NICHESv2_example[NICHESv2_example$cell.list[1:10]]
+  expect_equal(attr(sub.obj, "edge.filter.mode"),
+               attr(NICHESv2_example, "edge.filter.mode"))
+  expect_equal(attr(sub.obj, "remove.autocrine"),
+               attr(NICHESv2_example, "remove.autocrine"))
+})
+
+test_that("[.NICHESObject: missing neighborhood slots stay NULL", {
+  data(NICHESv2_example)
+  obj <- NICHESv2_example
+  obj$neighborhood.cell.list <- NULL
+  obj$neighborhood.edge.list <- NULL
+  obj$neighborhood.meta      <- NULL
+  sub.obj <- obj[obj$cell.list[1:10]]
+  expect_null(sub.obj$neighborhood.cell.list)
+  expect_null(sub.obj$neighborhood.edge.list)
+  expect_null(sub.obj$neighborhood.meta)
+})
+
+test_that("[.NICHESObject: recomputing aggregations on a subset stops with guidance", {
+  data(NICHESv2_example)
+  sub.obj <- NICHESv2_example[NICHESv2_example$cell.list[1:30]]
+  expect_error(add_neighborhood_edge_agg(sub.obj, verbose = FALSE),
+               "add_neighborhoods\\(obj, overwrite = TRUE\\)")
+  expect_error(add_neighborhood_composition(sub.obj, cell.type.col = "celltype",
+                                            verbose = FALSE),
+               "add_neighborhoods\\(obj, overwrite = TRUE\\)")
+  expect_error(aggregate_NICHESObject(sub.obj, verbose = FALSE),
+               "add_neighborhoods\\(obj, overwrite = TRUE\\)")
+})
+
+test_that("[.NICHESObject: aggregations can be recomputed after subsetting all cells", {
+  data(NICHESv2_example)
+  full <- add_neighborhood_edge_agg(NICHESv2_example, verbose = FALSE)
+  sub.obj <- NICHESv2_example[NICHESv2_example$cell.list]
+  sub.obj <- add_neighborhood_edge_agg(sub.obj, verbose = FALSE)
+  key <- c("cell", "LRM")
+  expect_equal(data.table::setkeyv(data.table::copy(sub.obj$aggregations$neighborhood.edge.agg), key),
+               data.table::setkeyv(data.table::copy(full$aggregations$neighborhood.edge.agg), key))
+})
+
+test_that("[.NICHESObject: rebuilding neighborhoods treats a subset as a separate tissue", {
+  data(NICHESv2_example)
+  full <- add_neighborhood_edge_agg(NICHESv2_example, verbose = FALSE)
+  keep <- NICHESv2_example$cell.list[1:30]
+  separate <- add_neighborhoods(full[keep], overwrite = TRUE, verbose = FALSE)
+  expect_length(separate$aggregations, 0L)
+  expect_true(all(unlist(separate$neighborhood.edge.list) %in% separate$edge.list$edge))
+  separate <- add_neighborhood_edge_agg(separate, verbose = FALSE)
+  expect_true(all(separate$aggregations$neighborhood.edge.agg$cell %in% keep))
+})

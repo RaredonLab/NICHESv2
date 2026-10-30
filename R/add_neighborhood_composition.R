@@ -140,6 +140,8 @@ add_neighborhood_composition <- function(
     stop("[add_neighborhood_composition] 'normalize' must be a single logical.",
          call. = FALSE)
 
+  .stop_if_neighborhood_edges_missing(niches.obj, "add_neighborhood_composition")
+
   ## Build bidirectional (cell, neighbor) pairs --------------------------------
   # For each edge A→B, cell B is a neighbor of A and A is a neighbor of B.
   # Both directions are included, then deduplicated so each physical neighbor
