@@ -118,7 +118,8 @@ Custom data frames are also accepted; must have `ligand` and `receptor` columns 
 - `inst/extdata/` — `NICHESv2_example.h5ad`, a small synthetic file used by the AnnData example
 - `data-raw/` — scripts that build the bundled data files; excluded from package build
 - `tests/testthat/` — one test file per source file; `helper-testutils.R` provides shared fixtures
-- `vignettes/` — one vignette, `NICHESv2.Rmd`, which runs on bundled data
+- `vignettes/` — one vignette, `NICHESv2.Rmd`, which runs on bundled data; `vignettes/articles/` holds the website pages and is excluded from the package build
+- `.github/workflows/` — `R-CMD-check.yaml` runs the checks; `pkgdown.yaml` builds the website and publishes it from `main`, removing this file first because pkgdown turns top-level Markdown files into pages
 - `demo-scripts/` — standalone R scripts demonstrating real-dataset usage (not part of the package build)
 - `working-scripts-MSBR/` and `working-scripts-NW/` — exploratory and prototyping scripts; not part of the package
 - `package management/` — design documents

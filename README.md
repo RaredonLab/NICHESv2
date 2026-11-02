@@ -15,7 +15,7 @@ GitHub:
 
 ```r
 install.packages("remotes")
-remotes::install_github("RaredonLab/NICHESv2", ref = "dev")
+remotes::install_github("RaredonLab/NICHESv2", ref = "main")
 ```
 
 To read the vignette locally, add `build_vignettes = TRUE`, which needs knitr,
@@ -88,13 +88,14 @@ The vignette walks through the full workflow:
 vignette("NICHESv2")
 ```
 
+The [website](https://raredonlab.github.io/NICHESv2/) has tutorials on public
+spatial and non-spatial datasets, plus a page for reviewers.
+
 ## Features
 
 - **Two analysis modes:** `"spatial"` connects cells by k-nearest neighbors or a
   fixed radius, and adds autocrine self-loops. `"nonspatial"` pairs cells by
   random sampling within each pair of cell types.
-- **Pseudobulk summaries:** `compute_PseudoBulk_Connectivity()` scores each pair
-  of cell types and returns a `data.table`.
 - **LR databases:** ConnectomeDB2025 and FANTOM5 are bundled for human, mouse,
   rat and pig, with no internet needed. OmniPath covers human, mouse and rat.
   You can also supply your own data frame, and multi-gene complexes are
@@ -112,7 +113,7 @@ vignette("NICHESv2")
 - **Works on every platform:** parallel scoring uses socket clusters through
   `n.cores`.
 - **Interactive viewing:** `export_to_TissuePlex()` writes edges to a Parquet file
-  for viewing in tissue coordinates.
+  for viewing in [TissuePlex](https://raredonlab.github.io/TissuePlex/).
 
 ## Citation
 

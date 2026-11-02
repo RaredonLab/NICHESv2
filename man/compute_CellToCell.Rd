@@ -15,14 +15,12 @@ compute_CellToCell(
 )
 }
 \arguments{
-\item{count.mtx}{Gene x cell (or gene x type for pseudobulk)
-expression matrix (sparse \code{dgCMatrix} or dense). Row names = gene
-symbols; column names = cell barcodes or cell type labels matching
+\item{count.mtx}{Gene x cell expression matrix (sparse \code{dgCMatrix}
+or dense). Row names = gene symbols; column names = cell barcodes matching
 \code{edge.list$from} / \code{$to}.}
 
 \item{edge.list}{\code{data.table} from
-\code{\link{create_Edgelist_Spatial}},
-\code{\link{create_Edgelist_PseudoBulk}}, or
+\code{\link{create_Edgelist_Spatial}} or
 \code{\link{create_Edgelist_SamplingByType}}; or any \code{data.frame}
 with \code{from} and \code{to} columns whose values match
 \code{colnames(count.mtx)}. Coordinate columns
@@ -73,11 +71,9 @@ Both elements are \code{data.table}s so downstream joins on
 }
 \description{
 Universal scoring engine for all NICHESv2 edge modes. For each edge and each
-valid LR pair, computes a signal score. The edge list may come from any of
-the three edgelist constructors -- spatial, pseudobulk, or type-sampled --
-and the count matrix is expected to match accordingly (cell barcodes as
-column names for spatial and nonspatial modes; cell type names for pseudobulk
-mode).
+valid LR pair, computes a signal score. The edge list may come from either
+edgelist constructor -- spatial or type-sampled -- and the count matrix
+column names must be the cell barcodes it uses.
 
 Supports \strong{multi-gene complexes}: a ligand or receptor represented as
 \code{"gene1_gene2"} is split on \code{"_"} and all component expressions
@@ -161,10 +157,7 @@ setdiff(c("x.from", "y.from", "x.to", "y.to"), colnames(result$edges))
 \code{\link{create_NICHESObject}} for the wrapped pipeline that
     assembles a full \code{NICHESObject};
   \code{\link{create_Edgelist_Spatial}},
-  \code{\link{create_Edgelist_PseudoBulk}},
   \code{\link{create_Edgelist_SamplingByType}} for the edge-list
     constructors;
-  \code{\link{load_LRM_database}} for the LR-database loader;
-  \code{\link{compute_PseudoBulk_Connectivity}} for type-averaged
-    connectivity in one call.
+  \code{\link{load_LRM_database}} for the LR-database loader.
 }

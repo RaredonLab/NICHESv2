@@ -7,6 +7,9 @@
 #' placeholder row with \code{NA} for all LRM fields.  This ensures TissuePlex
 #' can render the full tissue graph even for edges with no scored LR pairs.
 #'
+#' NICHESv2 stops at this file. To view it, see the
+#' \href{https://raredonlab.github.io/TissuePlex/}{TissuePlex manual}.
+#'
 #' @param object      A \code{NICHESObject}.
 #' @param output.path Full path to the output \code{.parquet} file.
 #'   Parent directories are created automatically.

@@ -10,7 +10,6 @@ ifnb       edge.list                     87957 c12584448474811a38c04db9094c1d5d
 ifnb       edge.data                    605973 b2a18456f9a62ad818fa272daadc463a
 ifnb       cell.data                   9787436 66517f6a9f5844b566e5db3d77fc8597
 ifnb       neighborhood.edge.agg        548303 1869970c5c93ab2965d89fce2402b073
-ifnb       pseudobulk                    81621 a4d65265b6350c213f2d86344730fabf
 stxBrain   explore.radius                   50 94cf6d5fe20d5fda203ed2925ee7c3a6
 stxBrain   edge.list                     18500 8f22826cd3887d6fed85424408955c35
 stxBrain   edge.data                   5191520 aea90bdffab368a933a1ca1ddb5b7214

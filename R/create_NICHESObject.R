@@ -25,10 +25,6 @@
 #'     \code{cell.type.col}.}
 #' }
 #'
-#' For pseudobulk (type-averaged) connectivity use
-#' \code{\link{compute_PseudoBulk_Connectivity}} -- it returns a plain
-#' \code{data.table}, not a \code{NICHESObject}.
-#'
 #' @section Pipeline overview:
 #' Internally, \code{create_NICHESObject()} chains the following steps:
 #' \enumerate{
@@ -139,8 +135,6 @@
 #'     function;
 #'   \code{\link{merge_NICHESObjects}} for combining objects produced
 #'     independently;
-#'   \code{\link{compute_PseudoBulk_Connectivity}} for type-averaged
-#'     connectivity (returns a \code{data.table}, not a \code{NICHESObject});
 #'   \code{\link{compute_CellToCell}} for the underlying scoring engine;
 #'   \code{\link{create_Edgelist_Spatial}},
 #'   \code{\link{create_Edgelist_SamplingByType}} for the edge-list

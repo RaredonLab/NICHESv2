@@ -146,3 +146,28 @@ test_that("extract_NICHESInputs_Seurat: class-based V4/V5 dispatch produces corr
   expect_equal(dim(result$count.mtx), c(10L, 8L))
   expect_true(assay.class %in% c("Assay", "Assay5"))
 })
+test_that("extract_NICHESInputs_Seurat: V4 Assay objects extract without warnings", {
+  skip_if_not_installed("SeuratObject")
+
+  set.seed(42L)
+  counts <- abs(Matrix::rsparsematrix(10L, 8L, density = 0.7))
+  rownames(counts) <- paste0("gene", seq_len(10L))
+  colnames(counts) <- paste0("cell", seq_len(8L))
+  assay.v4   <- SeuratObject::CreateAssayObject(counts = counts)
+  seurat.obj <- SeuratObject::CreateSeuratObject(counts = assay.v4)
+  expect_false(inherits(seurat.obj@assays[["RNA"]], "Assay5"))
+
+  expect_no_warning(
+    result <- extract_NICHESInputs_Seurat(seurat.obj, verbose = FALSE)
+  )
+  expect_equal(as.matrix(result$count.mtx), as.matrix(counts))
+
+  expect_error(
+    extract_NICHESInputs_Seurat(seurat.obj, layer = "missing", verbose = FALSE),
+    "Available slots"
+  )
+  expect_error(
+    extract_NICHESInputs_Seurat(seurat.obj, layer = "scale.data", verbose = FALSE),
+    "is empty"
+  )
+})

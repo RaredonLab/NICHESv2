@@ -104,7 +104,6 @@ utils::globalVariables(c(
   # edge-table columns
   "edge", "from", "to",
   "SendingCell", "ReceivingCell",
-  "SendingType", "ReceivingType",
 
   # LRM / score columns
   "LRM", "ligand", "receptor",

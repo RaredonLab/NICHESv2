@@ -147,9 +147,6 @@ load_LRM_database(db, species, ligand.col, receptor.col, verbose)
 create_Edgelist_Spatial(coord, k, rad, n.cores)
   -> data.table(from|to|weight|x.from|y.from|x.to|y.to) + autocrine self-loops
 
-create_Edgelist_PseudoBulk(meta.data, cell.type.col)
-  -> data.table(from|to) with type labels; deterministic
-
 create_Edgelist_SamplingByType(meta.data, cell.type.col, seed=42L, max.cells)
   -> data.table(from|to) with barcodes; attrs: mode="nonspatial"
 
@@ -161,12 +158,6 @@ compute_CellToCell(count.mtx, edge.list, LRM.db, ligand.col, receptor.col,
             x.to|y.to for spatial edgelists); keyed (from, to, LRM)
   $lr.meta: data.table -- ligand|receptor|LRM + extras from LRM.db;
             keyed (ligand, receptor)
-
-compute_PseudoBulk_Connectivity(count.mtx, meta.data, LRM.db, cell.type.col,
-                                ligand.col, receptor.col, method,
-                                normalize.method, n.cores, verbose)
-  -> plain data.table (NOT NICHESObject):
-    SendingType|ReceivingType|LRM|score|score.norm
 
 -- OBJECT CONSTRUCTION --
 create_NICHESObject(count.mtx, meta.data, LRM.db,
@@ -379,10 +370,9 @@ Bundled data (data/):
 Tests (all passing):
   helper-testutils.R              -- keep (make_grid_coord utility)
   test-compute_LRM_Score.R        test-create_Edgelist_Spatial.R
-  test-create_Edgelist_PseudoBulk.R
   test-extract_neighborhoods.R    test-create_Edgelist_SamplingByType.R
   test-add_neighborhoods.R        test-compute_CellToCell.R
-  test-merge_NICHESObjects.R      test-compute_PseudoBulk_Connectivity.R
+  test-merge_NICHESObjects.R
   test-Explore_Radius_Neighborhood.R  test-create_NICHESObject.R
   test-extract_NICHESInputs_Seurat.R  test-load_LRM_database.R
   test-extract_NICHESInputs_AnnData.R test-add_cell_meta.R
@@ -613,10 +603,9 @@ R CMD check. Coverage: ~270+ test_that blocks.
 File structure (all in tests/testthat/):
   helper-testutils.R                  -- keep (make_grid_coord utility)
   test-compute_LRM_Score.R            test-create_Edgelist_Spatial.R
-  test-create_Edgelist_PseudoBulk.R
   test-extract_neighborhoods.R        test-create_Edgelist_SamplingByType.R
   test-add_neighborhoods.R            test-compute_CellToCell.R
-  test-merge_NICHESObjects.R          test-compute_PseudoBulk_Connectivity.R
+  test-merge_NICHESObjects.R
   test-Explore_Radius_Neighborhood.R  test-create_NICHESObject.R
   test-extract_NICHESInputs_Seurat.R  test-load_LRM_database.R
   test-extract_NICHESInputs_AnnData.R test-add_cell_meta.R

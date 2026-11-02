@@ -86,7 +86,6 @@
 #'                                      seed = 42L, max.cells = 50L)
 #'
 #' @seealso \code{\link{create_NICHESObject}},
-#'   \code{\link{create_Edgelist_PseudoBulk}},
 #'   \code{\link{create_Edgelist_Spatial}}
 #'
 #' @keywords internal

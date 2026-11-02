@@ -11,10 +11,6 @@
 #   "nonspatial" - NICHES v1-style stratified random sampling of cell barcodes
 #               within each directed type pair crossing
 #
-#   Pseudobulk analysis is handled by the separate lightweight function
-#   compute_PseudoBulk_Connectivity(), which returns a plain data.table
-#   rather than a full NICHESObject.
-#
 # FUNCTIONS:
 #   .create_NICHESObject_single()  - internal single-partition implementation
 #
