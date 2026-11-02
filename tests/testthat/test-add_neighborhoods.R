@@ -133,3 +133,11 @@ test_that("add_neighborhoods: results match direct extract_neighborhoods() call"
   expect_equal(d.meta$n.neighbors, v.meta$n.neighbors)
   expect_equal(d.meta$n.edges,     v.meta$n.edges)
 })
+test_that("add_neighborhoods: overwrite = TRUE clears stale edge aggregation", {
+  data(NICHESv2_example)
+  obj <- add_neighborhood_edge_agg(NICHESv2_example, verbose = FALSE)
+  expect_false(is.null(obj$aggregations$neighborhood.edge.agg))
+  obj <- add_neighborhoods(obj, edge.filter.mode = "central_cell_only",
+                           overwrite = TRUE, verbose = FALSE)
+  expect_null(obj$aggregations$neighborhood.edge.agg)
+})

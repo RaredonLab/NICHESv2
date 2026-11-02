@@ -182,3 +182,11 @@ test_that("create_Edgelist_SamplingByType: errors on invalid max.cells values", 
     regexp = "max.cells"
   )
 })
+
+test_that("create_Edgelist_SamplingByType restores the caller's random state", {
+  meta <- make_sampling_meta()
+  set.seed(99L)
+  before <- get(".Random.seed", envir = globalenv())
+  create_Edgelist_SamplingByType(meta, cell.type.col = "celltype", seed = 42L)
+  expect_identical(get(".Random.seed", envir = globalenv()), before)
+})

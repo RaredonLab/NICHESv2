@@ -141,7 +141,8 @@ add_neighborhood_edge_agg <- function(
       "Run add_neighborhoods() first.",
       call. = FALSE
     )
-  
+  .stop_if_neighborhood_edges_missing(niches.obj, "add_neighborhood_edge_agg")
+
   ## Build (cell, edge, edge.type) flat table ----------------------------------
   # Unroll neighborhood.edge.list: one row per (focal cell, neighborhood edge).
   nbr.lens     <- lengths(niches.obj$neighborhood.edge.list)

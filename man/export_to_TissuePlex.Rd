@@ -44,3 +44,12 @@ edges absent from \code{$edge.data} (no active LR signal) produce a single
 placeholder row with \code{NA} for all LRM fields.  This ensures TissuePlex
 can render the full tissue graph even for edges with no scored LR pairs.
 }
+\examples{
+if (requireNamespace("arrow", quietly = TRUE)) {
+  data(NICHESv2_example)
+  out.file <- tempfile(fileext = ".parquet")
+  export_to_TissuePlex(NICHESv2_example, output.path = out.file)
+  unlink(out.file)
+}
+
+}

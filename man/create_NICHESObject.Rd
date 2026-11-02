@@ -45,8 +45,8 @@ or \code{"nonspatial"} (type-stratified random sampling).}
 
 \item{species}{Species for built-in LRM databases. One of
 \code{"human"} (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
-(\code{"pig"} is FANTOM5 only). Silently ignored when \code{LRM.db} is
-a \code{data.frame}.}
+(\code{"pig"} is not available from OmniPath). Silently ignored when
+\code{LRM.db} is a \code{data.frame}.}
 
 \item{sample.col}{Character or \code{NULL} (default). Name of a column
 in \code{meta.data} identifying the biological sample of origin for
@@ -64,11 +64,11 @@ Default \code{"ligand"}.}
 \item{receptor.col}{Character. Column name for receptors in \code{LRM.db}.
 Default \code{"receptor"}.}
 
-\item{k}{Integer or \code{NULL}. Number of nearest neighbours
+\item{k}{Integer or \code{NULL}. Number of nearest neighbors
 for kNN edges. \strong{Spatial mode only; supply exactly one of
 \code{k} or \code{rad}.}}
 
-\item{rad}{Numeric or \code{NULL}. Neighbourhood radius for
+\item{rad}{Numeric or \code{NULL}. Neighborhood radius for
 fixed-radius edges (same units as the \code{x}/\code{y} columns).
 \strong{Spatial mode only; supply exactly one of \code{k} or \code{rad}.}
 Use \code{\link{Explore_Radius_Neighborhood}} to choose a sensible value.}
@@ -84,7 +84,7 @@ multiplies sender ligand expression by receiver receptor expression;
 \code{"minimum"} takes the elementwise minimum. Both handle gene
 complexes (underscore-joined symbols).}
 
-\item{normalize.method}{Edge-level normalisation for \code{score.norm}
+\item{normalize.method}{Edge-level normalization for \code{score.norm}
 in \code{$edge.data}. \code{"prop"} (default) scales each edge's
 per-LRM scores to sum to 1 across LRMs; \code{"none"} leaves
 \code{score.norm} equal to \code{score}.}
@@ -233,5 +233,5 @@ attr(obj.split, "sample.col")   # "sample"
   \code{\link{create_Edgelist_SamplingByType}} for the edge-list
     constructors invoked internally;
   \code{\link{load_LRM_database}} for the LR-database loader;
-  \code{\link{aggregate_NICHESObject}} for downstream summarisation.
+  \code{\link{aggregate_NICHESObject}} for downstream summarization.
 }

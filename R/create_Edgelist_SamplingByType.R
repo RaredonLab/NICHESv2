@@ -42,7 +42,7 @@
 #' @param seed         \code{integer(1)}. Random seed for reproducibility.
 #'   Default \code{42L}. Pass a different value to obtain an alternative
 #'   sampling draw; pass \code{NULL} to skip seed-setting (not recommended
-#'   for publication).
+#'   for publication). The caller's random number state is restored on exit.
 #' @param max.cells    \code{integer(1)} or \code{NULL}. Optional upper cap
 #'   on the number of edges per type-pair crossing. When \code{NULL} (default),
 #'   the cap is \code{min(n_i, n_j)} for each crossing. When set, the cap
@@ -118,7 +118,11 @@ create_Edgelist_SamplingByType <- function(meta.data,
 
   ## SECTION 2: Prepare per-type barcode lists ----
 
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) {
+    rng.state <- .save_rng()
+    on.exit(.restore_rng(rng.state), add = TRUE)
+    set.seed(seed)
+  }
 
   cell.types  <- sort(unique(as.character(meta.data[[cell.type.col]])))
   n.types     <- length(cell.types)

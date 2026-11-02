@@ -8,7 +8,7 @@
 #' If the neighborhood slots are already populated and \code{overwrite = FALSE}
 #' (the default), a hard error is raised. Pass \code{overwrite = TRUE} to
 #' recompute; any stale neighborhood-dependent aggregation slots
-#' (\code{$aggregations$neighborhood.centric.edge.agg} and
+#' (\code{$aggregations$neighborhood.edge.agg} and
 #' \code{$aggregations$neighborhood.composition}) are cleared automatically.
 #'
 #' @param niches.obj A \code{NICHESObject} with a non-empty \code{$edge.list}.
@@ -68,7 +68,7 @@ add_neighborhoods <- function(niches.obj,
     # Clear stale neighborhood-dependent aggregation slots
     stale <- intersect(
       names(niches.obj$aggregations),
-      c("neighborhood.centric.edge.agg", "neighborhood.composition")
+      c("neighborhood.edge.agg", "neighborhood.composition")
     )
     if (length(stale) > 0L) {
       niches.obj$aggregations[stale] <- NULL

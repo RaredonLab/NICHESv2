@@ -22,7 +22,7 @@ be unique cell barcodes. Must contain the column specified by
 \item{seed}{\code{integer(1)}. Random seed for reproducibility.
 Default \code{42L}. Pass a different value to obtain an alternative
 sampling draw; pass \code{NULL} to skip seed-setting (not recommended
-for publication).}
+for publication). The caller's random number state is restored on exit.}
 
 \item{max.cells}{\code{integer(1)} or \code{NULL}. Optional upper cap
 on the number of edges per type-pair crossing. When \code{NULL} (default),

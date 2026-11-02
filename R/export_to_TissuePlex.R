@@ -22,6 +22,15 @@
 #'   significantly speeds up joins and string operations on large datasets.
 #'
 #' @return Invisibly returns \code{output.path}.
+#'
+#' @examples
+#' if (requireNamespace("arrow", quietly = TRUE)) {
+#'   data(NICHESv2_example)
+#'   out.file <- tempfile(fileext = ".parquet")
+#'   export_to_TissuePlex(NICHESv2_example, output.path = out.file)
+#'   unlink(out.file)
+#' }
+#'
 #' @export
 export_to_TissuePlex <- function(object,
                                   output.path,
