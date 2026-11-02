@@ -36,5 +36,5 @@ Manuscript checked: `NICHESv2 paper draft Genome Biology Software 2026-10-19.doc
 
 ## After the title is final (package side)
 
-12. Update the README citation and add `inst/CITATION`. The README currently uses
-    an older title.
+12. Update the README citation and add `inst/CITATION`. The README currently asks
+    people to cite the original NICHES paper until this one is published.

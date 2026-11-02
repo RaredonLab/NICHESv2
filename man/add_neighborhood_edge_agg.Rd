@@ -20,8 +20,8 @@ in the current sparse matrix implementation. Default \code{1L}.}
 \item{chunk.size}{Positive integer. Number of LRM pairs processed per sparse
 matrix batch. Smaller values reduce peak memory at the cost of slightly
 more overhead; larger values are faster but require more RAM. Default
-\code{50L} (≈12 batches for 558 LRMs). Reduce to \code{20L}–\code{30L}
-on memory-constrained machines.}
+\code{50L} (about 12 batches for 558 LRMs). Reduce to between \code{20L}
+and \code{30L} on memory-constrained machines.}
 
 \item{verbose}{Logical. Emit progress messages. Default \code{TRUE}.}
 }

@@ -69,7 +69,7 @@ structure. This is biologically meaningless and is therefore not supported.
 
 \section{Double-counting prevention}{
 
-Because spatial graphs are typically bidirectional (edge A→B and B→A both
+Because spatial graphs are typically bidirectional (edges A->B and B->A both
 exist for proximate cells), the neighbor set for each focal cell is formed
 as the \emph{union} of all cells appearing on the other end of any edge,
 deduplicated before counting. Each physical neighbor is counted exactly once

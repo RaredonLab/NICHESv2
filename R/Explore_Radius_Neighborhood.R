@@ -88,7 +88,7 @@ Explore_Radius_Neighborhood <- function(
   # -- 2. Sampling -------------------------------------------------------------
   if (is.null(n.sample)) {
     warning(
-      "n.sample = NULL: neighbourhood sizes will be estimated from ALL ",
+      "n.sample = NULL: neighborhood sizes will be estimated from ALL ",
       n.cells, " cells. This is not recommended for large datasets ",
       "and may be very slow."
     )
@@ -247,8 +247,8 @@ Explore_Radius_Neighborhood <- function(
       ggplot2::geom_line(color = "#4C72B0", linewidth = 0.9) +
       ggplot2::labs(
         x        = "Radius",
-        y        = "Mean Neighbour Count",
-        title    = "Radius vs. Neighbourhood Size",
+        y        = "Mean Neighbor Count",
+        title    = "Radius vs. Neighborhood Size",
         subtitle = paste0(
           "Estimated from ", n.sample.actual, " sampled cells  \u00b7  ",
           n.radii, " radius steps"

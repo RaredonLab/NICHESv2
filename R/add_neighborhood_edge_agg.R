@@ -93,8 +93,8 @@
 #' @param chunk.size Positive integer. Number of LRM pairs processed per sparse
 #'   matrix batch. Smaller values reduce peak memory at the cost of slightly
 #'   more overhead; larger values are faster but require more RAM. Default
-#'   \code{50L} (≈12 batches for 558 LRMs). Reduce to \code{20L}–\code{30L}
-#'   on memory-constrained machines.
+#'   \code{50L} (about 12 batches for 558 LRMs). Reduce to between \code{20L}
+#'   and \code{30L} on memory-constrained machines.
 #' @param verbose    Logical. Emit progress messages. Default \code{TRUE}.
 #'
 #' @return The input \code{niches.obj} with
@@ -219,7 +219,7 @@ add_neighborhood_edge_agg <- function(
 
   if (n.e == 0L) {
     if (verbose)
-      message("[add_neighborhood_edge_agg] No scored edges in any neighbourhood. Returning empty result.")
+      message("[add_neighborhood_edge_agg] No scored edges in any neighborhood. Returning empty result.")
     niches.obj$aggregations$neighborhood.edge.agg <- data.table::data.table()
     return(niches.obj)
   }
@@ -229,7 +229,7 @@ add_neighborhood_edge_agg <- function(
   c.idx.vec <- match(ce.sub$cell, all.cells)
   e.idx.vec <- match(ce.sub$edge, common.edges)
 
-  # Build A matrices once — one per edge type (cells x edges), binary.
+  # Build A matrices once -- one per edge type (cells x edges), binary.
   # These are reused across all LRM chunks.
   A.list <- vector("list", 5L); names(A.list) <- all.cats
   for (cat in all.cats) {

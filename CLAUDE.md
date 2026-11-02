@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Package overview
 
-NICHESv2 is an R package for spatial cell-to-cell ligand-receptor communication analysis. It computes LR signalling scores between neighbouring cells in single-cell spatial transcriptomics data and organises results in a memory-efficient S3 object (`NICHESObject`). It is in active development (v0.0.9000); a formal 0.1.0 release will accompany the methods paper.
+NICHESv2 is an R package for spatial cell-to-cell ligand-receptor communication analysis. It computes LR signaling scores between pairs of cells in spatial and non-spatial single-cell transcriptomics data and organizes results in a memory-efficient S3 object (`NICHESObject`). Version 1.0.0 is being prepared for CRAN, alongside the methods paper. `working-scripts-NW/v1_facts_sheet.md` holds the verified facts that all documents copy.
 
 ## Development commands
 
@@ -31,7 +31,7 @@ Tests auto-generate fixtures on first run via `tests/testthat.R`.
 
 The central data structure is defined in `R/NICHESObject_class.R`. It is a plain S3 list (not R6/Reference), so **it is copied on every assignment** — always reassign the result of any mutating function (`obj <- add_meta_column(obj, ...)`).
 
-The 15 slots split into three groups:
+The 15 slots split into five groups:
 
 - **Cell level**: `$cell.list`, `$cell.data`, `$cell.meta`
 - **Edge level**: `$edge.list`, `$edge.data`, `$edge.meta`
@@ -80,6 +80,10 @@ LR scoring (`compute_CellToCell()` → `compute_LRM_Score()`): supports `"produc
 
 `add_neighborhoods()` (called internally at construction) supports three `edge.filter.mode` values: `"both_in_neighborhood"` (default at construction), `"any_in_neighborhood"`, and `"central_cell_only"`. The mode set at construction is stored in the object.
 
+### Subsetting
+
+`[.NICHESObject` filters neighborhood slots and aggregation tables by cell, leaving each retained cell's entries unchanged, so they still describe its whole neighborhood in the full tissue. Edge slots keep only edges between retained cells, so a subset's neighborhood lists can name edges that are absent from `$edge.list`. `add_neighborhood_edge_agg()` and `add_neighborhood_composition()` therefore stop on such a subset through `.stop_if_neighborhood_edges_missing()`, because recomputing would divide partial sums by full edge counts. The workflow is to aggregate first, then subset. `add_neighborhoods(obj, overwrite = TRUE)` treats a subset as a separate tissue and clears the carried-over aggregations.
+
 ### Metadata operations — important distinction
 
 - `add_cell_meta()` **fully replaces** `$cell.meta` and rebuilds `$edge.meta` from scratch. Use only when replacing the entire metadata table.
@@ -87,7 +91,7 @@ LR scoring (`compute_CellToCell()` → `compute_LRM_Score()`): supports `"produc
 
 ### Parallelism
 
-Always use `parallel::makeCluster()` (socket clusters). **Never use `mclapply`** — it is not cross-platform. The `n.cores` parameter in user-facing functions wires directly to socket clusters.
+Always use `parallel::makeCluster()` (socket clusters). **Never use `mclapply`** — it is not cross-platform. The `n.cores` parameter in user-facing functions wires directly to socket clusters. Workers call `data.table::setDTthreads(1)`. The package must not change `data.table`'s thread setting on load, because each worker loads the namespace and would lose that limit.
 
 **Exception**: `add_neighborhood_edge_agg()` uses sparse matrix multiplication (Matrix package) instead of socket clusters. Its `n.cores` parameter is retained for API compatibility only and is not used. New functions that adopt a similar matrix-based approach should follow the same pattern: keep `n.cores` in the signature, validate it, but skip cluster creation.
 
@@ -107,17 +111,14 @@ Custom data frames are also accepted; must have `ligand` and `receptor` columns 
 - `extract_NICHESInputs_Seurat()` — supports Seurat V4 and V5; detects assay class automatically; **spatial coordinates must be extracted manually** and added to the returned metadata before calling `create_NICHESObject()`
 - `extract_NICHESInputs_AnnData()` — reads `.h5ad` via `rhdf5` only; no Python required
 
-### Known issues
-
-- `[.NICHESObject` subsetting does not propagate `mode` or `sample.col` attributes
-
 ## Repository layout notes
 
 - `R/` — all package source; every exported function has its own file
 - `data/` — bundled `.rda` files (count matrix, example object, LR databases for 4 species)
-- `data-raw/` — scripts that build the bundled `.rda` files; excluded from package build
+- `inst/extdata/` — `NICHESv2_example.h5ad`, a small synthetic file used by the AnnData example
+- `data-raw/` — scripts that build the bundled data files; excluded from package build
 - `tests/testthat/` — one test file per source file; `helper-testutils.R` provides shared fixtures
-- `vignettes/` — three vignettes: `getting-started.Rmd`, `spatial.Rmd`, `scrna-sampled.Rmd`
+- `vignettes/` — one vignette, `NICHESv2.Rmd`, which runs on bundled data
 - `demo-scripts/` — standalone R scripts demonstrating real-dataset usage (not part of the package build)
 - `working-scripts-MSBR/` and `working-scripts-NW/` — exploratory and prototyping scripts; not part of the package
 - `package management/` — design documents

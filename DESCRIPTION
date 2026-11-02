@@ -42,6 +42,5 @@ Suggests:
     withr,
     sf,
     knitr,
-    rmarkdown,
-    prettydoc
+    rmarkdown
 Config/testthat/edition: 3

@@ -28,8 +28,9 @@ by the sparse matrix implementation. Default \code{1L}.}
 \item{chunk.size}{Positive integer. Number of LRM pairs processed per
 sparse matrix batch in \code{\link{add_neighborhood_edge_agg}}. Smaller
 values reduce peak memory; larger values are marginally faster. Default
-\code{50L}. Reduce to \code{20L}–\code{30L} on memory-constrained
-machines (e.g. laptops); increase on HPC nodes with abundant RAM.}
+\code{50L}. Reduce to between \code{20L} and \code{30L} on
+memory-constrained machines (e.g. laptops); increase on HPC nodes with
+abundant RAM.}
 
 \item{verbose}{Logical. Emit progress messages. Default \code{TRUE}.}
 }
