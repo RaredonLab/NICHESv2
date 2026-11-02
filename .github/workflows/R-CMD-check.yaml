@@ -3,9 +3,9 @@
 # Runs R CMD check on every push to dev/main and on pull requests.
 # Runs on macOS (primary dev platform), Windows and Ubuntu with R release, and
 # on Ubuntu with R-devel, which CRAN also checks against. The Ubuntu release
-# job also builds the PDF manual; the others skip it to avoid installing LaTeX.
-# Bioconductor Suggests (rhdf5, OmnipathR) are installed explicitly before
-# the standard dependency step, which handles all CRAN packages.
+# job also builds the PDF manual and validates the HTML manual; the others skip
+# these to avoid installing the extra tools. The dependency step installs both
+# CRAN and Bioconductor packages (rhdf5, OmnipathR).
 
 on:
   push:
@@ -26,8 +26,8 @@ jobs:
         config:
           - {os: macos-latest,   r: 'release', args: 'c("--no-manual", "--as-cran")'}
           - {os: windows-latest, r: 'release', args: 'c("--no-manual", "--as-cran")'}
-          - {os: ubuntu-latest,  r: 'release', args: 'c("--as-cran")', pdf-manual: true}
-          - {os: ubuntu-latest,  r: 'devel',   args: 'c("--no-manual", "--as-cran")', http-user-agent: 'release'}
+          - {os: ubuntu-latest,  r: 'release', args: 'c("--as-cran")', manual-checks: true, extra-packages: 'any::V8'}
+          - {os: ubuntu-latest,  r: 'devel',  args: 'c("--no-manual", "--as-cran")', http-user-agent: 'release'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}  # auto-generated per run; lets
@@ -49,29 +49,31 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      # Pandoc builds the vignettes; LaTeX builds the PDF manual (one job only)
+      # Pandoc builds the vignettes
       - uses: r-lib/actions/setup-pandoc@v2
 
+      # Step 3: install tools for the PDF and HTML manual checks (one job only)
+      #   LaTeX builds the PDF manual; tidy validates the HTML one
       - uses: r-lib/actions/setup-tinytex@v2
-        if: matrix.config.pdf-manual
+        if: matrix.config.manual-checks
 
-      # Step 3: install Bioconductor Suggests
-      #   rhdf5 and OmnipathR are not on CRAN; the standard dependency step
-      #   (Step 4) would fail trying to find them. Installing them first via
-      #   BiocManager means Step 4 sees them as already satisfied and skips them.
-      - name: Install Bioconductor Suggests
+      - name: Install HTML Tidy
+        if: matrix.config.manual-checks
         run: |
-          install.packages("BiocManager", repos = "https://cloud.r-project.org")
-          BiocManager::install(c("rhdf5", "OmnipathR"), ask = FALSE, update = FALSE)
-        shell: Rscript {0}
+          sudo apt-get update
+          sudo apt-get install -y tidy
 
       # Step 4: install all packages listed in DESCRIPTION
-      #   extra-packages: any::rcmdcheck  →  adds rcmdcheck (used in Step 5)
+      #   extra-packages: any::rcmdcheck  →  adds rcmdcheck (used in Step 5);
+      #                                      the matrix adds V8 for math checks
       #   needs: check                   →  reads DESCRIPTION; installs Imports
-      #                                     and Suggests needed for R CMD check
+      #                                     and Suggests needed for R CMD check,
+      #                                     from CRAN and Bioconductor
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: |
+            any::rcmdcheck
+            ${{ matrix.config.extra-packages }}
           needs: check
 
       # Step 5: run R CMD check

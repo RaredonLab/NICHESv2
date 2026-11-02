@@ -1,0 +1,260 @@
+---
+title: "Getting started with NICHESv2"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with NICHESv2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE)
+has.seurat <- requireNamespace("SeuratObject", quietly = TRUE)
+has.rhdf5  <- requireNamespace("rhdf5", quietly = TRUE)
+has.arrow  <- requireNamespace("arrow", quietly = TRUE)
+```
+
+NICHESv2 scores ligand-receptor (LR) signaling between individual pairs of
+cells. For each directed cell pair and each LR pair, it asks whether the sending
+cell expresses the ligand and the receiving cell expresses the receptor. It
+keeps every non-zero score, so you can trace a signal back to the exact cells
+that produced it.
+
+This vignette runs the whole workflow on a small synthetic dataset that ships
+with the package, so every step takes a moment and needs no download.
+
+```{r load}
+library(NICHESv2)
+library(data.table)
+```
+
+## Inputs
+
+`create_NICHESObject()` needs three things: a gene-by-cell expression matrix,
+cell metadata, and an LR database. The bundled `NICHESv2_inputs` list holds all
+three, for 50 genes and 80 cells.
+
+```{r inputs}
+data(NICHESv2_inputs)
+names(NICHESv2_inputs)
+
+dim(NICHESv2_inputs$count.mtx)
+head(NICHESv2_inputs$meta.data, 3)
+head(NICHESv2_inputs$LRM.db, 3)
+```
+
+The column names of the matrix must match the row names of the metadata. Spatial
+mode needs `x` and `y` columns in the metadata.
+
+## Build a NICHESObject
+
+Here each cell is connected to its spatial neighbors using `k = 5`. Only mutual
+nearest neighbors become edges, and every cell also gets a self-loop for
+autocrine signaling.
+
+```{r create}
+obj <- create_NICHESObject(
+  count.mtx = NICHESv2_inputs$count.mtx,
+  meta.data = NICHESv2_inputs$meta.data,
+  LRM.db    = NICHESv2_inputs$LRM.db,
+  mode      = "spatial",
+  k         = 5L,
+  method    = "product",
+  verbose   = FALSE
+)
+dim(obj)
+```
+
+An edge is one directed cell pair. `method = "product"` multiplies the sender's
+ligand expression by the receiver's receptor expression, and `"minimum"` takes
+the smaller of the two. To use a fixed radius instead of `k`, pass `rad`;
+`Explore_Radius_Neighborhood()` helps you choose a value.
+
+For larger datasets, set `n.cores` to score LR pairs in parallel. This uses
+socket clusters, so it works on every platform.
+
+## Inside the object
+
+A NICHESObject is a list with 15 slots, which you read with `$`.
+
+| Level | Slots |
+|---|---|
+| Cell | `$cell.list`, `$cell.data`, `$cell.meta` |
+| Edge | `$edge.list`, `$edge.data`, `$edge.meta` |
+| Neighborhood | `$neighborhood.cell.list`, `$neighborhood.edge.list`, `$neighborhood.meta` |
+| Gene and LRM | `$gene.list`, `$gene.meta`, `$LRM.list`, `$LRM.meta` |
+| Extras | `$segmentation`, `$aggregations` |
+
+Scores are stored in long format, with one row for each non-zero (edge, LRM)
+pair. This keeps memory use tied to how much signal exists, not to the number of
+possible combinations.
+
+```{r edge-data}
+head(obj$edge.data, 3)
+```
+
+Edge IDs have the form `"SendingCell|ReceivingCell"` and LRM IDs have the form
+`"ligand|receptor"`. `$edge.data` is a `data.table`, so you can summarize it
+directly. These are the strongest LR pairs overall:
+
+```{r top-lrms}
+obj$edge.data[, .(total.score = sum(score)), by = LRM][order(-total.score)][1:3]
+```
+
+`$edge.meta` carries each cell's metadata onto its edges, with `Sending.` and
+`Receiving.` prefixes, which makes it easy to filter by cell type:
+
+```{r edge-meta}
+obj$edge.meta[, .N, by = .(Sending.celltype, Receiving.celltype)][1:3]
+```
+
+## Aggregate by neighborhood
+
+Each cell's neighborhood is filled in when the object is built.
+`aggregate_NICHESObject()` summarizes each one per LRM, and with `cell.type.col`
+it also reports which cell types surround each cell.
+
+```{r aggregate}
+obj <- aggregate_NICHESObject(obj, cell.type.col = "celltype", verbose = FALSE)
+names(obj$aggregations)
+```
+
+`$aggregations$neighborhood.edge.agg` has one row per (cell, LRM). It sorts each
+neighborhood edge into five categories relative to the focal cell: `in`, `out`,
+`cross` (between two neighbors), `self.autocrine` and `other.autocrine`.
+
+```{r edge-agg}
+agg <- obj$aggregations$neighborhood.edge.agg
+agg[, .(cell, LRM, score.in.sum, score.out.sum, score.cross.sum)][1:3]
+```
+
+`$aggregations$neighborhood.composition` has one row per cell:
+
+```{r composition}
+comp <- obj$aggregations$neighborhood.composition
+comp[, .(cell, TypeA.neighbor.prop, TypeB.neighbor.prop, TypeC.neighbor.prop)][1:3]
+```
+
+## Subset to cells of interest
+
+Aggregate first, then subset. Each retained cell keeps its neighborhood entries
+and aggregation rows unchanged, so its values still describe its whole
+neighborhood in the full tissue, including neighbors you didn't keep.
+
+```{r subset}
+type.a <- obj$cell.meta[celltype == "TypeA", cell]
+sub <- obj[type.a]
+dim(sub)
+
+identical(
+  sub$aggregations$neighborhood.edge.agg[, score.in.sum],
+  agg[cell %in% type.a, score.in.sum]
+)
+```
+
+The edge slots of a subset hold only edges between retained cells. Summing a
+cell's rows in `sub$edge.data` can therefore give less than its aggregation row.
+
+Because those removed edges are gone, aggregations can't be recomputed on the
+subset, and trying stops with an error. To analyze the subset as a separate
+tissue, rebuild its neighborhoods first:
+
+```{r separate}
+separate <- add_neighborhoods(sub, overwrite = TRUE, verbose = FALSE)
+separate <- aggregate_NICHESObject(separate, verbose = FALSE)
+```
+
+## Data without coordinates
+
+For scRNA-seq data, `mode = "nonspatial"` pairs cells by random sampling within
+each pair of cell types. It needs `cell.type.col`, and `seed` makes the sampling
+repeatable.
+
+```{r nonspatial}
+ns <- create_NICHESObject(
+  count.mtx     = NICHESv2_inputs$count.mtx,
+  meta.data     = NICHESv2_inputs$meta.data,
+  LRM.db        = NICHESv2_inputs$LRM.db,
+  mode          = "nonspatial",
+  cell.type.col = "celltype",
+  verbose       = FALSE
+)
+dim(ns)
+```
+
+For one summary per pair of cell types, use
+`compute_PseudoBulk_Connectivity()`, which returns a `data.table`:
+
+```{r pseudobulk}
+pb <- compute_PseudoBulk_Connectivity(
+  count.mtx     = NICHESv2_inputs$count.mtx,
+  meta.data     = NICHESv2_inputs$meta.data,
+  LRM.db        = NICHESv2_inputs$LRM.db,
+  cell.type.col = "celltype",
+  verbose       = FALSE
+)
+nrow(pb)
+```
+
+## Using your own data
+
+### LR databases
+
+Pass a database name to `LRM.db`, and set `species` to match your data.
+
+```{r databases}
+db <- load_LRM_database("connectomedb2025", species = "human", verbose = FALSE)
+nrow(db)
+```
+
+`"connectomedb2025"` (the default in `load_LRM_database()`) and `"fantom5"` are
+bundled for human, mouse, rat and pig. `"omnipath"` needs internet access and
+the OmnipathR package, and covers human, mouse and rat. You can also pass your
+own data frame. Multi-gene complexes are written with underscores, such as
+`"COL1A1_COL1A2"`.
+
+### Seurat objects
+
+`extract_NICHESInputs_Seurat()` works with Seurat V4 and V5 objects. It returns
+`count.mtx` and `meta.data`, ready for `create_NICHESObject()`. For spatial data,
+add the coordinates to `meta.data` yourself as `x` and `y` columns.
+
+```{r seurat, eval = has.seurat}
+seu <- SeuratObject::CreateSeuratObject(
+  counts    = NICHESv2_inputs$count.mtx,
+  meta.data = NICHESv2_inputs$meta.data
+)
+inputs <- extract_NICHESInputs_Seurat(seu, layer = "counts", verbose = FALSE)
+dim(inputs$count.mtx)
+```
+
+The `layer` you choose sets what the scores mean: raw counts give absolute
+magnitudes, and normalized expression gives relative scores.
+
+### AnnData files
+
+`extract_NICHESInputs_AnnData()` reads `.h5ad` files with rhdf5, so it doesn't
+need Python.
+
+```{r anndata, eval = has.rhdf5}
+h5ad <- system.file("extdata", "NICHESv2_example.h5ad", package = "NICHESv2")
+inputs <- extract_NICHESInputs_AnnData(h5ad, verbose = FALSE)
+dim(inputs$count.mtx)
+```
+
+### Exporting to TissuePlex
+
+`export_to_TissuePlex()` writes one Parquet file for interactive viewing of edges
+in tissue coordinates. It needs the arrow package.
+
+```{r tissueplex, eval = has.arrow}
+out.file <- tempfile(fileext = ".parquet")
+export_to_TissuePlex(obj, output.path = out.file)
+unlink(out.file)
+```
+
+## Where to go next
+
+See `?create_NICHESObject` for every construction option,
+`?add_neighborhood_edge_agg` for all 27 aggregation columns, and
+`?"[.NICHESObject"` for the subsetting rules. `?NICHESv2` gives an overview.

@@ -1,5 +1,5 @@
 # NICHESv2 -- Package Design & Status
-# Updated: 2026-05-04
+# Updated: 2026-11-02
 
 ================================================================================
 COLLABORATION & DELIVERY CONVENTIONS (read at session start)
@@ -72,6 +72,8 @@ PARALLELISM (CRITICAL -- no exceptions):
   socket clusters ONLY: parallel::makeCluster + parLapply + on.exit(stopCluster)
   NEVER mclapply (Unix-only, crashes on macOS with ggplot2).
   Always clusterEvalQ: data.table::setDTthreads(1)
+  The package never changes data.table's thread setting on load: an earlier
+  .onLoad did, which also reset every worker that loaded the namespace.
   Exception: add_neighborhood_edge_agg() uses sparse matrix multiplication
   (Matrix package) instead of socket clusters. n.cores retained for API
   compatibility only -- not used. New matrix-based functions follow same pattern.
@@ -171,7 +173,6 @@ create_NICHESObject(count.mtx, meta.data, LRM.db,
                     mode="spatial", species="human", sample.col=NULL,
                     cell.type.col=NULL, ligand.col, receptor.col,
                     k, rad, seed=42L, max.cells,
-                    smooth=FALSE, smooth.k=9L, n.pcs=30L,
                     method, normalize.method, gene.meta, n.cores, verbose)
   Dispatcher only. Routes to .create_NICHESObject_single() or
   .create_NICHESObject_by_sample() depending on sample.col. After object
@@ -347,12 +348,6 @@ Internal helpers in dedicated files:
   columns (Joint only for character/factor cols).
   FILE: R/build_edge_meta.R
 
-  .smooth_expression(count.mtx, barcodes, k=9L, n.pcs=30L)
-  PCA + kNN smoothing. Replaces target columns with neighborhood-averaged
-  raw counts. Note: irlba::irlba(..., fastpath=FALSE) and NO center
-  argument -- never change.
-  FILE: R/smooth_expression.R
-
 globalVariables declarations live in utils.R (NOT NICHESv2-package.R).
 Organized in per-function comment blocks at the bottom of utils.R.
 Current blocks: score/LRM/cell/edge core names, add_neighborhood_edge_agg
@@ -365,8 +360,9 @@ PACKAGE INFRASTRUCTURE
 ================================================================================
 
 Imports: data.table(>=1.14), Matrix(>=1.5), methods, RANN(>=2.6), dbscan(>=1.1),
-         ggplot2(>=3.4), irlba(>=2.3.0), scales, parallel
-Suggests: OmnipathR, sf, testthat(>=3.0), withr, SeuratObject, rhdf5
+         ggplot2(>=3.4), parallel, stats, utils
+Suggests: SeuratObject, rhdf5, OmnipathR, arrow, testthat(>=3.0), withr, sf,
+          knitr, rmarkdown
 
 Bundled data (data/):
   ncomms8866_orig.rda -- FANTOM5 original unfiltered table; R object name is
@@ -383,7 +379,7 @@ Bundled data (data/):
 Tests (all passing):
   helper-testutils.R              -- keep (make_grid_coord utility)
   test-compute_LRM_Score.R        test-create_Edgelist_Spatial.R
-  test-smooth_expression.R        test-create_Edgelist_PseudoBulk.R
+  test-create_Edgelist_PseudoBulk.R
   test-extract_neighborhoods.R    test-create_Edgelist_SamplingByType.R
   test-add_neighborhoods.R        test-compute_CellToCell.R
   test-merge_NICHESObjects.R      test-compute_PseudoBulk_Connectivity.R
@@ -405,10 +401,7 @@ Fixture strategy:
   - NICHESv2_example now always has neighborhood slots populated
   - No aggregation slots pre-populated in fixture
 
-Intentional skips (3):
-  - Full-batch InSitu (> 5 LRMs)
-  - irlba-absent path
-  - Replaced placeholder in test-compute_PseudoBulk_Connectivity.R
+Skips: none when all Suggests packages are installed.
 
 R CMD check status: 0 errors | 0 warnings | 1 note
   (N1: timestamp/network issue on dev machine -- unfixable in code, ignore)
@@ -437,11 +430,6 @@ Before delivering any new exported function, verify ALL of the following:
 ================================================================================
 KEY GOTCHAS (read before touching these areas)
 ================================================================================
-
-irlba/Matrix:  fastpath=FALSE in smooth_expression() AND no center argument
-               -- NEVER change. Matrix>=1.6-2 removed as_cholmod_sparse();
-               fastpath calls it. Omitting center avoids the dependency
-               entirely; kNN distances are unchanged by centering.
 
 data.table composite key join:
   NEVER dt1[dt2, on="col"] when dt2 has composite key.
@@ -505,19 +493,17 @@ Style B section markers (## Title ---- and # filename ----):
   These are RStudio-foldable. Don't 'fix' them back to banner blocks during
   future edits.
 
-smooth = TRUE has zero test coverage:
-  The smoothing branch in create_NICHESObject() is not exercised by any
-  current test. A bug at the call site (line 208 of
-  create_NICHESObject_single.R) sat undetected through Pass 1 because of
-  this. Add at least one minimal test before relying on this code path.
-
-[.NICHESObject attribute propagation bug:
-  [.NICHESObject does not copy attr(x,"mode") or attr(x,"sample.col") to
-  the subsetted result. Fix before CRAN: add
-    attr(result, "mode")       <- attr(x, "mode")
-    attr(result, "sample.col") <- attr(x, "sample.col")
-  to R/NICHESObject_class.R before the return statement. Note: aggregation
-  slots are correctly dropped on subset (message emitted).
+[.NICHESObject keeps full-tissue values by cell:
+  Neighborhood slots and aggregation tables are indexed by cell, so each
+  retained cell keeps its entries unchanged and they still describe its whole
+  neighborhood. Edge slots keep only edges between retained cells, so listed
+  neighborhood edges can be missing from $edge.list. Recomputing would divide
+  partial sums by full edge counts, so add_neighborhood_edge_agg() and
+  add_neighborhood_composition() stop through
+  .stop_if_neighborhood_edges_missing(). Workflow: aggregate, then subset.
+  add_neighborhoods(overwrite = TRUE) treats a subset as a separate tissue.
+  All four attributes carry over: mode, sample.col, edge.filter.mode,
+  remove.autocrine.
 
 Non-ASCII characters in .R files:
   CRAN prohibits non-ASCII characters anywhere in .R files, including
@@ -627,7 +613,7 @@ R CMD check. Coverage: ~270+ test_that blocks.
 File structure (all in tests/testthat/):
   helper-testutils.R                  -- keep (make_grid_coord utility)
   test-compute_LRM_Score.R            test-create_Edgelist_Spatial.R
-  test-smooth_expression.R            test-create_Edgelist_PseudoBulk.R
+  test-create_Edgelist_PseudoBulk.R
   test-extract_neighborhoods.R        test-create_Edgelist_SamplingByType.R
   test-add_neighborhoods.R            test-compute_CellToCell.R
   test-merge_NICHESObjects.R          test-compute_PseudoBulk_Connectivity.R
@@ -649,10 +635,7 @@ Fixture strategy:
   - NICHESv2_example now always has neighborhood slots populated
   - No aggregation slots pre-populated in fixture
 
-Intentional skips (3):
-  - Full-batch InSitu (> 5 LRMs)
-  - irlba-absent path
-  - Replaced placeholder in test-compute_PseudoBulk_Connectivity.R
+Skips: none when all Suggests packages are installed.
 
 R CMD check status: 0 errors | 0 warnings | 1 note
   (N1: timestamp/network issue on dev machine -- unfixable in code, ignore)
@@ -676,10 +659,8 @@ PENDING DECISIONS
    aggregation design: aggregate_NICHESObject(), add_neighborhood_edge_agg(),
    add_neighborhood_composition().
 
-5. PCA kNN smoothing validation PAUSED:
-   Advisor hesitant to apply smoothing to actual project data. Function
-   remains exported and tested, but no further validation work until advisor
-   decision is resolved. Dataset choice consequently also paused.
+5. [RESOLVED] PCA kNN smoothing removed from the package, along with the
+   smooth, smooth.k and n.pcs arguments.
 
 6. [RESOLVED] Rename "sampled" mode to "nonspatial": completed. All R source
    files, test files, and attributes updated via sed + manual fix.
@@ -694,9 +675,9 @@ PENDING DECISIONS
      test-aggregate_NICHESObject.R
    All passing.
 
-9. README updated this session. Vignettes still pending:
-   Vignette 1 (eval=TRUE): add minimal aggregation section using bundled data.
-   Vignettes 2-3 (eval=FALSE): update workflow if warranted.
+9. [RESOLVED] vignettes/NICHESv2.Rmd is now the only package vignette. It runs
+   on bundled data. Public-data tutorials (stxBrain, ifnb) belong on the website
+   and must be executed, never eval=FALSE.
 
 10. score.total.cmean formula in add_neighborhood_edge_agg(): currently
     score.total.cmean = score.total.sum / count.total which is correct.

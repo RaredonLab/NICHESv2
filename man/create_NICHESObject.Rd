@@ -36,7 +36,8 @@ contain \code{x} and \code{y} columns when \code{mode = "spatial"}, and
 the column named by \code{cell.type.col} when \code{mode = "nonspatial"}.}
 
 \item{LRM.db}{Either a character string naming a built-in database
-(\code{"fantom5"} or \code{"omnipath"}) or a \code{data.frame} with at
+(\code{"connectomedb2025"}, \code{"fantom5"} or \code{"omnipath"}) or a
+\code{data.frame} with at
 least the columns named by \code{ligand.col} and \code{receptor.col}.
 See \code{\link{load_LRM_database}} for details and supported species.}
 
