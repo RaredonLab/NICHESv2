@@ -108,10 +108,18 @@ extract_NICHESInputs_Seurat <- function(seurat.obj,
     count.mtx <- SeuratObject::GetAssayData(seurat.obj, layer = layer,
                                              assay = assay)
   } else {
-    # V4 Assay: fixed slot names; GetAssayData returns empty matrix for
-    # slots that were never populated (e.g. scale.data before ScaleData()).
-    count.mtx <- SeuratObject::GetAssayData(seurat.obj, slot = layer,
-                                             assay = assay)
+    # V4 Assay: fixed slot names. Read the slot directly, because the 'slot'
+    # argument of GetAssayData() is deprecated and SeuratObject < 5 has no
+    # 'layer' argument. Slots that were never populated hold an empty matrix
+    # (e.g. scale.data before ScaleData()).
+    available.slots <- c("counts", "data", "scale.data")
+    if (!layer %in% available.slots) {
+      stop(
+        "Slot '", layer, "' not found in assay '", assay, "' (V4 Assay).\n",
+        "  Available slots: ", paste(available.slots, collapse = ", ")
+      )
+    }
+    count.mtx <- methods::slot(assay.obj, layer)
     if (prod(dim(count.mtx)) == 0L) {
       stop(
         "Slot '", layer, "' in assay '", assay, "' (V4 Assay) is empty.\n",

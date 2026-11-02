@@ -90,7 +90,6 @@ el <- create_Edgelist_SamplingByType(meta, cell.type.col = "cell.type",
 }
 \seealso{
 \code{\link{create_NICHESObject}},
-  \code{\link{create_Edgelist_PseudoBulk}},
   \code{\link{create_Edgelist_Spatial}}
 }
 \keyword{internal}

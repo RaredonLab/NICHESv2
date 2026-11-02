@@ -44,6 +44,10 @@ edges absent from \code{$edge.data} (no active LR signal) produce a single
 placeholder row with \code{NA} for all LRM fields.  This ensures TissuePlex
 can render the full tissue graph even for edges with no scored LR pairs.
 }
+\details{
+NICHESv2 stops at this file. To view it, see the
+\href{https://raredonlab.github.io/TissuePlex/}{TissuePlex manual}.
+}
 \examples{
 if (requireNamespace("arrow", quietly = TRUE)) {
   data(NICHESv2_example)

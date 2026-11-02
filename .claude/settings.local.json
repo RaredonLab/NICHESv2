@@ -102,7 +102,31 @@
       "Bash(Rscript --vanilla -e 'load\\(\"/Users/nw426/Documents/GitHub/NICHESv2-NW/data/NICHESv2_inputs.rda\"\\); print\\(NICHESv2_inputs$LRM.db[1:5,]\\); print\\(colnames\\(NICHESv2_inputs$LRM.db\\)\\); print\\(rownames\\(NICHESv2_inputs$count.mtx\\)[1:6]\\)')",
       "Bash(rsync -a --delete --exclude .git --exclude demo-scripts --exclude working-scripts-* --exclude omnipathr-log --exclude .claude /Users/nw426/Documents/GitHub/NICHESv2-NW/ /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/copy/NICHESv2/)",
       "Bash(Rscript --vanilla -e 'devtools::document\\(\"/private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/copy/NICHESv2\", quiet=TRUE\\)')",
-      "Bash(bash /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/verify.sh)"
+      "Bash(bash /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/verify.sh)",
+      "Bash(Rscript --vanilla -e 'for \\(p in c\\(\"stxBrain.SeuratData\",\"ifnb.SeuratData\",\"SeuratData\"\\)\\) { d <- packageDescription\\(p\\); cat\\(\"=====\",p,\"\\\\n\"\\); for \\(f in c\\(\"Version\",\"License\",\"Title\",\"Description\",\"Author\",\"Maintainer\",\"URL\",\"Repository\",\"RemoteUrl\"\\)\\) if \\(!is.null\\(d[[f]]\\)\\) cat\\(f,\":\",d[[f]],\"\\\\n\"\\); pth <- system.file\\(package=p\\); print\\(list.files\\(pth\\)\\); lic <- list.files\\(pth, pattern=\"LICEN|COPY\", ignore.case=TRUE, full.names=TRUE\\); for \\(l in lic\\) { cat\\(\"--\",basename\\(l\\),\"\\\\n\"\\); cat\\(head\\(readLines\\(l,warn=FALSE\\),6\\),sep=\"\\\\n\"\\) } }; help_txt <- function\\(p, topic\\) { db <- tools::Rd_db\\(p\\); nm <- grep\\(topic, names\\(db\\), value=TRUE\\)[1]; if \\(is.na\\(nm\\)\\) { cat\\(\"no Rd for\",topic,\"\\\\n\"\\); return\\(invisible\\(\\)\\) }; out <- capture.output\\(tools::Rd2txt\\(db[[nm]], options=list\\(underline_titles=FALSE\\)\\)\\); cat\\(out, sep=\"\\\\n\"\\) }; help_txt\\(\"stxBrain.SeuratData\",\"stxBrain\"\\); help_txt\\(\"ifnb.SeuratData\",\"ifnb\"\\)')",
+      "Bash(Rscript --vanilla -e 'p <- \"ifnb.SeuratData\"; db <- tools::Rd_db\\(p\\); for \\(n in names\\(db\\)\\) { o <- capture.output\\(tools::Rd2txt\\(db[[n]], options=list\\(underline_titles=FALSE\\)\\)\\); cat\\(o, sep=\"\\\\n\"\\) }; cit <- system.file\\(\"CITATION\", package=p\\); cat\\(\"--- CITATION\\\\n\"\\); cat\\(readLines\\(cit, warn=FALSE\\), sep=\"\\\\n\"\\); print\\(list.files\\(system.file\\(\"extdata\", package=p\\)\\)\\)')",
+      "WebFetch(domain:www.10xgenomics.com)",
+      "WebFetch(domain:www.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:www.nature.com)",
+      "WebFetch(domain:bioconductor.org)",
+      "WebFetch(domain:creativecommons.org)",
+      "Bash(curl -s -m 25 \"https://www.10xgenomics.com/support/software/space-ranger/latest/resources/citation-guidelines\" -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(curl -s -m 25 -L \"https://raw.githubusercontent.com/satijalab/seurat-data/master/README.md\")",
+      "Bash(curl -s -m 25 -I \"https://seurat.nygenome.org/src/contrib/PACKAGES\")",
+      "WebFetch(domain:www.ebi.ac.uk)",
+      "Bash(git -C /Users/nw426/Documents/GitHub/NICHESv2-NW show HEAD:vignettes/spatial.Rmd)",
+      "Bash(grep -v \"^$\")",
+      "Bash(git -C /Users/nw426/Documents/GitHub/NICHESv2-NW log --oneline -n 3)",
+      "Bash(git -C /Users/nw426/Documents/GitHub/NICHESv2-NW show 4bf87c9:vignettes/spatial.Rmd)",
+      "Bash(Rscript --vanilla /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/cols.R)",
+      "Bash(xargs -n1 basename)",
+      "Bash(python3 -I - /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/site/articles)",
+      "Bash(D=/Users/nw426/Desktop/NICHESv2; ls -la \"$D\" | cut -c30- | head -n 40; echo ---; du -sh \"$D\" 2>/dev/null | cut -f1; find \"$D\" -type f 2>/dev/null | wc -l; find \"$D\" -type f 2>/dev/null | sed -E 's/.*\\\\.\\([A-Za-z0-9]+\\)$/\\\\1/' | tr 'A-Z' 'a-z' | sort | uniq -c | sort -rn | head -n 20; echo ---dirs; find \"$D\" -maxdepth 2 -type d 2>/dev/null | sed \"s#$D#.#\" | head -n 40)",
+      "Bash(Rscript --vanilla -e 'cat\\(\"R\", as.character\\(getRversion\\(\\)\\), \"\\\\nknitr\", as.character\\(packageVersion\\(\"knitr\"\\)\\), \"\\\\nxfun\", as.character\\(packageVersion\\(\"xfun\"\\)\\), \"\\\\nrmarkdown\", as.character\\(packageVersion\\(\"rmarkdown\"\\)\\), \"\\\\n\"\\); ap <- available.packages\\(repos=\"https://cloud.r-project.org\"\\); print\\(ap[c\\(\"knitr\",\"xfun\",\"rmarkdown\"\\),c\\(\"Version\",\"Depends\"\\)]\\); b <- tryCatch\\(available.packages\\(type=\"binary\", repos=\"https://cloud.r-project.org\"\\), error=function\\(e\\) NULL\\); if\\(!is.null\\(b\\)\\) print\\(b[intersect\\(c\\(\"knitr\",\"xfun\"\\),rownames\\(b\\)\\),\"Version\"]\\); x <- body\\(knitr::kable\\); f <- ls\\(asNamespace\\(\"knitr\"\\)\\); hit <- f[sapply\\(f, function\\(n\\) {g <- get\\(n, asNamespace\\(\"knitr\"\\)\\); is.function\\(g\\) && any\\(grepl\\(\"xfun::attr\\\\\\\\\\(|attr\\\\\\\\s*=\\\\\\\\s*xfun\", deparse\\(g\\)\\)\\)}\\)]; print\\(hit\\)')",
+      "Bash(Rscript -e 'print\\(utils::packageVersion\\(\"pkgdown\"\\)\\); print\\(pkgdown:::package_mds\\); print\\(pkgdown:::build_home_md\\)')",
+      "Bash(Rscript -e 'a <- available.packages\\(repos=\"https://cloud.r-project.org\"\\); print\\(a[c\\(\"pkgdown\",\"knitr\",\"Seurat\",\"SeuratObject\"\\),\"Version\"]\\); for \\(p in c\\(\"Seurat\",\"SeuratObject\",\"SeuratData\",\"rmarkdown\",\"knitr\"\\)\\) cat\\(p, as.character\\(utils::packageVersion\\(p\\)\\), \"\\\\n\"\\); print\\(unname\\(sapply\\(\"repo\", function\\(x\\) getOption\\(\"SeuratData.repo.use\"\\)\\)\\)\\)')",
+      "Bash(Rscript -e 'library\\(SeuratData\\); print\\(getOption\\(\"SeuratData.repo.use\"\\)\\); print\\(utils::packageDescription\\(\"SeuratData\"\\)[c\\(\"Version\",\"RemoteType\",\"RemoteRepo\",\"RemoteUsername\",\"Repository\"\\)]\\)')",
+      "Bash(rsync -a --delete /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/siteci/ docs/)"
     ]
   }
 }

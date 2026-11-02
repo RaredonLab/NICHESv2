@@ -122,10 +122,6 @@ The primary entry point for NICHESv2. Supports two analysis modes:
   \item{\code{"nonspatial"}}{NICHES v1-style type-stratified sampling. Requires
     \code{cell.type.col}.}
 }
-
-For pseudobulk (type-averaged) connectivity use
-\code{\link{compute_PseudoBulk_Connectivity}} -- it returns a plain
-\code{data.table}, not a \code{NICHESObject}.
 }
 \section{Pipeline overview}{
 
@@ -227,8 +223,6 @@ attr(obj.split, "sample.col")   # "sample"
     function;
   \code{\link{merge_NICHESObjects}} for combining objects produced
     independently;
-  \code{\link{compute_PseudoBulk_Connectivity}} for type-averaged
-    connectivity (returns a \code{data.table}, not a \code{NICHESObject});
   \code{\link{compute_CellToCell}} for the underlying scoring engine;
   \code{\link{create_Edgelist_Spatial}},
   \code{\link{create_Edgelist_SamplingByType}} for the edge-list

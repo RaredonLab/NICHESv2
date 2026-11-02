@@ -8,7 +8,14 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE)
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE,
+  render = function(x, ...) {
+    if (data.table::is.data.table(x) && !data.table::shouldPrint(x)) return(invisible(""))
+    if (is.data.frame(x)) x <- knitr::kable(x, digits = 3, format.args = list(big.mark = ","))
+    knitr::knit_print(x, ...)
+  }
+)
 has.seurat <- requireNamespace("SeuratObject", quietly = TRUE)
 has.rhdf5  <- requireNamespace("rhdf5", quietly = TRUE)
 has.arrow  <- requireNamespace("arrow", quietly = TRUE)
@@ -105,7 +112,7 @@ obj$edge.data[, .(total.score = sum(score)), by = LRM][order(-total.score)][1:3]
 `Receiving.` prefixes, which makes it easy to filter by cell type:
 
 ```{r edge-meta}
-obj$edge.meta[, .N, by = .(Sending.celltype, Receiving.celltype)][1:3]
+obj$edge.meta[, .(edges = .N), by = .(Sending.celltype, Receiving.celltype)][1:3]
 ```
 
 ## Aggregate by neighborhood
@@ -182,20 +189,6 @@ ns <- create_NICHESObject(
 dim(ns)
 ```
 
-For one summary per pair of cell types, use
-`compute_PseudoBulk_Connectivity()`, which returns a `data.table`:
-
-```{r pseudobulk}
-pb <- compute_PseudoBulk_Connectivity(
-  count.mtx     = NICHESv2_inputs$count.mtx,
-  meta.data     = NICHESv2_inputs$meta.data,
-  LRM.db        = NICHESv2_inputs$LRM.db,
-  cell.type.col = "celltype",
-  verbose       = FALSE
-)
-nrow(pb)
-```
-
 ## Using your own data
 
 ### LR databases
@@ -215,9 +208,11 @@ own data frame. Multi-gene complexes are written with underscores, such as
 
 ### Seurat objects
 
-`extract_NICHESInputs_Seurat()` works with Seurat V4 and V5 objects. It returns
-`count.mtx` and `meta.data`, ready for `create_NICHESObject()`. For spatial data,
-add the coordinates to `meta.data` yourself as `x` and `y` columns.
+`extract_NICHESInputs_Seurat()` works with Seurat V4 and V5 objects, so you don't
+need to update an older object first. It returns `count.mtx` and `meta.data`,
+ready for `create_NICHESObject()`. For spatial data, add the coordinates to
+`meta.data` yourself as `x` and `y` columns; `SeuratObject::GetTissueCoordinates()`
+returns them.
 
 ```{r seurat, eval = has.seurat}
 seu <- SeuratObject::CreateSeuratObject(
@@ -244,8 +239,9 @@ dim(inputs$count.mtx)
 
 ### Exporting to TissuePlex
 
-`export_to_TissuePlex()` writes one Parquet file for interactive viewing of edges
-in tissue coordinates. It needs the arrow package.
+`export_to_TissuePlex()` writes one Parquet file of edges and needs the arrow
+package. To view the file in tissue coordinates, see the
+[TissuePlex manual](https://raredonlab.github.io/TissuePlex/).
 
 ```{r tissueplex, eval = has.arrow}
 out.file <- tempfile(fileext = ".parquet")
@@ -258,3 +254,6 @@ unlink(out.file)
 See `?create_NICHESObject` for every construction option,
 `?add_neighborhood_edge_agg` for all 27 aggregation columns, and
 `?"[.NICHESObject"` for the subsetting rules. `?NICHESv2` gives an overview.
+
+The [website](https://raredonlab.github.io/NICHESv2/) has tutorials on public
+spatial and non-spatial datasets.

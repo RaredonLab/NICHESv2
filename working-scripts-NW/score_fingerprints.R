@@ -83,14 +83,7 @@ i.ns <- suppressMessages(create_NICHESObject(
 obj_tables("ifnb", i.ns)
 i.ag <- suppressMessages(aggregate_NICHESObject(i.ns, verbose = FALSE))
 rec("ifnb", "neighborhood.edge.agg", i.ag$aggregations$neighborhood.edge.agg)
-i.pb <- suppressMessages(compute_PseudoBulk_Connectivity(
-  count.mtx = i$count.mtx, meta.data = i$meta.data,
-  LRM.db = load_LRM_database("connectomedb2025", species = "human"),
-  cell.type.col = "seurat_annotations", method = "product",
-  n.cores = 2L, verbose = FALSE
-))
-rec("ifnb", "pseudobulk", i.pb)
-rm(ifnb, i, i.ns, i.ag, i.pb); invisible(gc())
+rm(ifnb, i, i.ns, i.ag); invisible(gc())
 
 ## stxBrain --------------------------------------------------------------------
 data("anterior1", envir = environment())

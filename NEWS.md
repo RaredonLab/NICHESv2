@@ -12,7 +12,6 @@ First public release.
   methods.
 - `aggregate_NICHESObject()` summarizes each cell's neighborhood by LR pair and,
   in spatial mode, by neighboring cell type.
-- `compute_PseudoBulk_Connectivity()` scores each pair of cell types.
 - `load_LRM_database()` provides ConnectomeDB2025 (default) and FANTOM5, both
   bundled for human, mouse, rat and pig, and OmniPath for human, mouse and rat.
 - `extract_NICHESInputs_Seurat()` and `extract_NICHESInputs_AnnData()` read
@@ -39,6 +38,9 @@ First public release.
 - Mode `"sampled"` is now `"nonspatial"`.
 - `Aggregate_CellToCell_Edges()` has been removed. Use
   `aggregate_NICHESObject()`.
+- `compute_PseudoBulk_Connectivity()` and `create_Edgelist_PseudoBulk()` have been
+  removed. To summarize by cell type, sum `$edge.data` using the cell types in
+  `$edge.meta`.
 - `add_cell_meta()` now replaces `$cell.meta` in full. Use `add_meta_column()` to
   change one column.
 - The default database in `load_LRM_database()` is now ConnectomeDB2025.
