@@ -37,17 +37,23 @@ jobs:
           use-public-rspm: true
 
       # Step 3: install this package, everything in DESCRIPTION, and the tools
-      #   the website needs. SeuratData isn't on CRAN, so it comes from GitHub.
+      #   the website needs
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
             any::pkgdown
+            any::remotes
+            any::Seurat
             local::.
-            github::satijalab/seurat-data
 
-      # Step 4: download the test datasets the tutorials use
-      - name: Install test datasets
-        run: SeuratData::InstallData(c("stxBrain", "ifnb"))
+      # Step 4: install SeuratData and download the test datasets
+      #   SeuratData isn't on CRAN, so it comes from GitHub. It gets its own step
+      #   because Step 3 would also require Azimuth, an optional SeuratData
+      #   package that isn't on CRAN or Bioconductor.
+      - name: Install SeuratData and test datasets
+        run: |
+          remotes::install_github("satijalab/seurat-data", upgrade = "never")
+          SeuratData::InstallData(c("stxBrain", "ifnb"))
         shell: Rscript {0}
 
       # Step 5: build the site

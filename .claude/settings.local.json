@@ -126,7 +126,10 @@
       "Bash(Rscript -e 'print\\(utils::packageVersion\\(\"pkgdown\"\\)\\); print\\(pkgdown:::package_mds\\); print\\(pkgdown:::build_home_md\\)')",
       "Bash(Rscript -e 'a <- available.packages\\(repos=\"https://cloud.r-project.org\"\\); print\\(a[c\\(\"pkgdown\",\"knitr\",\"Seurat\",\"SeuratObject\"\\),\"Version\"]\\); for \\(p in c\\(\"Seurat\",\"SeuratObject\",\"SeuratData\",\"rmarkdown\",\"knitr\"\\)\\) cat\\(p, as.character\\(utils::packageVersion\\(p\\)\\), \"\\\\n\"\\); print\\(unname\\(sapply\\(\"repo\", function\\(x\\) getOption\\(\"SeuratData.repo.use\"\\)\\)\\)\\)')",
       "Bash(Rscript -e 'library\\(SeuratData\\); print\\(getOption\\(\"SeuratData.repo.use\"\\)\\); print\\(utils::packageDescription\\(\"SeuratData\"\\)[c\\(\"Version\",\"RemoteType\",\"RemoteRepo\",\"RemoteUsername\",\"Repository\"\\)]\\)')",
-      "Bash(rsync -a --delete /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/siteci/ docs/)"
+      "Bash(rsync -a --delete /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/siteci/ docs/)",
+      "Read(//private/tmp/**)",
+      "Bash(curl -s -m 30 \"https://api.github.com/repos/noahwang1991/NICHESv2-NW/actions/runs?per_page=5\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
