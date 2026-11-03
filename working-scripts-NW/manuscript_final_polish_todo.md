@@ -24,6 +24,8 @@ Manuscript checked: `NICHESv2 paper draft Genome Biology Software 2026-10-19.doc
 7. Align the TissuePlex platform list. The manuscript names Xenium, MERSCOPE and
    CosMx; the TissuePlex README also lists Visium, Visium HD and seqFISH.
 8. Update references 23 and 38 (titles, URLs, access dates).
+8a. Methods, "Software implementation and availability", says "under an MIT
+    license". Change it to the GNU AGPL v3 (commercial license available).
 
 ## To re-verify against the final package
 

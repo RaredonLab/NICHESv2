@@ -22,6 +22,8 @@ First public release.
 
 ## Changes for users of the 0.0.9000 development version
 
+- The license is now the GNU AGPL v3 instead of MIT. A commercial license is
+  also available from the Raredon Lab.
 - `[` now keeps each retained cell's neighborhood entries and aggregation rows
   unchanged, so they still describe the full tissue. Previously, neighborhood
   slots kept the full object's entries, aggregations were dropped, and aggregating

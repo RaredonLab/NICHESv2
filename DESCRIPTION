@@ -14,7 +14,7 @@ Description: Computes ligand-receptor (LR) signaling scores between pairs of
     neighborhood aggregation for downstream analysis. Supports single-gene and
     multi-gene complex ligands and receptors. Built-in loaders are provided for
     the ConnectomeDB2025 (default), FANTOM5, and OmniPath LR databases.
-License: MIT + file LICENSE
+License: AGPL-3
 URL: https://raredonlab.github.io/NICHESv2/,
     https://github.com/RaredonLab/NICHESv2
 BugReports: https://github.com/RaredonLab/NICHESv2/issues
