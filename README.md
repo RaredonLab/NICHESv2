@@ -1,6 +1,6 @@
 # NICHESv2
 
-[![R-CMD-check](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml/badge.svg?branch=dev)](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml/badge.svg?branch=main)](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.md)
 
 NICHESv2 scores ligand-receptor (LR) signaling between individual pairs of cells

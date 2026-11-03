@@ -147,7 +147,12 @@
       "Bash(curl -s -m 30 -L \"https://github.com/msraredon/NICHES/pull/72\")",
       "Bash(Rscript --vanilla -e 'for \\(p in c\\(\"data.table\",\"Matrix\",\"RANN\",\"dbscan\",\"ggplot2\",\"SeuratObject\",\"rhdf5\",\"OmnipathR\",\"arrow\",\"sf\",\"testthat\",\"withr\",\"knitr\",\"rmarkdown\"\\)\\) cat\\(sprintf\\(\"%-13s %s\\\\n\", p, tryCatch\\(packageDescription\\(p\\)$License, error=function\\(e\\) \"not installed\"\\)\\)\\); db <- tools:::analyze_license\\(\"AGPL-3\"\\); cat\\(\"AGPL-3 standardizable:\", db$is_standardizable, \" canonical:\", db$standardization, \"\\\\n\"\\)')",
       "Bash(cp /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library/usethis/templates/license-AGPL-3.md LICENSE.md && rm LICENSE && head -3 LICENSE.md && wc -l LICENSE.md && ls LICENSE 2>&1 | head -1)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(curl -s -m 30 \"https://api.github.com/repos/RaredonLab/NICHESv2/actions/runs?per_page=6\")",
+      "Bash(git fetch *)",
+      "Bash(curl -s -m 30 \"https://api.github.com/repos/RaredonLab/NICHESv2\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('default branch:', d.get\\('default_branch'\\), 'has_pages:', d.get\\('has_pages'\\), 'visibility:', d.get\\('visibility'\\)\\)\")",
+      "Bash(git merge-tree *)"
     ]
   }
 }
