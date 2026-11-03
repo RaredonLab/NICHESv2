@@ -1,0 +1,289 @@
+# NICHESv2
+
+[![R-CMD-check](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml/badge.svg?branch=main)](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml)
+[![License: AGPL
+v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://raredonlab.github.io/NICHESv2/LICENSE.md)
+
+NICHESv2 scores ligand-receptor (LR) signaling between individual pairs
+of cells in spatial and non-spatial single-cell transcriptomics data. It
+keeps every non-zero score, so you can trace a signal back to the cells
+that produced it, and summarize signals by neighborhood when you need a
+wider view.
+
+## Installation
+
+NICHESv2 is being prepared for CRAN. Until it is released there, install
+it from GitHub:
+
+``` r
+
+install.packages("remotes")
+remotes::install_github("RaredonLab/NICHESv2", ref = "main")
+```
+
+To read the vignette locally, add `build_vignettes = TRUE`, which needs
+knitr, rmarkdown and pandoc.
+
+These packages are optional. Install only the ones you need:
+
+``` r
+
+# Seurat V4 and V5 objects
+install.packages("SeuratObject")
+
+# AnnData (.h5ad) files, no Python required
+install.packages("BiocManager")
+BiocManager::install("rhdf5")
+
+# OmniPath LR database
+BiocManager::install("OmnipathR")
+
+# TissuePlex export
+install.packages("arrow")
+
+# Cell segmentation polygons
+install.packages("sf")
+```
+
+## Quick start
+
+This example uses the small synthetic dataset that ships with the
+package.
+
+``` r
+
+library(NICHESv2)
+
+data(NICHESv2_inputs)
+
+# Score LR pairs between mutual spatial neighbors
+obj <- create_NICHESObject(
+  count.mtx = NICHESv2_inputs$count.mtx,
+  meta.data = NICHESv2_inputs$meta.data,
+  LRM.db    = NICHESv2_inputs$LRM.db,
+  mode      = "spatial",
+  k         = 5L
+)
+
+# One row per non-zero (edge, LR pair) score
+head(obj$edge.data)
+
+# Summarize each cell's neighborhood
+obj <- aggregate_NICHESObject(obj, cell.type.col = "celltype")
+head(obj$aggregations$neighborhood.edge.agg)
+head(obj$aggregations$neighborhood.composition)
+```
+
+For your own data, pass a database name to `LRM.db` and set `species`:
+
+``` r
+
+obj <- create_NICHESObject(
+  count.mtx = count.mtx,
+  meta.data = meta.data,
+  LRM.db    = "connectomedb2025",
+  species   = "mouse",
+  mode      = "spatial",
+  k         = 6L,
+  n.cores   = 4L
+)
+```
+
+The vignette walks through the full workflow:
+
+``` r
+
+vignette("NICHESv2")
+```
+
+The [website](https://raredonlab.github.io/NICHESv2/) has tutorials on
+public spatial and non-spatial datasets, plus a page for reviewers.
+
+## Features
+
+- **Two analysis modes:** `"spatial"` connects cells by k-nearest
+  neighbors or a fixed radius, and adds autocrine self-loops.
+  `"nonspatial"` pairs cells by random sampling within each pair of cell
+  types.
+- **LR databases:** ConnectomeDB2025 and FANTOM5 are bundled for human,
+  mouse, rat and pig, with no internet needed. OmniPath covers human,
+  mouse and rat. You can also supply your own data frame, and multi-gene
+  complexes are supported.
+- **Memory-efficient storage:** the 15-slot `NICHESObject` stores scores
+  in sparse long-format `data.table`s, so memory use follows how much
+  signal exists rather than every possible combination.
+- **Neighborhood aggregation:**
+  [`aggregate_NICHESObject()`](https://raredonlab.github.io/NICHESv2/reference/aggregate_NICHESObject.md)
+  gives directional scores per cell and LR pair (in, out, cross,
+  self-autocrine and other-autocrine) and the cell-type makeup of each
+  neighborhood.
+- **Multiple samples:** `sample.col` processes each sample separately
+  and merges the results, so no edges cross samples.
+- **Flexible input:** use a sparse matrix, a Seurat V4 or V5 object, or
+  an AnnData file (no Python required).
+- **Works on every platform:** parallel scoring uses socket clusters
+  through `n.cores`.
+- **Interactive viewing:**
+  [`export_to_TissuePlex()`](https://raredonlab.github.io/NICHESv2/reference/export_to_TissuePlex.md)
+  writes edges to a Parquet file for viewing in
+  [TissuePlex](https://raredonlab.github.io/TissuePlex/).
+
+## Citation
+
+A paper describing NICHESv2 is in preparation. Until it is published,
+please cite the original NICHES method:
+
+Raredon MSB, Yang J, Kothapalli N, et al. Comprehensive visualization of
+cell-cell interactions in single-cell and spatial transcriptomics with
+NICHES. *Bioinformatics*. 2023;39(1):btac775.
+[doi:10.1093/bioinformatics/btac775](https://doi.org/10.1093/bioinformatics/btac775)
+
+## License
+
+NICHESv2 is dual-licensed.
+
+- **Open source** under the [GNU Affero General Public License
+  v3.0](https://raredonlab.github.io/NICHESv2/LICENSE.md). Use, modify
+  and share it freely. If you distribute a modified version or offer it
+  over a network, the AGPL requires that you make your modified source
+  available under the same terms. Academic and non-profit use is
+  unaffected in practice.
+- **Commercial license** for use in products or services without the
+  AGPL’s source-sharing obligations: contact the Raredon Lab.
+
+© 2026 Nuoya Wang, Micha Sam Brickman Raredon
+
+# Package index
+
+## Build an object
+
+- [`create_NICHESObject()`](https://raredonlab.github.io/NICHESv2/reference/create_NICHESObject.md)
+  : Create a NICHESObject from Single-Cell Data
+- [`extract_NICHESInputs_Seurat()`](https://raredonlab.github.io/NICHESv2/reference/extract_NICHESInputs_Seurat.md)
+  : Extract inputs for create_NICHESObject from a Seurat object
+- [`extract_NICHESInputs_AnnData()`](https://raredonlab.github.io/NICHESv2/reference/extract_NICHESInputs_AnnData.md)
+  : Extract inputs for create_NICHESObject from an AnnData (.h5ad) file
+- [`load_LRM_database()`](https://raredonlab.github.io/NICHESv2/reference/load_LRM_database.md)
+  : Load a Ligand-Receptor Pair Database
+- [`merge_NICHESObjects()`](https://raredonlab.github.io/NICHESv2/reference/merge_NICHESObjects.md)
+  : Merge multiple NICHESObjects into one
+
+## Neighborhoods and aggregation
+
+- [`Explore_Radius_Neighborhood()`](https://raredonlab.github.io/NICHESv2/reference/Explore_Radius_Neighborhood.md)
+  : Explore the relationship between search radius and neighborhood size
+- [`add_neighborhoods()`](https://raredonlab.github.io/NICHESv2/reference/add_neighborhoods.md)
+  : Add Neighborhood Slots to a NICHESObject
+- [`extract_neighborhoods()`](https://raredonlab.github.io/NICHESv2/reference/extract_neighborhoods.md)
+  : Extract Neighborhoods from an Edge List
+- [`aggregate_NICHESObject()`](https://raredonlab.github.io/NICHESv2/reference/aggregate_NICHESObject.md)
+  : Run the Full Aggregation Pipeline on a NICHESObject
+- [`add_neighborhood_edge_agg()`](https://raredonlab.github.io/NICHESv2/reference/add_neighborhood_edge_agg.md)
+  : Add Unified Neighborhood Edge Aggregation to a NICHESObject
+- [`add_neighborhood_composition()`](https://raredonlab.github.io/NICHESv2/reference/add_neighborhood_composition.md)
+  : Add Neighborhood Cell-Type Composition to a NICHESObject
+
+## Work with an object
+
+- [`` `[`( ``*`<NICHESObject>`*`)`](https://raredonlab.github.io/NICHESv2/reference/sub-.NICHESObject.md)
+  : Subset a NICHESObject to a Set of Cells
+
+- [`print(`*`<NICHESObject>`*`)`](https://raredonlab.github.io/NICHESv2/reference/print.NICHESObject.md)
+  : Print a NICHESObject
+
+- [`summary(`*`<NICHESObject>`*`)`](https://raredonlab.github.io/NICHESv2/reference/summary.NICHESObject.md)
+  : Summarize a NICHESObject
+
+- [`dim(`*`<NICHESObject>`*`)`](https://raredonlab.github.io/NICHESv2/reference/dim.NICHESObject.md)
+  : Dimensions of a NICHESObject
+
+- [`length(`*`<NICHESObject>`*`)`](https://raredonlab.github.io/NICHESv2/reference/length.NICHESObject.md)
+  : Number of Cells in a NICHESObject
+
+- [`is_NICHESObject()`](https://raredonlab.github.io/NICHESv2/reference/is_NICHESObject.md)
+  : Test Whether an Object Is a NICHESObject
+
+- [`add_meta_column()`](https://raredonlab.github.io/NICHESv2/reference/add_meta_column.md)
+  :
+
+  Append or Overwrite a Single Column in `$cell.meta`
+
+- [`add_cell_meta()`](https://raredonlab.github.io/NICHESv2/reference/add_cell_meta.md)
+  :
+
+  Replace `$cell.meta` on a NICHESObject
+
+- [`add_cell_rawcounts()`](https://raredonlab.github.io/NICHESv2/reference/add_cell_rawcounts.md)
+  :
+
+  Add Raw UMI Counts to `$cell.data`
+
+- [`add_segmentation()`](https://raredonlab.github.io/NICHESv2/reference/add_segmentation.md)
+  : Attach Cell Segmentation Polygons to a NICHESObject
+
+## Export
+
+- [`export_to_TissuePlex()`](https://raredonlab.github.io/NICHESv2/reference/export_to_TissuePlex.md)
+  : Export a NICHESObject to TissuePlex edges.parquet
+
+## Lower-level steps
+
+- [`compute_CellToCell()`](https://raredonlab.github.io/NICHESv2/reference/compute_CellToCell.md)
+  : Compute Cell-to-Cell Ligand-Receptor Signals
+- [`create_Edgelist_Spatial()`](https://raredonlab.github.io/NICHESv2/reference/create_Edgelist_Spatial.md)
+  : Build a Spatial Neighborhood Edge List from 2-D Cell Coordinates
+- [`create_Edgelist_SamplingByType()`](https://raredonlab.github.io/NICHESv2/reference/create_Edgelist_SamplingByType.md)
+  : Build a Type-Stratified Sampled Edge List for Non-Spatial scRNA Data
+
+## Example data
+
+- [`NICHESv2_inputs`](https://raredonlab.github.io/NICHESv2/reference/NICHESv2_inputs.md)
+  : Example NICHESv2 inputs (raw triple)
+- [`NICHESv2_example`](https://raredonlab.github.io/NICHESv2/reference/NICHESv2_example.md)
+  : Example prebuilt NICHESObject
+
+## LR databases
+
+- [`connectomedb2025_human`](https://raredonlab.github.io/NICHESv2/reference/connectomedb2025_human.md)
+  : ConnectomeDB2025 ligand-receptor database – human
+- [`connectomedb2025_mouse`](https://raredonlab.github.io/NICHESv2/reference/connectomedb2025_mouse.md)
+  : ConnectomeDB2025 ligand-receptor database – mouse
+- [`connectomedb2025_pig`](https://raredonlab.github.io/NICHESv2/reference/connectomedb2025_pig.md)
+  : ConnectomeDB2025 ligand-receptor database – pig
+- [`connectomedb2025_rat`](https://raredonlab.github.io/NICHESv2/reference/connectomedb2025_rat.md)
+  : ConnectomeDB2025 ligand-receptor database – rat
+- [`ncomms8866`](https://raredonlab.github.io/NICHESv2/reference/ncomms8866.md)
+  : FANTOM5 ligand-receptor database – original unfiltered table
+- [`ncomms8866_human`](https://raredonlab.github.io/NICHESv2/reference/ncomms8866_human.md)
+  : FANTOM5 ligand-receptor database – human
+- [`ncomms8866_mouse`](https://raredonlab.github.io/NICHESv2/reference/ncomms8866_mouse.md)
+  : FANTOM5 ligand-receptor database – mouse
+- [`ncomms8866_pig`](https://raredonlab.github.io/NICHESv2/reference/ncomms8866_pig.md)
+  : FANTOM5 ligand-receptor database – pig
+- [`ncomms8866_rat`](https://raredonlab.github.io/NICHESv2/reference/ncomms8866_rat.md)
+  : FANTOM5 ligand-receptor database – rat
+
+# Articles
+
+### Reviewers
+
+- [For
+  reviewers](https://raredonlab.github.io/NICHESv2/articles/for-reviewers.md):
+
+### Tutorials
+
+- [Spatial tutorial: mouse
+  brain](https://raredonlab.github.io/NICHESv2/articles/spatial-tutorial.md):
+- [Non-spatial tutorial: stimulated
+  PBMCs](https://raredonlab.github.io/NICHESv2/articles/nonspatial-tutorial.md):
+
+### Guides
+
+- [Input
+  formats](https://raredonlab.github.io/NICHESv2/articles/input-formats.md):
+- [The
+  NICHESObject](https://raredonlab.github.io/NICHESv2/articles/niches-object.md):
+- [Neighborhood
+  aggregation](https://raredonlab.github.io/NICHESv2/articles/aggregation.md):
+- [Exporting to
+  TissuePlex](https://raredonlab.github.io/NICHESv2/articles/tissueplex-export.md):
