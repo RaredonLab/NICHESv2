@@ -33,46 +33,25 @@ memory.
 
 ## Get the data
 
-The dataset comes from [SeuratData](https://github.com/satijalab/seurat-data),
-which isn't on CRAN. Run this once; the download is about 413 MB. SeuratData also
-installs the Seurat package, so the first install can take a while.
-
-```{r install, eval = FALSE}
-install.packages(c("remotes", "SeuratObject"))
-remotes::install_github("satijalab/seurat-data")
-SeuratData::InstallData("ifnb")
-```
+`download_NICHESv2_data()` fetches the dataset from a NICHESv2 release on GitHub,
+so you don't need any other package. The download is about 11 MB and happens
+once; later calls read the saved copy.
 
 ```{r load}
 library(NICHESv2)
 library(data.table)
 library(ggplot2)
-library(SeuratObject)
-library(SeuratData)
 
-data("ifnb")
-```
-
-SeuratData objects keep the Seurat version they were saved with.
-`extract_NICHESInputs_Seurat()` reads both V4 and V5 objects, so you don't need
-to update them first.
-
-## Extract the inputs
-
-```{r extract}
-inputs <- extract_NICHESInputs_Seurat(
-  seurat.obj = ifnb,
-  assay      = "RNA",
-  layer      = "counts",
-  verbose    = FALSE
-)
+inputs <- download_NICHESv2_data("ifnb", verbose = FALSE)
 dim(inputs$count.mtx)
 
 table(inputs$meta.data$stim)
 ```
 
-Two metadata columns matter here: `stim` holds the condition, and
-`seurat_annotations` holds 13 cell types.
+`inputs` holds the raw counts as a sparse genes x cells matrix, and the cell
+metadata. Two metadata columns matter here: `stim` holds the condition, and
+`seurat_annotations` holds 13 cell types. To prepare the same inputs from a
+Seurat object, see [Starting from a Seurat object](seurat-objects.html).
 
 ## Build the NICHESObject
 
@@ -177,3 +156,8 @@ values with care.
 The data are from Kang HM, Subramaniam M, Targ S, et al. Multiplexed droplet
 single-cell RNA-sequencing using natural genetic variation. *Nat Biotechnol*.
 2018;36(1):89-94 (GEO: GSE96583). Cell-type labels are from the Satija Lab.
+NICHESv2 hosts a copy taken from the `ifnb` object in the SeuratData package
+`ifnb.SeuratData`, under its
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license. The copy keeps
+the raw counts and cell metadata unchanged. The `PROVENANCE.md` file that comes
+with the download gives the details.

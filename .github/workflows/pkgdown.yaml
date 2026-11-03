@@ -1,8 +1,11 @@
 # .github/workflows/pkgdown.yaml
 #
 # Builds the website and publishes it to the gh-pages branch on every push to
-# main. The tutorials really run here, so each build installs SeuratData and
-# downloads both public test datasets. A failed build publishes nothing, and the
+# main. The tutorials really run here. They download their data with
+# download_NICHESv2_data() from this repository's data-v1 release, so they need
+# nothing outside NICHESv2. Only the "Starting from a Seurat object" page uses
+# SeuratData; its install step may fail without stopping the build, and the page
+# then shows its code without output. A failed build publishes nothing, and the
 # live site stays as it was.
 #
 # To test a build without publishing it, start this workflow by hand from the
@@ -36,24 +39,32 @@ jobs:
         with:
           use-public-rspm: true
 
-      # Step 3: install this package, everything in DESCRIPTION, and the tools
-      #   the website needs
+      # Step 3: install this package, everything in DESCRIPTION, and pkgdown
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
             any::pkgdown
-            any::remotes
-            any::Seurat
             local::.
 
-      # Step 4: install SeuratData and download the test datasets
-      #   SeuratData isn't on CRAN, so it comes from GitHub. It gets its own step
-      #   because Step 3 would also require Azimuth, an optional SeuratData
-      #   package that isn't on CRAN or Bioconductor.
-      - name: Install SeuratData and test datasets
-        run: |
-          remotes::install_github("satijalab/seurat-data", upgrade = "never")
-          SeuratData::InstallData(c("stxBrain", "ifnb"))
+      # Step 4 (optional): install Seurat and SeuratData for the Seurat page
+      #   continue-on-error: true  →  a failure here doesn't stop the build
+      #   dependencies: "hard"      →  skips SeuratData's optional Azimuth
+      #                                package, which isn't on CRAN
+      - name: Install Seurat and SeuratData (optional)
+        id: seuratdata
+        continue-on-error: true
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::Seurat
+            github::satijalab/seurat-data
+          dependencies: '"hard"'
+          cache: false
+
+      - name: Download the SeuratData datasets (optional)
+        if: steps.seuratdata.outcome == 'success'
+        continue-on-error: true
+        run: SeuratData::InstallData(c("stxBrain", "ifnb"))
         shell: Rscript {0}
 
       # Step 5: build the site

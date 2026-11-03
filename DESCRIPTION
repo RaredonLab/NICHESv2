@@ -33,6 +33,7 @@ Imports:
     ggplot2 (>= 3.4.0),
     parallel,
     stats,
+    tools,
     utils
 Suggests:
     SeuratObject,

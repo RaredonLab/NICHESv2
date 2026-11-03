@@ -18,6 +18,8 @@ navbar:
         href: articles/spatial-tutorial.html
       - text: "Non-spatial: stimulated PBMCs"
         href: articles/nonspatial-tutorial.html
+      - text: Starting from a Seurat object
+        href: articles/seurat-objects.html
     guides:
       text: Guides
       menu:
@@ -40,6 +42,7 @@ articles:
   contents:
   - articles/spatial-tutorial
   - articles/nonspatial-tutorial
+  - articles/seurat-objects
 - title: Guides
   navbar: ~
   contents:
@@ -86,6 +89,7 @@ reference:
   - create_Edgelist_SamplingByType
 - title: Example data
   contents:
+  - download_NICHESv2_data
   - NICHESv2_inputs
   - NICHESv2_example
 - title: LR databases
