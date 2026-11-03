@@ -51,3 +51,7 @@ rsconnect/
 /doc/
 /Meta/
 docs
+
+# Local Claude Code settings and OmniPath download logs
+.claude/settings.local.json
+omnipathr-log/
