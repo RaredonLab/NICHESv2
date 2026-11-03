@@ -19,6 +19,9 @@ First public release.
   Python.
 - `export_to_TissuePlex()` writes edges to a Parquet file for interactive
   viewing.
+- `download_NICHESv2_data()` downloads the two public datasets used in the
+  website tutorials: a 10x Visium mouse brain section and interferon-beta
+  stimulated PBMCs.
 
 ## Changes for users of the 0.0.9000 development version
 

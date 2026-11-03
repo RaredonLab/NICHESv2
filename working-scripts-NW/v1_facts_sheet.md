@@ -117,7 +117,8 @@ Runs below used raw counts, `method = "product"`, the default database and
 | | `stxBrain` (anterior1) | `ifnb` |
 |---|---|---|
 | Size | 31,053 genes x 2,696 spots | 14,053 genes x 13,999 cells |
-| Download | 143 MB | 413 MB |
+| Download with `download_NICHESv2_data()` | 13.9 MB | 11.1 MB |
+| Download with SeuratData | 143 MB | 413 MB |
 | Mode | spatial, `k = 6`, mouse | nonspatial, human |
 | Other settings | assay `"Spatial"` | `sample.col = "stim"`, `cell.type.col = "seurat_annotations"` |
 | Scored rows in `$edge.data` | 5,191,520 | 605,973 |
@@ -125,12 +126,19 @@ Runs below used raw counts, `method = "product"`, the default database and
 | Aggregate | about 12 s | not run |
 | TissuePlex export | about 4 s | not run |
 
-- Both datasets come from SeuratData, which isn't on CRAN. NICHESv2 hosts no
-  data. Install with `remotes::install_github("satijalab/seurat-data")`, then
-  `SeuratData::InstallData("stxBrain")` and `SeuratData::InstallData("ifnb")`.
-  SeuratData imports Seurat, so installing it also installs Seurat. NICHESv2
-  itself only needs SeuratObject to read Seurat objects. SeuratData stays out of
-  `DESCRIPTION`.
+- Decision 2026-11-03: NICHESv2 hosts both datasets itself, so the website
+  doesn't depend on the Satija Lab. `data-raw/build_tutorial_data.R` builds
+  `stxBrain.zip` and `ifnb.zip` (each `inputs.rds` plus `PROVENANCE.md`) and a
+  `SHA256SUMS` file. They are attached to the GitHub release `data-v1` of
+  RaredonLab/NICHESv2, and `download_NICHESv2_data()` fetches them, checks the
+  MD5 sum and caches them. The inputs are identical to a fresh
+  `extract_NICHESInputs_Seurat()` run on the SeuratData objects (checked
+  2026-11-03).
+- Only the "Starting from a Seurat object" page uses SeuratData. Install with
+  `remotes::install_github("satijalab/seurat-data")`, then
+  `SeuratData::InstallData(c("stxBrain", "ifnb"))`. SeuratData imports Seurat,
+  so installing it also installs Seurat. NICHESv2 itself only needs SeuratObject
+  to read Seurat objects. SeuratData stays out of `DESCRIPTION`.
 - `UpdateSeuratObject()` is not needed. `extract_NICHESInputs_Seurat()` gives
   identical results with or without it on both datasets (SeuratObject 5.0.2 and
   5.1.0). SeuratData objects keep their own Seurat version: `ifnb` is a V4-style
@@ -153,6 +161,8 @@ Runs below used raw counts, `method = "product"`, the default database and
 - `ifnb` comes from Kang et al., Nat Biotechnol 2018;36(1):89-94 (GSE96583), with
   cell-type labels added by the Satija Lab. The `ifnb.SeuratData` package is
   labeled CC BY 4.0, but no license from the original authors was found.
+- Decision 2026-11-03: rehost both under CC BY 4.0 with credit, the source
+  package version and the changes stated in each `PROVENANCE.md`.
 
 ## TissuePlex
 
