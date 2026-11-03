@@ -8,7 +8,11 @@ first.
 ## Package
 
 - Name: NICHESv2. Free on CRAN (including the archive) and Bioconductor.
-- Version 1.0.0. License MIT. R >= 4.1.0.
+- Version 1.0.0. R >= 4.1.0.
+- License: GNU AGPL v3, version 3 only (`License: AGPL-3`), plus a commercial
+  license from the Raredon Lab, the same as TissuePlex. Copyright holders:
+  Nuoya Wang and Micha Sam Brickman Raredon; Yale is not listed, as for
+  TissuePlex. Versions up to 0.1.0 were released under MIT and stay MIT.
 - Authors: Nuoya Wang (maintainer), Micha Sam Brickman Raredon.
 - Repository: https://github.com/RaredonLab/NICHESv2
 - Install today: `remotes::install_github("RaredonLab/NICHESv2", ref = "main")`,

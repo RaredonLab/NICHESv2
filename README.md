@@ -1,7 +1,7 @@
 # NICHESv2
 
 [![R-CMD-check](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml/badge.svg?branch=dev)](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.md)
 
 NICHESv2 scores ligand-receptor (LR) signaling between individual pairs of cells
 in spatial and non-spatial single-cell transcriptomics data. It keeps every
@@ -127,4 +127,14 @@ cell-cell interactions in single-cell and spatial transcriptomics with NICHES.
 
 ## License
 
-MIT © 2026 Nuoya Wang, Micha Sam Brickman Raredon
+NICHESv2 is dual-licensed.
+
+- **Open source** under the
+  [GNU Affero General Public License v3.0](LICENSE.md). Use, modify and share it
+  freely. If you distribute a modified version or offer it over a network, the
+  AGPL requires that you make your modified source available under the same
+  terms. Academic and non-profit use is unaffected in practice.
+- **Commercial license** for use in products or services without the AGPL's
+  source-sharing obligations: contact the Raredon Lab.
+
+© 2026 Nuoya Wang, Micha Sam Brickman Raredon

@@ -129,7 +129,25 @@
       "Bash(rsync -a --delete /private/tmp/claude-234134544/-Users-nw426-Documents-GitHub-NICHESv2-NW/8e8dd3a1-059b-4622-99f2-f5ba283c1906/scratchpad/siteci/ docs/)",
       "Read(//private/tmp/**)",
       "Bash(curl -s -m 30 \"https://api.github.com/repos/noahwang1991/NICHESv2-NW/actions/runs?per_page=5\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s -m 30 \"https://api.github.com/repos/noahwang1991/NICHESv2-NW/actions/runs?per_page=8\")",
+      "Bash(curl -s -m 30 \"https://api.github.com/repos/noahwang1991/NICHESv2-NW/actions/runs?per_page=3&event=push\")",
+      "Bash(Rscript --vanilla -e 'cat\\(\"knitr\", as.character\\(packageVersion\\(\"knitr\"\\)\\), \"from\", find.package\\(\"knitr\"\\), \"\\\\n\"\\); cat\\(\"xfun\", as.character\\(packageVersion\\(\"xfun\"\\)\\), \"\\\\n\"\\)')",
+      "Bash(curl -s -m 30 \"https://api.github.com/repos/noahwang1991/NICHESv2-NW/actions/runs/41531010861\")",
+      "Bash(python3 -c \"import json,sys; r=json.load\\(sys.stdin\\); print\\(r['status'],r['conclusion'],'attempt',r['run_attempt']\\)\")",
+      "Bash(curl -s -m 30 \"https://api.github.com/repos/noahwang1991/NICHESv2-NW/actions/runs/41531010861/jobs?filter=latest\")",
+      "Bash(curl -s -m 30 \"https://api.github.com/search/issues?q=omnipath+repo:msraredon/NICHES\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('message'\\) or [\\(i['number'], i['user']['login'], i['title'][:60], 'PR' if i.get\\('pull_request'\\) else 'issue'\\) for i in d['items'][:6]]\\)\")",
+      "Bash(curl -s -m 30 -o /dev/null -w '%{http_code} %{url_effective}\\\\n' -L https://github.com/msraredon/NICHES)",
+      "Bash(curl -s -m 30 \"https://api.github.com/search/repositories?q=NICHES+in:name+user:msraredon\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\([\\(r['full_name'], \\(r.get\\('license'\\) or {}\\).get\\('spdx_id'\\)\\) for r in d.get\\('items',[]\\)]\\)\")",
+      "Bash(curl -s -m 30 -L https://connectomedb.org/)",
+      "Bash(curl -s -m 30 -L \"https://raw.githubusercontent.com/msraredon/NICHES/HEAD/DESCRIPTION\")",
+      "Bash(curl -s -m 30 -L -o /dev/null -w 'LICENSE file: %{http_code}\\\\n' \"https://raw.githubusercontent.com/msraredon/NICHES/HEAD/LICENSE\")",
+      "Bash(curl -s -m 30 -L \"https://github.com/msraredon/NICHES/pull/72\")",
+      "Bash(Rscript --vanilla -e 'for \\(p in c\\(\"data.table\",\"Matrix\",\"RANN\",\"dbscan\",\"ggplot2\",\"SeuratObject\",\"rhdf5\",\"OmnipathR\",\"arrow\",\"sf\",\"testthat\",\"withr\",\"knitr\",\"rmarkdown\"\\)\\) cat\\(sprintf\\(\"%-13s %s\\\\n\", p, tryCatch\\(packageDescription\\(p\\)$License, error=function\\(e\\) \"not installed\"\\)\\)\\); db <- tools:::analyze_license\\(\"AGPL-3\"\\); cat\\(\"AGPL-3 standardizable:\", db$is_standardizable, \" canonical:\", db$standardization, \"\\\\n\"\\)')",
+      "Bash(cp /Library/Frameworks/R.framework/Versions/4.3-arm64/Resources/library/usethis/templates/license-AGPL-3.md LICENSE.md && rm LICENSE && head -3 LICENSE.md && wc -l LICENSE.md && ls LICENSE 2>&1 | head -1)",
+      "Bash(python3 -)"
     ]
   }
 }
