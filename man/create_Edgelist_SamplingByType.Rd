@@ -22,7 +22,7 @@ be unique cell barcodes. Must contain the column specified by
 \item{seed}{\code{integer(1)}. Random seed for reproducibility.
 Default \code{42L}. Pass a different value to obtain an alternative
 sampling draw; pass \code{NULL} to skip seed-setting (not recommended
-for publication).}
+for publication). The caller's random number state is restored on exit.}
 
 \item{max.cells}{\code{integer(1)} or \code{NULL}. Optional upper cap
 on the number of edges per type-pair crossing. When \code{NULL} (default),
@@ -37,7 +37,7 @@ A \code{data.table} keyed on \code{(from, to)} with columns:
   \item{\code{from}}{Sending cell barcode (character).}
   \item{\code{to}}{Receiving cell barcode (character).}
 }
-Carries metadata attributes: \code{mode} (\code{"sampled"}), \code{param}
+Carries metadata attributes: \code{mode} (\code{"nonspatial"}), \code{param}
 (named list of \code{cell.type.col}, \code{seed}, \code{max.cells}),
 \code{n.cells} (total cells in \code{meta.data}), \code{cell.names} (all
 cell barcodes).
@@ -65,8 +65,8 @@ Results differ across runs unless \code{seed} is fixed.
 \details{
 This function is a low-level primitive: it builds the sampled
 non-spatial edge list that \code{\link{create_NICHESObject}} consumes
-internally when called with \code{mode = "sampled"}. Most users should
-call \code{create_NICHESObject(mode = "sampled", ...)}, which invokes
+internally when called with \code{mode = "nonspatial"}. Most users should
+call \code{create_NICHESObject(mode = "nonspatial", ...)}, which invokes
 this function and assembles the result into a full \code{NICHESObject}
 in one step. \code{create_Edgelist_SamplingByType()} is exposed for
 power users who want to inspect the sampled edges, fix the random
@@ -90,7 +90,6 @@ el <- create_Edgelist_SamplingByType(meta, cell.type.col = "cell.type",
 }
 \seealso{
 \code{\link{create_NICHESObject}},
-  \code{\link{create_Edgelist_PseudoBulk}},
   \code{\link{create_Edgelist_Spatial}}
 }
 \keyword{internal}

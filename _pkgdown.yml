@@ -1,0 +1,94 @@
+url: https://raredonlab.github.io/NICHESv2/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left:  [intro, reviewers, tutorials, guides, reference, news]
+    right: [search, github]
+  components:
+    reviewers:
+      text: For reviewers
+      href: articles/for-reviewers.html
+    tutorials:
+      text: Tutorials
+      menu:
+      - text: "Spatial: mouse brain"
+        href: articles/spatial-tutorial.html
+      - text: "Non-spatial: stimulated PBMCs"
+        href: articles/nonspatial-tutorial.html
+    guides:
+      text: Guides
+      menu:
+      - text: Input formats
+        href: articles/input-formats.html
+      - text: The NICHESObject
+        href: articles/niches-object.html
+      - text: Neighborhood aggregation
+        href: articles/aggregation.html
+      - text: Exporting to TissuePlex
+        href: articles/tissueplex-export.html
+
+articles:
+- title: Reviewers
+  navbar: ~
+  contents:
+  - articles/for-reviewers
+- title: Tutorials
+  navbar: ~
+  contents:
+  - articles/spatial-tutorial
+  - articles/nonspatial-tutorial
+- title: Guides
+  navbar: ~
+  contents:
+  - articles/input-formats
+  - articles/niches-object
+  - articles/aggregation
+  - articles/tissueplex-export
+
+reference:
+- title: Build an object
+  contents:
+  - create_NICHESObject
+  - extract_NICHESInputs_Seurat
+  - extract_NICHESInputs_AnnData
+  - load_LRM_database
+  - merge_NICHESObjects
+- title: Neighborhoods and aggregation
+  contents:
+  - Explore_Radius_Neighborhood
+  - add_neighborhoods
+  - extract_neighborhoods
+  - aggregate_NICHESObject
+  - add_neighborhood_edge_agg
+  - add_neighborhood_composition
+- title: Work with an object
+  contents:
+  - "`[.NICHESObject`"
+  - print.NICHESObject
+  - summary.NICHESObject
+  - dim.NICHESObject
+  - length.NICHESObject
+  - is_NICHESObject
+  - add_meta_column
+  - add_cell_meta
+  - add_cell_rawcounts
+  - add_segmentation
+- title: Export
+  contents:
+  - export_to_TissuePlex
+- title: Lower-level steps
+  contents:
+  - compute_CellToCell
+  - create_Edgelist_Spatial
+  - create_Edgelist_SamplingByType
+- title: Example data
+  contents:
+  - NICHESv2_inputs
+  - NICHESv2_example
+- title: LR databases
+  contents:
+  - starts_with("connectomedb2025")
+  - starts_with("ncomms8866")

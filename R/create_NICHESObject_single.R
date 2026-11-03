@@ -5,17 +5,11 @@
 # is supplied.
 #
 #          Orchestrates the full pipeline: edge list construction ->
-#          (optional smoothing) -> LR scoring -> slot assembly. Two analysis
-#          modes are supported:
+#          LR scoring -> slot assembly. Two analysis modes are supported:
 #
 #   "spatial" - physical kNN or radius neighbourhood from x/y coordinates
-#   "sampled" - NICHES v1-style stratified random sampling of cell barcodes
-#               within each directed type pair crossing; optional PCA-based
-#               neighbourhood smoothing of expression before scoring
-#
-#   Pseudobulk analysis is handled by the separate lightweight function
-#   compute_PseudoBulk_Connectivity(), which returns a plain data.table
-#   rather than a full NICHESObject.
+#   "nonspatial" - NICHES v1-style stratified random sampling of cell barcodes
+#               within each directed type pair crossing
 #
 # FUNCTIONS:
 #   .create_NICHESObject_single()  - internal single-partition implementation
@@ -34,23 +28,17 @@
 #' @param count.mtx   Gene x cell matrix. Row names = genes; col names = cells.
 #' @param meta.data   \code{data.frame}, row names = cell barcodes.
 #' @param LRM.db      \code{"fantom5"}, \code{"omnipath"}, or a data.frame.
-#' @param mode        \code{"spatial"} (default) or \code{"sampled"}.
+#' @param mode        \code{"spatial"} (default) or \code{"nonspatial"}.
 #' @param species     Species code passed through to \code{load_LRM_database()}.
 #' @param cell.type.col Column in \code{meta.data} with cell type labels.
-#'   Required for \code{mode = "sampled"}.
+#'   Required for \code{mode = "nonspatial"}.
 #' @param ligand.col  Default \code{"ligand"}.
 #' @param receptor.col Default \code{"receptor"}.
 #' @param k           kNN size. Spatial mode only.
 #' @param rad         Radius. Spatial mode only.
-#' @param seed        Random seed. Sampled mode only. Default \code{42L}.
-#' @param max.cells   Per-crossing edge cap. Sampled mode only. Default
+#' @param seed        Random seed. Nonspatial mode only. Default \code{42L}.
+#' @param max.cells   Per-crossing edge cap. Nonspatial mode only. Default
 #'   \code{NULL}.
-#' @param smooth      Logical. Enable PCA neighbourhood smoothing before
-#'   scoring. Sampled mode only. Default \code{FALSE}.
-#' @param smooth.k    Neighbours for smoothing (k+1 cells averaged). Default
-#'   \code{9L}. Sampled + smooth only.
-#' @param n.pcs       PCA components for neighbour search. Default \code{30L}.
-#'   Capped at \code{min(n.pcs, ncells-1, ngenes-1)}. Sampled + smooth only.
 #' @param method      \code{"product"} (default) or \code{"minimum"}.
 #' @param normalize.method \code{"prop"} (default) or \code{"none"}.
 #' @param gene.meta   Optional data.frame with \code{"gene"} column.
@@ -63,7 +51,7 @@
 .create_NICHESObject_single <- function(count.mtx,
                                  meta.data,
                                  LRM.db,
-                                 mode             = c("spatial", "sampled"),
+                                 mode             = c("spatial", "nonspatial"),
                                  species          = "human",
                                  cell.type.col    = NULL,
                                  ligand.col       = "ligand",
@@ -72,9 +60,6 @@
                                  rad              = NULL,
                                  seed             = 42L,
                                  max.cells        = NULL,
-                                 smooth           = FALSE,
-                                 smooth.k         = 9L,
-                                 n.pcs            = 30L,
                                  method           = c("product", "minimum"),
                                  normalize.method = c("prop", "none"),
                                  gene.meta        = NULL,
@@ -85,9 +70,6 @@
   method           <- match.arg(method)
   normalize.method <- match.arg(normalize.method)
   n.cores          <- as.integer(n.cores)
-  smooth           <- isTRUE(smooth)
-  smooth.k         <- as.integer(smooth.k)
-  n.pcs            <- as.integer(n.pcs)
 
   ## SECTION 1: Validate core inputs ----
 
@@ -112,7 +94,7 @@
       stop("[create_NICHESObject] mode = 'spatial' requires either 'k' or 'rad'.")
   } else {
     if (is.null(cell.type.col))
-      stop("[create_NICHESObject] mode = 'sampled' requires 'cell.type.col' to be specified.")
+      stop("[create_NICHESObject] mode = 'nonspatial' requires 'cell.type.col' to be specified.")
     if (!is.character(cell.type.col) || length(cell.type.col) != 1L)
       stop("[create_NICHESObject] 'cell.type.col' must be a single character string.")
     if (!cell.type.col %in% colnames(meta.data))
@@ -120,12 +102,6 @@
         "[create_NICHESObject] 'cell.type.col' ('%s') not found in 'meta.data'.",
         cell.type.col
       ))
-    if (smooth) {
-      if (smooth.k < 1L)
-        stop("[create_NICHESObject] 'smooth.k' must be a positive integer.")
-      if (n.pcs < 1L)
-        stop("[create_NICHESObject] 'n.pcs' must be a positive integer.")
-    }
   }
 
   shared.cells <- intersect(rownames(meta.data), colnames(count.mtx))
@@ -161,25 +137,8 @@
   }
 
   ## SECTION 3: Prepare scoring matrix ----
-  #
-  # Spatial and sampled (smooth = FALSE): original count.mtx passed directly.
-  # Sampled (smooth = TRUE): sampled barcode columns are replaced with their
-  #   PCA-neighbourhood-averaged raw counts before scoring. The PCA is computed
-  #   from a temporary normalised matrix and discarded immediately.
 
-  if (mode == "sampled" && smooth) {
-    if (verbose) message(sprintf(
-      "[create_NICHESObject] Smoothing expression (smooth.k = %d, n.pcs = %d) ...",
-      smooth.k, n.pcs
-    ))
-    sampled.barcodes <- unique(c(el.raw$from, el.raw$to))
-    score.mtx <- .smooth_expression(count.mtx = count.mtx,
-                                    barcodes  = sampled.barcodes,
-                                    k         = smooth.k,
-                                    n.pcs     = n.pcs)
-  } else {
-    score.mtx <- count.mtx
-  }
+  score.mtx <- count.mtx
 
   ## SECTION 4: Compute LR scores ----
 
@@ -302,11 +261,9 @@
   attr(obj, "mode") <- mode
 
   if (verbose) {
-    smooth.note <- if (mode == "sampled" && smooth)
-      sprintf(" | smoothed (k=%d, PCs=%d)", smooth.k, n.pcs) else ""
     message(sprintf(
-      "[create_NICHESObject] Done. mode='%s'%s | %d cells | %d edges | %d LRMs | %d non-zero signals.",
-      mode, smooth.note, length(cell.list), nrow(edge.list.dt),
+      "[create_NICHESObject] Done. mode='%s' | %d cells | %d edges | %d LRMs | %d non-zero signals.",
+      mode, length(cell.list), nrow(edge.list.dt),
       length(LRM.list), nrow(edge.data)
     ))
   }

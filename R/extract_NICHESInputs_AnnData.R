@@ -186,8 +186,9 @@
 #' @param file Character. Full path to the \code{.h5ad} file, including the
 #'   file name and extension (e.g. \code{"/data/samples/sample1.h5ad"}).
 #' @param layer Character. Which data to extract. Default \code{"counts"}
-#'   (raw UMI counts stored in \code{adata.layers[["counts"]]}, recommended
-#'   for NICHESv2). Use \code{"X"} to extract \code{adata.X} directly. A
+#'   (raw UMI counts stored in \code{adata.layers[["counts"]]}), a starting
+#'   point rather than a recommendation: this choice affects which edges score
+#'   highest. Use \code{"X"} to extract \code{adata.X} directly. A
 #'   hard error with available layer names is thrown if the layer is absent.
 #' @param obs.cols Character vector or \code{NULL}. Subset of
 #'   \code{adata.obs} columns to keep. \code{NULL} (default) keeps all.
@@ -219,18 +220,24 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
+#' if (requireNamespace("rhdf5", quietly = TRUE)) {
+#'   h5ad.file <- system.file("extdata", "NICHESv2_example.h5ad",
+#'                            package = "NICHESv2")
 #'   inputs <- extract_NICHESInputs_AnnData(
-#'     file  = "/path/to/sample.h5ad",
-#'     layer = "counts"
+#'     file    = h5ad.file,
+#'     layer   = "counts",
+#'     verbose = FALSE
 #'   )
+#'   data(NICHESv2_inputs)
 #'   niches.obj <- create_NICHESObject(
 #'     count.mtx = inputs$count.mtx,
-#'     meta.data  = inputs$meta.data,
-#'     LRM.db     = lrm.db,
-#'     mode       = "spatial",
-#'     k          = 6
+#'     meta.data = inputs$meta.data,
+#'     LRM.db    = NICHESv2_inputs$LRM.db,
+#'     mode      = "spatial",
+#'     k         = 5L,
+#'     verbose   = FALSE
 #'   )
+#'   niches.obj
 #' }
 #'
 #' @seealso \code{\link{create_NICHESObject}},
@@ -307,6 +314,17 @@ extract_NICHESInputs_AnnData <- function(file,
     message(
       "[NICHESv2] Extracted ", n.vars, " genes x ", n.obs, " cells",
       " from '", basename(file), "', layer '", layer, "'."
+    )
+    message(
+      "[NICHESv2] Scoring representation is set by this layer: '", layer,
+      "' is passed to\n",
+      "  create_NICHESObject() as-is. Raw counts (e.g. 'counts') give ",
+      "absolute-magnitude\n",
+      "  scores; normalized expression (e.g. 'X' when log-normalized) gives ",
+      "relative\n",
+      "  scores. The choice affects which edges score highest; ",
+      "re-extract with a\n",
+      "  different 'layer' to change it."
     )
     message(
       "[NICHESv2] Cell metadata: ", n.cols, " column(s): ",

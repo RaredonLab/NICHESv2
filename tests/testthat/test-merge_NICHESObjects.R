@@ -121,7 +121,7 @@ test_that("merge_NICHESObjects: non-NICHESObject in list is a hard error", {
 test_that("merge_NICHESObjects: mode mismatch is a hard error", {
   set.seed(1L)
   obj.sampled <- .make_minimal_NICHESObject(paste0("sc_cell", 1:3),
-                                            mode = "sampled")
+                                            mode = "nonspatial")
   expect_error(
     merge_NICHESObjects(obj.A, obj.sampled),
     regexp = "mode"

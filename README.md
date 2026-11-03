@@ -1,175 +1,140 @@
-# NICHESv2 <img src="man/figures/logo.png" align="right" height="120" alt="NICHESv2 logo placeholder"/>
+# NICHESv2
 
-> **Spatial Cell-to-Cell Ligand-Receptor Communication Analysis**
+[![R-CMD-check](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml/badge.svg?branch=main)](https://github.com/RaredonLab/NICHESv2/actions/workflows/R-CMD-check.yaml)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.md)
 
-NICHESv2 computes ligand-receptor (LR) signalling scores between spatially
-neighbouring cells in single-cell spatial transcriptomics data.  It returns a
-**`NICHESObject`** — a 13-slot S3 class — with sparse per-cell and per-edge
-expression tables, flexible aggregation, and batch in situ visualisation.
-
----
-
-## Key features
-
-| Feature | Details |
-|---------|---------|
-| **Multi-gene complexes** | `"COL1A1_COL1A2"` style ligands / receptors handled automatically |
-| **Built-in LR databases** | `"omnipath"` and `"fantom5"` loaded by name |
-| **Sparse output** | Only non-zero signals stored; scales to 100k+ cells |
-| **Per-edge normalisation** | `score.norm` normalised within each directed edge |
-| **Parallel computation** | LR chunks dispatched via `mclapply` on Unix/macOS |
-| **Flexible aggregation** | `Aggregate_CellToCell_Edges()` produces full cell × LRM grids |
-| **In situ visualisation** | Per-LRM segment plots, dark theme, viridis colour scale |
-
----
+NICHESv2 scores ligand-receptor (LR) signaling between individual pairs of cells
+in spatial and non-spatial single-cell transcriptomics data. It keeps every
+non-zero score, so you can trace a signal back to the cells that produced it,
+and summarize signals by neighborhood when you need a wider view.
 
 ## Installation
 
+NICHESv2 is being prepared for CRAN. Until it is released there, install it from
+GitHub:
+
 ```r
-# Install from local source
-devtools::install("path/to/NICHESv2")
-
-# Dependencies (installed automatically)
-# data.table, Matrix, RANN, dbscan, ggplot2
-
-# Optional: built-in LR databases (requires Bioconductor)
-BiocManager::install("OmnipathR")
+install.packages("remotes")
+remotes::install_github("RaredonLab/NICHESv2", ref = "main")
 ```
 
----
+To read the vignette locally, add `build_vignettes = TRUE`, which needs knitr,
+rmarkdown and pandoc.
+
+These packages are optional. Install only the ones you need:
+
+```r
+# Seurat V4 and V5 objects
+install.packages("SeuratObject")
+
+# AnnData (.h5ad) files, no Python required
+install.packages("BiocManager")
+BiocManager::install("rhdf5")
+
+# OmniPath LR database
+BiocManager::install("OmnipathR")
+
+# TissuePlex export
+install.packages("arrow")
+
+# Cell segmentation polygons
+install.packages("sf")
+```
 
 ## Quick start
 
+This example uses the small synthetic dataset that ships with the package.
+
 ```r
 library(NICHESv2)
 
-# ── Inputs ──────────────────────────────────────────────────────────────────
-# count.mtx : gene × cell sparse matrix (dgCMatrix or matrix)
-#             rownames = gene symbols, colnames = cell barcodes
-# meta.data : data.frame with rownames = cell barcodes
-#             MUST contain columns "x" and "y" (spatial coordinates)
+data(NICHESv2_inputs)
 
-# ── 1. Build the NICHESObject ────────────────────────────────────────────────
-niches.obj <- create_NICHESObject(
-  count.mtx = count.mtx,
-  meta.data = meta.data,     # must have x, y columns
-  LRM.db    = "omnipath",    # or "fantom5" or your own data.frame
-  k         = 6L,            # 6-nearest-neighbour spatial graph
-  method    = "product"      # or "minimum"
+# Score LR pairs between mutual spatial neighbors
+obj <- create_NICHESObject(
+  count.mtx = NICHESv2_inputs$count.mtx,
+  meta.data = NICHESv2_inputs$meta.data,
+  LRM.db    = NICHESv2_inputs$LRM.db,
+  mode      = "spatial",
+  k         = 5L
 )
 
-# ── 2. Inspect ───────────────────────────────────────────────────────────────
-print(niches.obj)
-summary(niches.obj)
-dim(niches.obj)       # cells / genes / edges / LRMs
+# One row per non-zero (edge, LR pair) score
+head(obj$edge.data)
 
-# ── 3. Aggregate per-cell sending / receiving scores ─────────────────────────
-agg <- Aggregate_CellToCell_Edges(niches.obj, stat = "mean")
-head(agg$sending)
-head(agg$receiving)
-
-# ── 4. Visualise a single LRM pair in situ ────────────────────────────────────
-p <- CellToCell_InSitu_Single_LRM(niches.obj, LRM = "MIF|CD74")
-print(p)
-
-# ── 5. Batch-export PNGs for all LRM pairs ────────────────────────────────────
-CellToCell_InSitu(niches.obj, folder = "niches_plots", n.cores = 4L)
-
-# ── 6. Subset to a cell population ────────────────────────────────────────────
-b.cells <- niches.obj$cell.meta[celltype == "B_cell", cell]
-sub.obj  <- niches.obj[b.cells]
-
-# ── 7. Add cell type annotations after the fact ───────────────────────────────
-new.annot <- data.frame(cell = my.cells, cluster = my.clusters)
-niches.obj <- add_cell_meta(niches.obj, new.annot)
+# Summarize each cell's neighborhood
+obj <- aggregate_NICHESObject(obj, cell.type.col = "celltype")
+head(obj$aggregations$neighborhood.edge.agg)
+head(obj$aggregations$neighborhood.composition)
 ```
 
----
-
-## Working with a Seurat object
+For your own data, pass a database name to `LRM.db` and set `species`:
 
 ```r
-library(Seurat)
-library(NICHESv2)
-
-# Extract count matrix
-count.mtx <- GetAssayData(seu, assay = "Spatial", slot = "counts")
-
-# Extract metadata — add spatial coordinates if stored separately
-meta.data        <- seu@meta.data
-meta.data$x      <- GetTissueCoordinates(seu)[, "imagerow"]
-meta.data$y      <- GetTissueCoordinates(seu)[, "imagecol"]
-
-niches.obj <- create_NICHESObject(
+obj <- create_NICHESObject(
   count.mtx = count.mtx,
   meta.data = meta.data,
-  LRM.db    = "omnipath",
-  k         = 6L
+  LRM.db    = "connectomedb2025",
+  species   = "mouse",
+  mode      = "spatial",
+  k         = 6L,
+  n.cores   = 4L
 )
 ```
 
----
-
-## NICHESObject slot reference
-
-| # | Slot | Type | Contents |
-|---|------|------|----------|
-| 1 | `$cell.list` | `character` | Cell barcodes |
-| 2 | `$cell.data` | `data.table` | `(cell, gene, score, score.norm)` — sparse |
-| 3 | `$cell.meta` | `data.table` | Per-cell metadata: `x`, `y`, `celltype`, … |
-| 4 | `$edge.list` | `data.table` | `(edge, SendingCell, ReceivingCell)` |
-| 5 | `$edge.data` | `data.table` | `(edge, LRM, score, score.norm)` — sparse |
-| 6 | `$edge.meta` | `data.table` | Per-edge metadata with `Sending.*`, `Receiving.*`, `Joint.*` cols |
-| 7–9 | `$neighborhood.*` | reserved | `NULL` — populated externally |
-| 10 | `$gene.list` | `character` | Gene names |
-| 11 | `$gene.meta` | `data.table` | Per-gene annotation |
-| 12 | `$LRM.list` | `character` | `"ligand\|receptor"` strings |
-| 13 | `$LRM.meta` | `data.table` | `LRM`, `ligand`, `receptor`, pathway columns, … |
-
----
-
-## Key conventions
-
-| Convention | Rule |
-|-----------|------|
-| Function names | Underscore separator: `create_NICHESObject()` |
-| Variable / argument names | Dot separator: `n.cores`, `bg.color` |
-| Edge IDs | `"SendingCell\|ReceivingCell"` |
-| LRM IDs | `"ligand\|receptor"` |
-| Gene complexes | `"gene1_gene2"` (underscore in database) |
-| Score columns | `score` (raw), `score.norm` (normalised) |
-
----
-
-## Running tests
+The vignette walks through the full workflow:
 
 ```r
-# 1. Generate fixtures (once)
-source("inst/testdata/generate_testdata.R")
-
-# 2. Run the full test suite
-devtools::test()
-
-# 3. Full R CMD check
-devtools::check()
+vignette("NICHESv2")
 ```
 
----
+The [website](https://raredonlab.github.io/NICHESv2/) has tutorials on public
+spatial and non-spatial datasets, plus a page for reviewers.
+
+## Features
+
+- **Two analysis modes:** `"spatial"` connects cells by k-nearest neighbors or a
+  fixed radius, and adds autocrine self-loops. `"nonspatial"` pairs cells by
+  random sampling within each pair of cell types.
+- **LR databases:** ConnectomeDB2025 and FANTOM5 are bundled for human, mouse,
+  rat and pig, with no internet needed. OmniPath covers human, mouse and rat.
+  You can also supply your own data frame, and multi-gene complexes are
+  supported.
+- **Memory-efficient storage:** the 15-slot `NICHESObject` stores scores in
+  sparse long-format `data.table`s, so memory use follows how much signal exists
+  rather than every possible combination.
+- **Neighborhood aggregation:** `aggregate_NICHESObject()` gives directional
+  scores per cell and LR pair (in, out, cross, self-autocrine and
+  other-autocrine) and the cell-type makeup of each neighborhood.
+- **Multiple samples:** `sample.col` processes each sample separately and merges
+  the results, so no edges cross samples.
+- **Flexible input:** use a sparse matrix, a Seurat V4 or V5 object, or an AnnData
+  file (no Python required).
+- **Works on every platform:** parallel scoring uses socket clusters through
+  `n.cores`.
+- **Interactive viewing:** `export_to_TissuePlex()` writes edges to a Parquet file
+  for viewing in [TissuePlex](https://raredonlab.github.io/TissuePlex/).
 
 ## Citation
 
-If you use NICHESv2 in published work, please cite the original NICHES paper
-and the LR database you chose (FANTOM5 or OmniPath):
+A paper describing NICHESv2 is in preparation. Until it is published, please cite
+the original NICHES method:
 
-> Ramilowski J.A. et al. (2015). A draft network of ligand-receptor-mediated
-> multicellular signalling in human. *Nature Communications*, 6, 7866.
-
-> Türei D. et al. (2021). Integrated intra- and intercellular signaling
-> knowledge for multicellular omics analysis. *Molecular Systems Biology*,
-> 17(3), e9923.
-
----
+Raredon MSB, Yang J, Kothapalli N, et al. Comprehensive visualization of
+cell-cell interactions in single-cell and spatial transcriptomics with NICHES.
+*Bioinformatics*. 2023;39(1):btac775.
+[doi:10.1093/bioinformatics/btac775](https://doi.org/10.1093/bioinformatics/btac775)
 
 ## License
 
-MIT © 2026 NICHESv2 Authors
+NICHESv2 is dual-licensed.
+
+- **Open source** under the
+  [GNU Affero General Public License v3.0](LICENSE.md). Use, modify and share it
+  freely. If you distribute a modified version or offer it over a network, the
+  AGPL requires that you make your modified source available under the same
+  terms. Academic and non-profit use is unaffected in practice.
+- **Commercial license** for use in products or services without the AGPL's
+  source-sharing obligations: contact the Raredon Lab.
+
+© 2026 Nuoya Wang, Micha Sam Brickman Raredon

@@ -5,7 +5,7 @@
 \title{Load a Ligand-Receptor Pair Database}
 \usage{
 load_LRM_database(
-  db,
+  db = "connectomedb2025",
   species = "human",
   ligand.col = "ligand",
   receptor.col = "receptor",
@@ -13,14 +13,15 @@ load_LRM_database(
 )
 }
 \arguments{
-\item{db}{Character string (\code{"fantom5"} or \code{"omnipath"})
-OR a \code{data.frame} / \code{data.table} with at least two columns
-containing ligand and receptor gene symbols.}
+\item{db}{Character string (\code{"connectomedb2025"} (default),
+\code{"fantom5"}, or \code{"omnipath"}) OR a \code{data.frame} /
+\code{data.table} with at least two columns containing ligand and receptor
+gene symbols.}
 
 \item{species}{Species for built-in databases. One of \code{"human"}
 (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
-(FANTOM5 only -- OmniPath does not support pig). Ignored silently when
-\code{db} is a \code{data.frame}.}
+(ConnectomeDB2025 and FANTOM5 only; OmniPath does not support pig).
+Ignored silently when \code{db} is a \code{data.frame}.}
 
 \item{ligand.col}{Column name for ligand symbols when \code{db} is a
 \code{data.frame}. Default: \code{"ligand"}.}
@@ -36,7 +37,7 @@ A \code{data.frame} with columns \code{"ligand"}, \code{"receptor"},
   \code{NA} in ligand or receptor are silently removed.
 }
 \description{
-Returns a standardised ligand-receptor pair table for use as the
+Returns a standardized ligand-receptor pair table for use as the
 \code{LRM.db} argument of \code{create_NICHESObject()} and
 \code{compute_CellToCell()}. Two curated databases can be loaded by name;
 alternatively, any user-supplied \code{data.frame} is accepted and column
@@ -46,6 +47,12 @@ names.
 \section{Built-in databases}{
 
 \describe{
+  \item{\code{"connectomedb2025"}}{
+    ConnectomeDB2025 ligand-receptor pairs (default), bundled within the
+    package for human, mouse, rat, and pig. No internet access or additional
+    packages required. Includes experimentally verified and orthology-inferred
+    interactions with evidence labels and subcellular location annotations.
+  }
   \item{\code{"fantom5"}}{
     Ramilowski et al. (2015) FANTOM5 ligand-receptor pairs, bundled within
     the package for human, mouse, rat, and pig. No internet access or
@@ -71,11 +78,14 @@ functions in NICHESv2 handle complexes automatically.
 }
 
 \examples{
-# FANTOM5 ships bundled with the package -- always available, no internet.
+# ConnectomeDB2025 is the default -- no db argument needed.
 \donttest{
-lrm.human <- load_LRM_database("fantom5", species = "human")
-lrm.rat   <- load_LRM_database("fantom5", species = "rat")
+lrm.human <- load_LRM_database(species = "human")
 head(lrm.human)
+
+# FANTOM5 -- bundled, always available, no internet.
+lrm.f5  <- load_LRM_database("fantom5", species = "human")
+lrm.rat <- load_LRM_database("fantom5", species = "rat")
 
 # User-supplied table -- species argument is ignored. Column names are
 # remapped to canonical "ligand" / "receptor".
@@ -88,9 +98,9 @@ lrm.user <- load_LRM_database(my.db,
                               receptor.col = "Receptor")
 }
 
-# OmniPath requires the OmnipathR package and internet access; not run.
-\dontrun{
-lrm.op <- load_LRM_database("omnipath", species = "mouse")
+# OmniPath needs internet access, so this runs in interactive sessions only.
+if (interactive()) {
+  lrm.op <- load_LRM_database("omnipath", species = "mouse")
 }
 
 }

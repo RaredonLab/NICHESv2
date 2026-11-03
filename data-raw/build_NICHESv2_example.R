@@ -11,8 +11,7 @@
 #            data(NICHESv2_example)
 #
 # This file is excluded from the package build via .Rbuildignore.
-# Synthesis logic intentionally mirrors inst/testdata/generate_testdata.R so
-# the bundled example data remain deterministic and reproducible.
+# Deterministic seed ensures bundled data are reproducible.
 # ==============================================================================
 
 suppressPackageStartupMessages({
@@ -105,9 +104,12 @@ NICHESv2_inputs <- list(
 )
 
 # -- NICHESv2_example: prebuilt NICHESObject ----------------------------------
-# Neighborhood slots intentionally left NULL so add_neighborhoods()
-# examples remain meaningful. Segmentation likewise NULL so
-# add_segmentation() examples have something to attach.
+# Neighborhood slots are populated by default (edge.filter.mode =
+# "both_in_neighborhood", remove.autocrine = FALSE) since
+# create_NICHESObject() now calls add_neighborhoods() automatically.
+# add_neighborhoods() examples use overwrite = TRUE accordingly.
+# Segmentation remains NULL so add_segmentation() examples have
+# something to attach.
 NICHESv2_example <- create_NICHESObject(
   count.mtx        = count.mtx,
   meta.data        = meta.data,
@@ -132,4 +134,5 @@ message("  data/NICHESv2_inputs.rda   -- list(count.mtx, meta.data, LRM.db)")
 message("  data/NICHESv2_example.rda  -- NICHESObject (",
         length(NICHESv2_example$cell.list), " cells, ",
         length(NICHESv2_example$LRM.list),  " LRMs, ",
-        nrow(NICHESv2_example$edge.list),   " edges)")
+        nrow(NICHESv2_example$edge.list),   " edges, ",
+        length(NICHESv2_example$neighborhood.cell.list), " neighborhoods)")

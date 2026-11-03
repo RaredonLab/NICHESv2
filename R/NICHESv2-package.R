@@ -1,30 +1,27 @@
 # NICHESv2-package.R ------------------------------------------------------
-# Package-level documentation and .onLoad hook.
-# This file produces the ?NICHESv2 help page and registers the
-# data.table aware-of-package declaration so that := and friends
-# work without triggering R CMD check NOTEs.
+# Package-level documentation and .onAttach hook.
+# This file produces the ?NICHESv2 help page and the startup message.
 
 
 # ==============================================================================
 #' NICHESv2: Spatial Cell-to-Cell Ligand-Receptor Communication Analysis
 #'
 #' @description
-#' NICHESv2 computes ligand-receptor (LR) signalling scores between spatially
-#' neighbouring cells in single-cell spatial transcriptomics data. It improves
-#' on the original NICHES package with:
+#' NICHESv2 computes ligand-receptor (LR) signaling scores between pairs of
+#' cells in spatial and non-spatial single-cell transcriptomics data. It
+#' improves on the original NICHES package with:
 #'
 #' \itemize{
 #'   \item A memory-efficient long-format output object (\code{NICHESObject},
-#'     13 slots).
+#'     15 slots).
 #'   \item Support for multi-gene \strong{ligand and receptor complexes}
 #'     (underscore-delimited, e.g. \code{"COL1A1_COL1A2"}).
-#'   \item Built-in loaders for the \strong{FANTOM5} and \strong{OmniPath}
-#'     LR databases.
-#'   \item Per-edge and per-cell \strong{normalised scores} alongside raw
+#'   \item Built-in loaders for the \strong{ConnectomeDB2025} (default),
+#'     \strong{FANTOM5}, and \strong{OmniPath} LR databases.
+#'   \item Per-edge and per-cell \strong{normalized scores} alongside raw
 #'     counts.
-#'   \item Parallel LR computation via \code{mclapply} on Unix/macOS.
-#'   \item Flexible aggregation (\code{Aggregate_CellToCell_Edges}) and
-#'     batch spatial visualisation (\code{CellToCell_InSitu}).
+#'   \item Parallel LR computation via socket clusters on all platforms.
+#'   \item Flexible aggregation (\code{aggregate_NICHESObject}).
 #' }
 #'
 #' @section Typical workflow:
@@ -33,15 +30,16 @@
 #'
 #' # 1. Load / prepare inputs
 #' #    count.mtx : gene x cell sparse matrix  (rownames = genes, colnames = cells)
-#' #    meta.data : data.frame                  (rownames = cells, must have "x", "y")
-#' #    LRM.db    : "omnipath" | "fantom5" | user data.frame
+#' #    meta.data : data.frame                  (rownames = cells; spatial mode
+#' #                                             needs "x" and "y" columns)
+#' #    LRM.db    : "connectomedb2025" | "fantom5" | "omnipath" | user data.frame
 #'
 #' # 2. Build the NICHESObject (one call does everything)
 #' niches.obj <- create_NICHESObject(
 #'   count.mtx = count.mtx,
 #'   meta.data = meta.data,
-#'   LRM.db    = "omnipath",
-#'   k         = 6L,           # 6-nearest-neighbour graph
+#'   LRM.db    = "connectomedb2025",
+#'   k         = 6L,           # 6-nearest-neighbor graph
 #'   method    = "product"
 #' )
 #'
@@ -50,18 +48,10 @@
 #' summary(niches.obj)
 #' dim(niches.obj)            # cells / genes / edges / LRMs
 #'
-#' # 4. Aggregate per-cell sending / receiving scores
-#' agg <- Aggregate_CellToCell_Edges(niches.obj, stat = "mean")
-#' head(agg$sending)
+#' # 4. Aggregate neighborhood edge signals
+#' niches.obj <- aggregate_NICHESObject(niches.obj, cell.type.col = "celltype")
 #'
-#' # 5. Visualise a single LRM pair in situ
-#' p <- CellToCell_InSitu_Single_LRM(niches.obj, LRM = "MIF|CD74")
-#' print(p)
-#'
-#' # 6. Batch-save PNGs for all LRM pairs
-#' CellToCell_InSitu(niches.obj, folder = "niches_plots")
-#'
-#' # 7. Subset to a cell population
+#' # 5. Subset to a cell population (aggregation rows carry over unchanged)
 #' b.cells <- niches.obj$cell.meta[celltype == "B_cell", cell]
 #' sub.obj  <- niches.obj[b.cells]
 #' }
@@ -75,11 +65,15 @@
 #'   \code{$edge.list} \tab data.table \tab (edge, SendingCell, ReceivingCell) \cr
 #'   \code{$edge.data} \tab data.table \tab (edge, LRM, score, score.norm) -- sparse \cr
 #'   \code{$edge.meta} \tab data.table \tab Per-edge metadata with Sending/Receiving/Joint cols \cr
-#'   \code{$neighborhood.*} \tab reserved \tab NULL -- populated by collaborator functions \cr
+#'   \code{$neighborhood.cell.list} \tab list \tab Per-cell neighbor barcodes \cr
+#'   \code{$neighborhood.edge.list} \tab list \tab Per-cell neighborhood edge IDs \cr
+#'   \code{$neighborhood.meta} \tab data.table \tab (cell, n.neighbors, n.edges) \cr
 #'   \code{$gene.list} \tab character \tab Gene names \cr
 #'   \code{$gene.meta} \tab data.table \tab Per-gene annotation \cr
 #'   \code{$LRM.list} \tab character \tab "ligand|receptor" strings \cr
 #'   \code{$LRM.meta} \tab data.table \tab Per-LRM annotation (pathway, class, ...) \cr
+#'   \code{$segmentation} \tab sf or NULL \tab Optional cell polygons \cr
+#'   \code{$aggregations} \tab list \tab Aggregation tables computed on demand \cr
 #' }
 #'
 #' @section Key separators:
@@ -93,7 +87,7 @@
 #' \itemize{
 #'   \item Function names use underscores: \code{create_NICHESObject()}
 #'   \item Variable / argument names use dots: \code{n.cores}, \code{bg.color}
-#'   \item Score columns: \code{score} (raw), \code{score.norm} (normalised)
+#'   \item Score columns: \code{score} (raw), \code{score.norm} (normalized)
 #' }
 #'
 #' @author NICHESv2 Authors
@@ -107,25 +101,19 @@
 #' 17(3), e9923.
 #'
 #' @seealso
-#' \code{\link{create_NICHESObject}}, \code{\link{Aggregate_CellToCell_Edges}},
-#' \code{\link{CellToCell_InSitu}}, \code{\link{load_LRM_database}}
+#' \code{\link{create_NICHESObject}}, \code{\link{aggregate_NICHESObject}},
+#' \code{\link{load_LRM_database}}
 #'
 #' @keywords internal
 #' @import data.table
 #' @import ggplot2
+#' @importFrom methods as
+#' @importFrom stats median quantile sd setNames
+#' @importFrom utils head
 "_PACKAGE"
 
 
-## .onLoad -- package startup tasks ----
-
-.onLoad <- function(libname, pkgname) {
-  # Suppress the data.table "no visible binding" NOTE for := and .SD etc.
-  # This is the recommended pattern from data.table's own vignette.
-  if (requireNamespace("data.table", quietly = TRUE)) {
-    data.table::setDTthreads(0L)  # use all available threads by default
-  }
-  invisible(NULL)
-}
+## .onAttach -- startup message ----
 
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage(

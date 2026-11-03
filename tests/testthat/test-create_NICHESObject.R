@@ -130,28 +130,28 @@ test_that("create_NICHESObject: spatial mode errors when neither k nor rad provi
   )
 })
 
-# ── Section 2: sampled mode validation ────────────────────────────────────────
+# ── Section 2: nonspatial mode validation ────────────────────────────────────────
 
-test_that("create_NICHESObject: sampled mode errors when cell.type.col is NULL", {
+test_that("create_NICHESObject: nonspatial mode errors when cell.type.col is NULL", {
   expect_error(
     create_NICHESObject(
       count.mtx     = .make_count_mtx(20L),
       meta.data     = .make_sampled_meta(20L),
       LRM.db        = .make_tiny_LRM_db(),
-      mode          = "sampled",
+      mode          = "nonspatial",
       cell.type.col = NULL
     ),
     regexp = "cell.type.col"
   )
 })
 
-test_that("create_NICHESObject: sampled mode errors when cell.type.col not in meta.data", {
+test_that("create_NICHESObject: nonspatial mode errors when cell.type.col not in meta.data", {
   expect_error(
     create_NICHESObject(
       count.mtx     = .make_count_mtx(20L),
       meta.data     = .make_sampled_meta(20L),
       LRM.db        = .make_tiny_LRM_db(),
-      mode          = "sampled",
+      mode          = "nonspatial",
       cell.type.col = "nonexistent"
     ),
     regexp = "cell.type.col"
@@ -348,4 +348,50 @@ test_that("create_NICHESObject: single-cell sample emits warning; remaining samp
   )
   expect_true(is_NICHESObject(obj))
   expect_equal(length(obj$cell.list), 21L)
+})
+
+# ── Section 6: neighborhood slots ─────────────────────────────────────────────
+
+test_that("create_NICHESObject: neighborhood slots non-NULL by default", {
+  inp <- .make_sample_col_inputs()
+  obj <- suppressWarnings(create_NICHESObject(
+    count.mtx  = inp$count.mtx,
+    meta.data  = inp$meta.data,
+    LRM.db     = inp$lrm.db,
+    mode       = "spatial",
+    k          = 3L,
+    n.cores    = 1L,
+    verbose    = FALSE
+  ))
+  expect_false(is.null(obj$neighborhood.cell.list))
+  expect_false(is.null(obj$neighborhood.edge.list))
+  expect_false(is.null(obj$neighborhood.meta))
+})
+
+test_that("create_NICHESObject: edge.filter.mode attribute is always both_in_neighborhood", {
+  inp <- .make_sample_col_inputs()
+  obj <- suppressWarnings(create_NICHESObject(
+    count.mtx  = inp$count.mtx,
+    meta.data  = inp$meta.data,
+    LRM.db     = inp$lrm.db,
+    mode       = "spatial",
+    k          = 3L,
+    n.cores    = 1L,
+    verbose    = FALSE
+  ))
+  expect_equal(attr(obj, "edge.filter.mode"), "both_in_neighborhood")
+})
+
+test_that("create_NICHESObject: remove.autocrine attribute is always FALSE", {
+  inp <- .make_sample_col_inputs()
+  obj <- suppressWarnings(create_NICHESObject(
+    count.mtx  = inp$count.mtx,
+    meta.data  = inp$meta.data,
+    LRM.db     = inp$lrm.db,
+    mode       = "spatial",
+    k          = 3L,
+    n.cores    = 1L,
+    verbose    = FALSE
+  ))
+  expect_false(attr(obj, "remove.autocrine"))
 })

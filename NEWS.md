@@ -1,59 +1,52 @@
-# NICHESv2 NEWS
+# NICHESv2 1.0.0
 
-## NICHESv2 0.1.0 (2026-03)
+First public release.
 
-### New features
+## Main features
 
-* **`NICHESObject`** — new 13-slot S3 class replacing the intermediate
-  `EdgeLRResult` as the primary output structure. Slots:
-  `$cell.list`, `$cell.data`, `$cell.meta`, `$edge.list`, `$edge.data`,
-  `$edge.meta`, `$neighborhood.*` (×3, reserved), `$gene.list`,
-  `$gene.meta`, `$LRM.list`, `$LRM.meta`.
+- `create_NICHESObject()` scores ligand-receptor (LR) signaling between pairs of
+  cells, in `"spatial"` mode (k-nearest neighbors or fixed radius) or
+  `"nonspatial"` mode (type-stratified random sampling).
+- The 15-slot `NICHESObject` stores non-zero scores in sparse long-format
+  `data.table`s, with `print()`, `summary()`, `dim()`, `length()` and `[`
+  methods.
+- `aggregate_NICHESObject()` summarizes each cell's neighborhood by LR pair and,
+  in spatial mode, by neighboring cell type.
+- `load_LRM_database()` provides ConnectomeDB2025 (default) and FANTOM5, both
+  bundled for human, mouse, rat and pig, and OmniPath for human, mouse and rat.
+- `extract_NICHESInputs_Seurat()` and `extract_NICHESInputs_AnnData()` read
+  Seurat V4 and V5 objects and `.h5ad` files. The AnnData reader doesn't need
+  Python.
+- `export_to_TissuePlex()` writes edges to a Parquet file for interactive
+  viewing.
 
-* **`create_NICHESObject()`** — single top-level constructor. Accepts a
-  gene × cell count matrix plus a `meta.data` data.frame (must contain
-  `x` and `y` columns for spatial coordinates) and orchestrates the full
-  pipeline internally.
+## Changes for users of the 0.0.9000 development version
 
-* **`load_LRM_database()`** — built-in loaders for `"fantom5"` and
-  `"omnipath"` databases (via `OmnipathR`), plus a passthrough for
-  user-supplied data.frames.
-
-* **`add_cell_meta()`** — add or overwrite `$cell.meta` columns
-  post-construction; rebuilds `$edge.meta` automatically.
-
-* **`is_NICHESObject()`** — public identity check.
-
-* **S3 methods** for `NICHESObject`: `print`, `summary`, `dim`, `length`,
-  `[` (cell subsetting).
-
-### Breaking changes vs. NICHES v1
-
-* Output class renamed `NICHESObject` (was `EdgeLRResult`).
-* LRM IDs now use `|` as separator (was `.`): `"MIF|CD74"` not `"MIF.CD74"`.
-* Edge IDs use `|`: `"CellA|CellB"`.
-* Signal value column renamed `score` (was `edge`).
-* Normalised score column added: `score.norm`.
-* `Aggregate_CellToCell_Edges()` now accepts `NICHESObject` (not
-  `EdgeLRResult`); aggregated columns renamed `score.sum`, `score.mean`,
-  `score.max`, `score.stat`.
-* `CellToCell_InSitu()` and `CellToCell_InSitu_Single_LRM()` now accept
-  `NICHESObject`.
-
-### Complex ligand/receptor support
-
-* Ligands and receptors may be multi-gene complexes using underscore
-  notation (e.g. `"COL1A1_COL1A2"`).  All component expressions are
-  combined via the chosen `method` (`"product"` or `"minimum"`) across
-  the full set of ligand and receptor components.
-
-### Internal improvements
-
-* `utils.R` centralises shared helpers: `.parse_complex()`,
-  `.compute_lrm_score()`, `.genes_available()`, `.prop_norm()`,
-  `.categorical_cols()`.
-* `create_Edgelist_Spatial()` is now called internally by
-  `create_NICHESObject()` but remains independently exported for advanced
-  workflows.
-* `compute_CellToCell_Spatial()` retained as a standalone export for
-  users who provide custom edge lists (e.g. contact-based adjacency).
+- The license is now the GNU AGPL v3 instead of MIT. A commercial license is
+  also available from the Raredon Lab.
+- `[` now keeps each retained cell's neighborhood entries and aggregation rows
+  unchanged, so they still describe the full tissue. Previously, neighborhood
+  slots kept the full object's entries, aggregations were dropped, and aggregating
+  a subset could give wrong means.
+- Recomputing aggregations on a subset now stops with an error. Aggregate the
+  full object before subsetting, or run `add_neighborhoods(overwrite = TRUE)`
+  first to analyze the subset as a separate tissue.
+- `[` now keeps the `edge.filter.mode` and `remove.autocrine` attributes.
+- `add_neighborhoods(overwrite = TRUE)` now clears the stale
+  `$aggregations$neighborhood.edge.agg` table.
+- Loading the package no longer changes `data.table`'s thread setting, and socket
+  workers now stay at one `data.table` thread.
+- Functions with a `seed` argument now restore the caller's random number state.
+- Mode `"sampled"` is now `"nonspatial"`.
+- `Aggregate_CellToCell_Edges()` has been removed. Use
+  `aggregate_NICHESObject()`.
+- `compute_PseudoBulk_Connectivity()` and `create_Edgelist_PseudoBulk()` have been
+  removed. To summarize by cell type, sum `$edge.data` using the cell types in
+  `$edge.meta`.
+- `add_cell_meta()` now replaces `$cell.meta` in full. Use `add_meta_column()` to
+  change one column.
+- The default database in `load_LRM_database()` is now ConnectomeDB2025.
+- In `add_neighborhood_edge_agg()`, the `autocrine` category is now split into
+  `self.autocrine` and `other.autocrine`.
+- `load_LRM_database("omnipath")` now falls back to the OmniPath web service when
+  OmnipathR can't reach its ancillary services.

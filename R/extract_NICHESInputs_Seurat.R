@@ -11,8 +11,9 @@
 #' @param assay Character. The assay to extract from. Default \code{"RNA"}.
 #'   Common alternatives: \code{"SCT"}, \code{"Spatial"}, \code{"Xenium"}.
 #' @param layer Character. The data layer (V5) or slot (V4) to extract.
-#'   Default \code{"counts"} (raw UMI counts, recommended for NICHESv2).
-#'   Other options: \code{"data"} (log-normalised), \code{"scale.data"}
+#'   Default \code{"counts"} (raw UMI counts), a starting point rather than a
+#'   recommendation: this choice affects which edges score highest.
+#'   Other options: \code{"data"} (log-normalized), \code{"scale.data"}
 #'   (scaled; V4 only).
 #' @param verbose Logical. If \code{TRUE} (default), prints a summary of what
 #'   was extracted and a reminder about spatial coordinate requirements.
@@ -43,16 +44,23 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
+#' if (requireNamespace("SeuratObject", quietly = TRUE)) {
+#'   data(NICHESv2_inputs)
+#'   seurat.obj <- SeuratObject::CreateSeuratObject(
+#'     counts    = NICHESv2_inputs$count.mtx,
+#'     meta.data = NICHESv2_inputs$meta.data
+#'   )
 #'   inputs <- extract_NICHESInputs_Seurat(seurat.obj, assay = "RNA",
-#'                                          layer = "counts")
+#'                                         layer = "counts", verbose = FALSE)
 #'   niches.obj <- create_NICHESObject(
 #'     count.mtx = inputs$count.mtx,
-#'     meta.data  = inputs$meta.data,
-#'     LRM.db     = lrm.db,
-#'     mode       = "spatial",
-#'     k          = 6
+#'     meta.data = inputs$meta.data,
+#'     LRM.db    = NICHESv2_inputs$LRM.db,
+#'     mode      = "spatial",
+#'     k         = 5L,
+#'     verbose   = FALSE
 #'   )
+#'   niches.obj
 #' }
 #'
 #' @seealso \code{\link{create_NICHESObject}},
@@ -100,10 +108,18 @@ extract_NICHESInputs_Seurat <- function(seurat.obj,
     count.mtx <- SeuratObject::GetAssayData(seurat.obj, layer = layer,
                                              assay = assay)
   } else {
-    # V4 Assay: fixed slot names; GetAssayData returns empty matrix for
-    # slots that were never populated (e.g. scale.data before ScaleData()).
-    count.mtx <- SeuratObject::GetAssayData(seurat.obj, slot = layer,
-                                             assay = assay)
+    # V4 Assay: fixed slot names. Read the slot directly, because the 'slot'
+    # argument of GetAssayData() is deprecated and SeuratObject < 5 has no
+    # 'layer' argument. Slots that were never populated hold an empty matrix
+    # (e.g. scale.data before ScaleData()).
+    available.slots <- c("counts", "data", "scale.data")
+    if (!layer %in% available.slots) {
+      stop(
+        "Slot '", layer, "' not found in assay '", assay, "' (V4 Assay).\n",
+        "  Available slots: ", paste(available.slots, collapse = ", ")
+      )
+    }
+    count.mtx <- methods::slot(assay.obj, layer)
     if (prod(dim(count.mtx)) == 0L) {
       stop(
         "Slot '", layer, "' in assay '", assay, "' (V4 Assay) is empty.\n",
@@ -134,6 +150,16 @@ extract_NICHESInputs_Seurat <- function(seurat.obj,
       " from assay '", assay, "', ",
       if (is.v5) "layer '" else "slot '", layer, "' ",
       "(", if (is.v5) "V5 Assay5" else "V4 Assay", ")."
+    )
+    message(
+      "[NICHESv2] Scoring representation is set by this ",
+      if (is.v5) "layer" else "slot", ": '", layer, "' is passed to\n",
+      "  create_NICHESObject() as-is. Raw counts (e.g. 'counts') give ",
+      "absolute-magnitude\n",
+      "  scores; normalized expression (e.g. 'data') gives relative scores. ",
+      "The choice\n",
+      "  affects which edges score highest; re-extract with a different '",
+      if (is.v5) "layer" else "slot", "' to change it."
     )
     message(
       "[NICHESv2] Cell metadata: ", n.cols, " column(s): ",

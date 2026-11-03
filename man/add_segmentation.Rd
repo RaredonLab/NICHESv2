@@ -35,29 +35,27 @@ cell is absent. Extra polygons for barcodes not in the object are permitted
 with a warning.
 }
 \examples{
-\dontrun{
 # NICHESv2 expects 'seg.sf' to be an sf data.frame with:
 #   * a 'cell' column matching niches.obj$cell.list
 #   * an sf geometry column of polygons (one per cell)
 # The exact construction is platform-specific (Visium HD, Xenium, MERFISH,
-# CosMx, etc.). The skeleton below shows the required shape:
+# CosMx, etc.). The skeleton below shows the required shape, using a unit
+# square for every cell:
+if (requireNamespace("sf", quietly = TRUE)) {
+  data(NICHESv2_example)
 
-library(sf)
-data(NICHESv2_example)
+  # Replace 'polygon.list' with polygons from your segmentation pipeline:
+  polygon.list <- lapply(NICHESv2_example$cell.list, function(cell) {
+    sf::st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
+                               ncol = 2, byrow = TRUE)))
+  })
 
-# Replace 'polygon.list' with polygons from your segmentation pipeline:
-polygon.list <- lapply(NICHESv2_example$cell.list, function(cell) {
-  # ... your platform-specific polygon extraction ...
-  st_polygon(list(matrix(c(0, 0, 1, 0, 1, 1, 0, 1, 0, 0),
-                         ncol = 2, byrow = TRUE)))
-})
+  seg.sf <- sf::st_sf(
+    cell     = NICHESv2_example$cell.list,
+    geometry = sf::st_sfc(polygon.list)
+  )
 
-seg.sf <- st_sf(
-  cell     = NICHESv2_example$cell.list,
-  geometry = st_sfc(polygon.list)
-)
-
-niches.obj <- add_segmentation(NICHESv2_example, seg.sf)
+  niches.obj <- add_segmentation(NICHESv2_example, seg.sf)
 }
 
 }

@@ -1,33 +1,47 @@
 Package: NICHESv2
 Type: Package
 Title: Spatial Cell-to-Cell Ligand-Receptor Communication Analysis
-Version: 0.1.0
-Authors@R: person(given="NICHESv2", family="Authors", role=c("aut","cre"), email="niches@example.com")
-Description: Computes ligand-receptor (LR) signalling scores between spatially
-    neighbouring cells in single-cell spatial transcriptomics data. Returns a
-    NICHESObject (13-slot S3 class) with per-cell aggregation, batch in situ
-    visualisation, and flexible downstream analysis. Supports single-gene and
-    multi-gene complex ligands/receptors (underscore-delimited). Built-in
-    loaders for FANTOM5 and OmniPath LR databases.
-License: MIT + file LICENSE
+Version: 1.0.0
+Authors@R: c(
+    person("Nuoya", "Wang",
+           email = "nuoya.wang@yale.edu",
+           role  = c("aut", "cre", "cph")),
+    person("Micha Sam Brickman", "Raredon",
+           role  = c("aut", "cph")))
+Description: Computes ligand-receptor (LR) signaling scores between pairs of
+    cells in spatial and non-spatial single-cell transcriptomics data. Results
+    are held in a memory-efficient, sparse long-format S3 class with per-cell
+    neighborhood aggregation for downstream analysis. Supports single-gene and
+    multi-gene complex ligands and receptors. Built-in loaders are provided for
+    the ConnectomeDB2025 (default), FANTOM5, and OmniPath LR databases.
+License: AGPL-3
+URL: https://raredonlab.github.io/NICHESv2/,
+    https://github.com/RaredonLab/NICHESv2
+BugReports: https://github.com/RaredonLab/NICHESv2/issues
 Encoding: UTF-8
+Language: en-US
+VignetteBuilder: knitr
 LazyData: false
 RoxygenNote: 7.3.2
 Depends: R (>= 4.1.0)
 Imports:
     data.table (>= 1.14.0),
     Matrix (>= 1.5.0),
+    methods,
     RANN (>= 2.6.1),
     dbscan (>= 1.1.0),
     ggplot2 (>= 3.4.0),
-    irlba (>= 2.3.0),
-    parallel
+    parallel,
+    stats,
+    utils
 Suggests:
     SeuratObject,
     rhdf5,
     OmnipathR,
+    arrow,
     testthat (>= 3.0.0),
     withr,
-    devtools,
-    sf
+    sf,
+    knitr,
+    rmarkdown
 Config/testthat/edition: 3

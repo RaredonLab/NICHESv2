@@ -36,7 +36,7 @@
 
 ## Normalisation helpers ----
 
-#' Proportional normalisation within group.
+#' Proportional normalization within group.
 #' Divides each value by the group total. Returns 0 when the group total is 0.
 #' @noRd
 .prop_norm <- function(x) {
@@ -46,7 +46,104 @@
 
 
 
+## Random number state helpers ----
+
+#' Capture the caller's random number state for .restore_rng().
+#' Returns NULL when the session has not used the generator yet.
+#' @noRd
+.save_rng <- function() {
+  get0(".Random.seed", envir = globalenv(), inherits = FALSE)
+}
+
+#' Restore a random number state captured by .save_rng().
+#' @noRd
+.restore_rng <- function(rng.state) {
+  if (!is.null(rng.state)) {
+    assign(".Random.seed", rng.state, envir = globalenv())
+  } else if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    rm(".Random.seed", envir = globalenv())
+  }
+  invisible(NULL)
+}
+
+
+## Subset guard for aggregation functions ----
+
+#' Stop if neighborhoods list edges that are absent from $edge.list, as they
+#' are after subsetting. Recomputing would mix partial sums with full counts.
+#' @noRd
+.stop_if_neighborhood_edges_missing <- function(niches.obj, caller) {
+  nbr.edges <- unlist(niches.obj$neighborhood.edge.list, use.names = FALSE)
+  if (length(nbr.edges) > 0L && !all(nbr.edges %chin% niches.obj$edge.list$edge))
+    stop(
+      "[", caller, "] This object is a subset whose neighborhoods include ",
+      "edges to removed cells, so aggregations cannot be recomputed on it. ",
+      "Aggregate the full object before subsetting (the results carry over), ",
+      "or run add_neighborhoods(obj, overwrite = TRUE) first to analyze the ",
+      "subset as a separate tissue.",
+      call. = FALSE
+    )
+  invisible(NULL)
+}
+
+
 ## Null-coalescing operator ----
 
 #' @noRd
 `%||%` <- function(x, y) if (is.null(x)) y else x
+
+
+## Suppress R CMD check NOTEs for NSE column names ----
+# These names are used as bare symbols inside data.table j-expressions and
+# dplyr-style verbs throughout the package. They are not missing globals;
+# declaring them here is the CRAN-recommended pattern.
+utils::globalVariables(c(
+  # data.table j-expression alias (.(col1, col2) == list(col1, col2))
+  ".",
+
+  # edge-table columns
+  "edge", "from", "to",
+  "SendingCell", "ReceivingCell",
+
+  # LRM / score columns
+  "LRM", "ligand", "receptor",
+  "score", "score.norm", "score.stat",
+
+  # cell / spatial columns
+  "cell", "x", "y",
+  "x.from", "y.from", "x.to", "y.to",
+
+  # neighborhood columns
+  "neighbor", "radius",
+  "mean.neighbors", "sd.neighbors",
+
+  # summary stat columns (used as column *names*, not functions)
+  "median", "sd",
+
+  # plot internals
+  ".plot.val",
+
+  # add_neighborhood_edge_agg -- unified five-category edge aggregation
+  "edge.type",
+  "n.cat", "score.cat.sum",
+  "count.in",        "count.out",        "count.cross",
+  "count.self.autocrine",  "count.other.autocrine",  "count.total",
+  "n.edges",
+  "score.in.sum",         "score.out.sum",         "score.cross.sum",
+  "score.self.autocrine.sum",   "score.other.autocrine.sum",   "score.total.sum",
+  "score.in.mean",        "score.out.mean",        "score.cross.mean",
+  "score.self.autocrine.mean",  "score.other.autocrine.mean",  "score.total.mean",
+  "score.in.cmean",       "score.out.cmean",       "score.cross.cmean",
+  "score.self.autocrine.cmean", "score.other.autocrine.cmean", "score.total.cmean",
+  "score.inout.ratio",
+
+  # add_neighborhood_composition -- composition columns
+  "cell.type", "cell.type.polished",
+
+  # add_cell_rawcounts -- raw count column and data.table join variable
+  "gene",
+  "count", "i.count",
+
+  # export_to_TissuePlex -- TissuePlex export columns
+  "is_autocrine", "sending_type", "receiving_type"
+))

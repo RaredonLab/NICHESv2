@@ -53,6 +53,35 @@ test_that("load_LRM_database: fantom5 human returns data.frame with ligand and r
   expect_gt(nrow(result), 0L)
 })
 
+# ── ConnectomeDB2025 path (default database) ───────────────────────────────────
+
+test_that("load_LRM_database: default call returns valid data.frame", {
+  result <- load_LRM_database(verbose = FALSE)
+  expect_true(is.data.frame(result))
+  expect_true(all(c("ligand", "receptor") %in% colnames(result)))
+  expect_gt(nrow(result), 0L)
+})
+
+test_that("load_LRM_database: connectomedb2025 human returns data.frame with ligand and receptor", {
+  result <- load_LRM_database("connectomedb2025", species = "human", verbose = FALSE)
+  expect_true(is.data.frame(result))
+  expect_true(all(c("ligand", "receptor") %in% colnames(result)))
+  expect_gt(nrow(result), 0L)
+})
+
+test_that("load_LRM_database: connectomedb2025 pig is supported", {
+  result <- load_LRM_database("connectomedb2025", species = "pig", verbose = FALSE)
+  expect_true(is.data.frame(result))
+  expect_gt(nrow(result), 0L)
+})
+
+test_that("load_LRM_database: errors on invalid species for connectomedb2025", {
+  expect_error(
+    load_LRM_database("connectomedb2025", species = "zebrafish", verbose = FALSE),
+    regexp = "species"
+  )
+})
+
 # ── Input validation ───────────────────────────────────────────────────────────
 
 test_that("load_LRM_database: errors on wrong column names in custom data.frame", {

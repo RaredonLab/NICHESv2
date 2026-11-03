@@ -20,7 +20,8 @@ make_minimal_niches_obj <- function() {
     edge.list              = el,
     neighborhood.cell.list = NULL,
     neighborhood.edge.list = NULL,
-    neighborhood.meta      = NULL
+    neighborhood.meta      = NULL,
+    aggregations           = list()
   )
   class(obj) <- "NICHESObject"
   attr(obj, "mode") <- "spatial"
@@ -80,19 +81,30 @@ test_that("add_neighborhoods: all cells appear in neighborhood.meta", {
 
 # ── Overwrite behaviour ────────────────────────────────────────────────────────
 
-test_that("add_neighborhoods: re-calling overwrites slots and emits a message", {
+test_that("add_neighborhoods: hard error when slots already populated and overwrite = FALSE", {
+  obj  <- make_minimal_niches_obj()
+  obj2 <- add_neighborhoods(obj, n.cores = 1L, verbose = FALSE)
+  expect_error(
+    add_neighborhoods(obj2, n.cores = 1L, verbose = FALSE),
+    regexp = "overwrite = TRUE"
+  )
+})
+
+test_that("add_neighborhoods: overwrite = TRUE recomputes slots and emits message", {
   obj  <- make_minimal_niches_obj()
   obj2 <- add_neighborhoods(obj,  edge.filter.mode = "both_in_neighborhood",
                             n.cores = 1L, verbose = FALSE)
   
   expect_message(
     obj3 <- add_neighborhoods(obj2, edge.filter.mode = "central_cell_only",
-                              n.cores = 1L, verbose = TRUE),
-    "Overwriting existing neighborhood slots"
+                              overwrite = TRUE,
+                              n.cores   = 1L,
+                              verbose   = TRUE),
+    regexp = "Recomputing neighborhood slots"
   )
   expect_identical(attr(obj3, "edge.filter.mode"), "central_cell_only")
   
-  # Results must differ between the two modes on this toy graph:
+  # Results must differ between modes on this toy graph:
   # both_in_neighborhood for A → {A|B, A|C, B|C}
   # central_cell_only    for A → {A|B, A|C}
   expect_false(identical(
@@ -120,4 +132,12 @@ test_that("add_neighborhoods: results match direct extract_neighborhoods() call"
   expect_equal(d.meta$cell,        v.meta$cell)
   expect_equal(d.meta$n.neighbors, v.meta$n.neighbors)
   expect_equal(d.meta$n.edges,     v.meta$n.edges)
+})
+test_that("add_neighborhoods: overwrite = TRUE clears stale edge aggregation", {
+  data(NICHESv2_example)
+  obj <- add_neighborhood_edge_agg(NICHESv2_example, verbose = FALSE)
+  expect_false(is.null(obj$aggregations$neighborhood.edge.agg))
+  obj <- add_neighborhoods(obj, edge.filter.mode = "central_cell_only",
+                           overwrite = TRUE, verbose = FALSE)
+  expect_null(obj$aggregations$neighborhood.edge.agg)
 })

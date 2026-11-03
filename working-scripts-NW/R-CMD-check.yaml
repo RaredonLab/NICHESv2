@@ -1,0 +1,81 @@
+# .github/workflows/R-CMD-check.yaml
+#
+# Runs R CMD check on every push to dev/main and on pull requests.
+# Three platforms: macOS, Ubuntu, Windows.
+# Bioconductor Suggests (rhdf5, OmnipathR) are installed explicitly before
+# the standard dependency step, which handles all CRAN packages.
+# All platforms use pre-compiled binary packages where available, so no
+# external system libraries need to be compiled from source.
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+name: R-CMD-check
+
+jobs:
+  R-CMD-check:
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false   # if one platform fails, the others still complete
+      matrix:
+        config:
+          - {os: macos-latest,   r: 'release'}
+          - {os: ubuntu-latest,  r: 'release'}
+          - {os: windows-latest, r: 'release'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}  # auto-generated per run; lets
+                                                # the runner read private repos
+      R_KEEP_PKG_SOURCE: yes                   # improves error messages
+
+    steps:
+      # Step 1: clone the repository onto the runner machine
+      - uses: actions/checkout@v4
+
+      # Step 2: install R (version comes from the matrix above)
+      #   use-public-rspm: true  ->  Posit's binary package mirror; Linux and
+      #   Windows packages install in seconds instead of compiling from source.
+      #   On Windows this is especially important: sf, Matrix, and similar
+      #   packages with C/Fortran code are served as pre-built binaries,
+      #   so no external system libraries (GDAL, HDF5, etc.) need compiling.
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          use-public-rspm: true
+
+      # Step 3: install Bioconductor Suggests
+      #   rhdf5 and OmnipathR are not on CRAN; the standard dependency step
+      #   (Step 4) would fail trying to find them. Bioconductor provides
+      #   pre-compiled binary packages for macOS, Ubuntu, and Windows, so
+      #   this step works identically on all three platforms.
+      - name: Install Bioconductor Suggests
+        run: |
+          install.packages("BiocManager", repos = "https://cloud.r-project.org")
+          BiocManager::install(c("rhdf5", "OmnipathR"), ask = FALSE, update = FALSE)
+        shell: Rscript {0}
+
+      # Step 4: install all packages listed in DESCRIPTION
+      #   extra-packages: any::rcmdcheck  ->  adds rcmdcheck (used in Step 5)
+      #   needs: check                   ->  reads DESCRIPTION; installs Imports
+      #                                     and Suggests needed for R CMD check
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      # Step 5: run R CMD check
+      #   --no-manual   ->  skip PDF manual (requires LaTeX; slow on CI)
+      #   --as-cran     ->  apply CRAN-level strictness
+      #   error-on: '"warning"'  ->  fail the workflow on any warning, not just errors
+      #   upload-snapshots: true ->  save check output as a downloadable artifact
+      #                             so you can read failures in the Actions tab
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          args: 'c("--no-manual", "--as-cran")'
+          error-on: '"warning"'
+          upload-snapshots: true

@@ -4,7 +4,7 @@
 #' arguments -- into a single NICHESObject by concatenating all per-cell and
 #' per-edge data. This is the complement to the \code{sample.col} splitting
 #' that \code{\link{create_NICHESObject}} performs: it can be used to merge
-#' objects that were produced independently and then need to be analysed
+#' objects that were produced independently and then need to be analyzed
 #' together.
 #'
 #' @param ... Either (a) multiple NICHESObjects passed directly as positional
@@ -15,7 +15,7 @@
 #'
 #' @details
 #' \strong{Mode compatibility.} All objects must share the same
-#' \code{attr(., "mode")} (\code{"spatial"} or \code{"sampled"}). A mismatch
+#' \code{attr(., "mode")} (\code{"spatial"} or \code{"nonspatial"}). A mismatch
 #' is a hard error because the slot schemas differ (spatial objects carry
 #' \code{x}/\code{y} in \code{$cell.meta}; edge semantics differ).
 #'
@@ -50,17 +50,27 @@
 #'   argument that automates splitting and merging within one call.
 #'
 #' @examples
-#' \dontrun{
-#' # Three individual objects
-#' merged <- merge_NICHESObjects(obj.s1, obj.s2, obj.s3)
+#' data(NICHESv2_inputs)
+#' build_sample <- function(cells) {
+#'   create_NICHESObject(
+#'     count.mtx = NICHESv2_inputs$count.mtx[, cells],
+#'     meta.data = NICHESv2_inputs$meta.data[cells, ],
+#'     LRM.db    = NICHESv2_inputs$LRM.db,
+#'     mode      = "spatial",
+#'     k         = 3L,
+#'     verbose   = FALSE
+#'   )
+#' }
+#' barcodes <- rownames(NICHESv2_inputs$meta.data)
+#' obj.s1 <- build_sample(barcodes[1:40])
+#' obj.s2 <- build_sample(barcodes[41:80])
+#'
+#' # Individual objects
+#' merged <- merge_NICHESObjects(obj.s1, obj.s2, verbose = FALSE)
 #'
 #' # A pre-built list
-#' obj.list <- list(obj.s1, obj.s2, obj.s3)
-#' merged <- merge_NICHESObjects(obj.list)
-#'
-#' # Explicit list() call
-#' merged <- merge_NICHESObjects(list(obj.s1, obj.s2, obj.s3))
-#' }
+#' obj.list <- list(obj.s1, obj.s2)
+#' merged <- merge_NICHESObjects(obj.list, verbose = FALSE)
 #'
 #' @export
 #' @import data.table
@@ -108,7 +118,7 @@ merge_NICHESObjects <- function(..., verbose = TRUE) {
   if (length(unique(modes)) > 1L)
     stop(sprintf(
       paste0("Cannot merge NICHESObjects with different modes: %s.\n",
-             "All objects must share the same mode (\"spatial\" or \"sampled\")."),
+             "All objects must share the same mode (\"spatial\" or \"nonspatial\")."),
       paste(unique(modes), collapse = ", ")
     ), call. = FALSE)
 

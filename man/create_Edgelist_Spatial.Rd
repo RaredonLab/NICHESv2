@@ -2,7 +2,7 @@
 % Please edit documentation in R/create_Edgelist_Spatial.R
 \name{create_Edgelist_Spatial}
 \alias{create_Edgelist_Spatial}
-\title{Build a Spatial Neighbourhood Edge List from 2-D Cell Coordinates}
+\title{Build a Spatial Neighborhood Edge List from 2-D Cell Coordinates}
 \usage{
 create_Edgelist_Spatial(coord, k = NULL, rad = NULL, n.cores = 1L)
 }
@@ -10,10 +10,10 @@ create_Edgelist_Spatial(coord, k = NULL, rad = NULL, n.cores = 1L)
 \item{coord}{\code{data.frame}. First column = x, second column = y.
 \strong{Row names must be unique cell identifiers.}}
 
-\item{k}{\code{integer} or \code{NULL}. Number of nearest neighbours
+\item{k}{\code{integer} or \code{NULL}. Number of nearest neighbors
 (kNN mode). Positive integer.}
 
-\item{rad}{\code{numeric} or \code{NULL}. Neighbourhood radius (radius
+\item{rad}{\code{numeric} or \code{NULL}. Neighborhood radius (radius
 mode). Positive finite number in the same units as \code{coord}.}
 
 \item{n.cores}{\code{integer}. CPU cores. Default 1. Uses socket-based
@@ -33,11 +33,11 @@ Carries metadata attributes: \code{mode}, \code{param}, \code{n.cells},
 \code{cell.names}.
 }
 \description{
-Constructs a directed edge list representing spatial cell neighbourhoods.
+Constructs a directed edge list representing spatial cell neighborhoods.
 Two computation modes are available for inter-cell edges:
 
 \itemize{
-  \item \strong{kNN mode} -- finds \code{k} nearest neighbours per cell via a
+  \item \strong{kNN mode} -- finds \code{k} nearest neighbors per cell via a
     kd-tree (\code{RANN::nn2}). Only \emph{mutual} edges are retained (A->B
     kept only if B->A also exists). Non-mutual edges are discarded.
   \item \strong{Radius mode} -- finds all cells within Euclidean distance

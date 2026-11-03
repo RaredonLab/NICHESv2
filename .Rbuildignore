@@ -4,3 +4,17 @@
 ^working-scripts-NW$
 ^working-scripts-MSBR$
 ^data-raw$
+^omnipathr-log$
+^doc$
+^Meta$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.claude$
+^\.github$
+^CLAUDE\.md$
+^demo-scripts$
+^package management$
+^LICENSE\.md$
+^vignettes/articles$
+

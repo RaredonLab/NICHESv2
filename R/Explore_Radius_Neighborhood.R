@@ -1,6 +1,6 @@
-#' Explore the relationship between search radius and neighbourhood size
+#' Explore the relationship between search radius and neighborhood size
 #'
-#' Estimates the mean number of neighbouring cells as a function of search
+#' Estimates the mean number of neighboring cells as a function of search
 #' radius, using a randomly sampled subset of cells for efficiency. Designed
 #' to help users choose a radius parameter before calling
 #' \code{create_NICHESObject()}.
@@ -19,10 +19,10 @@
 #' @param r.step numeric(1). Step size between evaluated radii. Default:
 #'   \code{(r.max - r.min) / 50} (50 evenly spaced evaluation points).
 #' @param n.sample integer(1) or NULL. Number of cells to randomly sample for
-#'   the neighbourhood estimate. Default 2000. Set to \code{NULL} to use all
+#'   the neighborhood estimate. Default 2000. Set to \code{NULL} to use all
 #'   cells -- not recommended for large datasets.
 #' @param seed integer(1) or NULL. Random seed for reproducible sampling.
-#'   Default 42.
+#'   Default 42. The caller's random number state is restored on exit.
 #' @param n.cores integer(1). Number of parallel workers (socket cluster) for
 #'   distributing the radius evaluation. Default 1.
 #' @param show.plot logical. Whether to print the summary ggplot before
@@ -31,9 +31,9 @@
 #' @return A \code{data.table} with columns:
 #'   \describe{
 #'     \item{radius}{evaluated radius value}
-#'     \item{mean.neighbors}{mean neighbour count across sampled cells}
-#'     \item{sd.neighbors}{standard deviation of neighbour count}
-#'     \item{median.neighbors}{median neighbour count (robust to density outliers)}
+#'     \item{mean.neighbors}{mean neighbor count across sampled cells}
+#'     \item{sd.neighbors}{standard deviation of neighbor count}
+#'     \item{median.neighbors}{median neighbor count (robust to density outliers)}
 #'   }
 #'   Returned invisibly when \code{show.plot = TRUE}.
 #'
@@ -88,7 +88,7 @@ Explore_Radius_Neighborhood <- function(
   # -- 2. Sampling -------------------------------------------------------------
   if (is.null(n.sample)) {
     warning(
-      "n.sample = NULL: neighbourhood sizes will be estimated from ALL ",
+      "n.sample = NULL: neighborhood sizes will be estimated from ALL ",
       n.cells, " cells. This is not recommended for large datasets ",
       "and may be very slow."
     )
@@ -103,7 +103,11 @@ Explore_Radius_Neighborhood <- function(
       # Requested more than available -- silently use all cells.
       sample.idx <- seq_len(n.cells)
     } else {
-      if (!is.null(seed)) set.seed(as.integer(seed))
+      if (!is.null(seed)) {
+        rng.state <- .save_rng()
+        on.exit(.restore_rng(rng.state), add = TRUE)
+        set.seed(as.integer(seed))
+      }
       sample.idx <- sort(sample.int(n.cells, n.sample))
     }
   }
@@ -243,8 +247,8 @@ Explore_Radius_Neighborhood <- function(
       ggplot2::geom_line(color = "#4C72B0", linewidth = 0.9) +
       ggplot2::labs(
         x        = "Radius",
-        y        = "Mean Neighbour Count",
-        title    = "Radius vs. Neighbourhood Size",
+        y        = "Mean Neighbor Count",
+        title    = "Radius vs. Neighborhood Size",
         subtitle = paste0(
           "Estimated from ", n.sample.actual, " sampled cells  \u00b7  ",
           n.radii, " radius steps"

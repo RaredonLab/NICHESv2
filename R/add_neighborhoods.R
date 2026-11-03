@@ -5,8 +5,11 @@
 #' \code{$neighborhood.edge.list}, and \code{$neighborhood.meta}.
 #'
 #' This function calls \code{\link{extract_neighborhoods}} internally.
-#' If the neighborhood slots are already populated, they are overwritten
-#' with a message.
+#' If the neighborhood slots are already populated and \code{overwrite = FALSE}
+#' (the default), a hard error is raised. Pass \code{overwrite = TRUE} to
+#' recompute; any stale neighborhood-dependent aggregation slots
+#' (\code{$aggregations$neighborhood.edge.agg} and
+#' \code{$aggregations$neighborhood.composition}) are cleared automatically.
 #'
 #' @param niches.obj A \code{NICHESObject} with a non-empty \code{$edge.list}.
 #' @param edge.filter.mode Character. Passed to
@@ -14,11 +17,16 @@
 #'   \code{"both_in_neighborhood"}.
 #' @param remove.autocrine Logical. Passed to
 #'   \code{\link{extract_neighborhoods}}. Default \code{FALSE}.
-#' @param n.cores Integer. Number of cores for parallel processing. Default 1.
+#' @param overwrite Logical. If \code{FALSE} (default), raises a hard error
+#'   when the neighborhood slots are already populated. Set to \code{TRUE} to
+#'   recompute; stale neighborhood-dependent aggregation slots are cleared
+#'   automatically.
+#' @param n.cores Integer. Number of cores for parallel processing. Default \code{1L}.
 #' @param verbose Logical. Print progress messages. Default \code{TRUE}.
 #'
 #' @return The input \code{NICHESObject} with the three neighborhood slots
-#'   populated. Attribute \code{"edge.filter.mode"} is set on the object.
+#'   Attributes \code{"edge.filter.mode"} and \code{"remove.autocrine"} are
+#'   set on the object.
 #'
 #' @examples
 #' \donttest{
@@ -26,7 +34,7 @@
 #'
 #' # Default neighborhood: edges where BOTH endpoints lie in the same
 #' # neighborhood as the central cell
-#' obj.nb <- add_neighborhoods(NICHESv2_example)
+#' obj.nb <- add_neighborhoods(NICHESv2_example, overwrite = TRUE)
 #'
 #' length(obj.nb$neighborhood.cell.list)   # one entry per cell
 #' head(obj.nb$neighborhood.meta)          # n.neighbors and n.edges per cell
@@ -41,8 +49,9 @@
 add_neighborhoods <- function(niches.obj,
                               edge.filter.mode = "both_in_neighborhood",
                               remove.autocrine = FALSE,
-                              n.cores = 1,
-                              verbose = TRUE) {
+                              overwrite        = FALSE,
+                              n.cores          = 1L,
+                              verbose          = TRUE) {
 
   if (!inherits(niches.obj, "NICHESObject")) {
     stop("niches.obj must be a NICHESObject")
@@ -51,9 +60,24 @@ add_neighborhoods <- function(niches.obj,
     stop("niches.obj$edge.list is empty; cannot extract neighborhoods")
   }
 
-  # Warn if overwriting
+  # Guard against silent overwrite ----
   if (!is.null(niches.obj$neighborhood.cell.list)) {
-    if (verbose) message("Overwriting existing neighborhood slots")
+    if (!overwrite)
+      stop("[add_neighborhoods] Neighborhood slots are already populated. ",
+           "Use overwrite = TRUE to recompute.", call. = FALSE)
+    # Clear stale neighborhood-dependent aggregation slots
+    stale <- intersect(
+      names(niches.obj$aggregations),
+      c("neighborhood.edge.agg", "neighborhood.composition")
+    )
+    if (length(stale) > 0L) {
+      niches.obj$aggregations[stale] <- NULL
+      if (verbose)
+        message("[add_neighborhoods] Cleared stale aggregation slot(s): ",
+                paste(stale, collapse = ", "), ".")
+    }
+    if (verbose)
+      message("[add_neighborhoods] Recomputing neighborhood slots.")
   }
 
   # Extract neighborhoods
@@ -70,8 +94,9 @@ add_neighborhoods <- function(niches.obj,
   niches.obj$neighborhood.edge.list <- result$neighborhood.edge.list
   niches.obj$neighborhood.meta      <- result$neighborhood.meta
 
-  # Store parameter on the object
+  # Store parameters on the object
   attr(niches.obj, "edge.filter.mode") <- attr(result, "edge.filter.mode")
-
+  attr(niches.obj, "remove.autocrine") <- attr(result, "remove.autocrine")
+  
   return(niches.obj)
 }

@@ -1,25 +1,23 @@
-# 1. Each file has exactly one @keywords internal line
-grep -c "^#' @keywords internal" R/extract_neighborhoods.R          # expect: 1
-grep -c "^#' @keywords internal" R/create_Edgelist_Spatial.R        # expect: 1
-grep -c "^#' @keywords internal" R/create_Edgelist_PseudoBulk.R     # expect: 1
-grep -c "^#' @keywords internal" R/create_Edgelist_SamplingByType.R # expect: 1
+# ── Layer 1: all double-quoted "sampled" → "nonspatial" ──────────────────────
+sed -i '' 's/"sampled"/"nonspatial"/g' R/*.R tests/testthat/*.R
 
-# 2. Each file has the rationale paragraph (anchor on a unique phrase)
-grep -c "low-level primitive" R/extract_neighborhoods.R             # expect: 1
-grep -c "low-level primitive" R/create_Edgelist_Spatial.R           # expect: 1
-grep -c "low-level primitive" R/create_Edgelist_PseudoBulk.R        # expect: 1
-grep -c "low-level primitive" R/create_Edgelist_SamplingByType.R    # expect: 1
+# ── Layer 2a: common prose patterns ─────────────────────────────────────────
+sed -i '' 's/sampled mode/nonspatial mode/g'   R/*.R tests/testthat/*.R
+sed -i '' 's/Sampled mode/Nonspatial mode/g'   R/*.R tests/testthat/*.R
+sed -i '' "s/mode = 'sampled'/mode = 'nonspatial'/g" R/*.R tests/testthat/*.R
+sed -i '' 's/sampled-mode/nonspatial-mode/g'   R/*.R tests/testthat/*.R
 
-# 3. Each file still has @export (function stays callable)
-grep -c "^#' @export" R/extract_neighborhoods.R                     # expect: 1
-grep -c "^#' @export" R/create_Edgelist_Spatial.R                   # expect: 1
-grep -c "^#' @export" R/create_Edgelist_PseudoBulk.R                # expect: 1
-grep -c "^#' @export" R/create_Edgelist_SamplingByType.R            # expect: 1
+# ── Layer 2b: one remaining single-quoted case in test description ───────────
+# test-create_Edgelist_SamplingByType.R:119 has: mode attribute is 'sampled'
+sed -i '' "s/is 'sampled'/is 'nonspatial'/g" tests/testthat/*.R
 
-# 4. @keywords internal is positioned immediately before @export in all 4
-# (i.e., no @* tag between them)
-for f in extract_neighborhoods create_Edgelist_Spatial create_Edgelist_PseudoBulk create_Edgelist_SamplingByType; do
-  echo "=== $f ==="
-  awk '/^#'"'"' @keywords internal/,/^#'"'"' @export/' R/${f}.R
-done
-# expect for each: exactly two lines printed -- "#' @keywords internal" then "#' @export"
+# ── Layer 2c: three targeted lines in source files ───────────────────────────
+# compute_CellToCell.R:60 -- "spatial and sampled modes"
+sed -i '' 's/and sampled modes/and nonspatial modes/g' R/compute_CellToCell.R
+
+# create_NICHESObject_single.R:165 -- "Spatial and sampled (smooth = FALSE)"
+sed -i '' 's/Spatial and sampled (smooth/Spatial and nonspatial (smooth/g' R/create_NICHESObject_single.R
+
+# create_NICHESObject_single.R:166 -- "Sampled (smooth = TRUE): sampled barcode columns"
+# Only the first word on this line is a mode reference; "sampled barcode columns" stays
+sed -i '' 's/Sampled (smooth = TRUE)/Nonspatial (smooth = TRUE)/g' R/create_NICHESObject_single.R

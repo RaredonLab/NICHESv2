@@ -158,6 +158,17 @@ test_that("Explore_Radius_Neighborhood: same seed gives identical results", {
   expect_identical(run.1, run.2)
 })
 
+test_that("Explore_Radius_Neighborhood: restores the caller's random state", {
+  coord <- make_grid_coord(10L)
+  set.seed(99L)
+  before <- get(".Random.seed", envir = globalenv())
+  Explore_Radius_Neighborhood(
+    coord, r.min = 0.5, r.max = 3.0, r.step = 0.5,
+    n.sample = 30L, seed = 7L, show.plot = FALSE
+  )
+  expect_identical(get(".Random.seed", envir = globalenv()), before)
+})
+
 # ── show.plot visibility contract ─────────────────────────────────────────────
 
 test_that("Explore_Radius_Neighborhood: show.plot=TRUE returns data.table invisibly", {

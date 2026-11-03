@@ -1,6 +1,6 @@
 # NICHESObject_class.R ----------------------------------------------------
 # S3 class definition for NICHESObject -- the central data structure
-# of the NICHESv2 package. Defines the 14-slot specification and all
+# of the NICHESv2 package. Defines the 15-slot specification and all
 # S3 methods: print, summary, dim, length, [, and is_NICHESObject.
 #
 # DEPS: data.table
@@ -8,7 +8,7 @@
 
 ## LOW-LEVEL CONSTRUCTOR (internal) ----
 #
-# Creates a validated NICHESObject from its 14 constituent slots. Called by
+# Creates a validated NICHESObject from its 15 constituent slots. Called by
 # create_NICHESObject() -- end users should never call this directly.
 #
 # All slot-level validation lives here so that every NICHESObject, regardless
@@ -29,9 +29,10 @@
     gene.meta,
     LRM.list,
     LRM.meta,
-    segmentation           = NULL
+    segmentation           = NULL,
+    aggregations           = list()
 ) {
-
+  
   # -- Slot-type invariants ---------------------------------------------------
   stopifnot(
     is.character(cell.list),
@@ -77,7 +78,8 @@
       gene.meta              = gene.meta,
       LRM.list               = LRM.list,
       LRM.meta               = LRM.meta,
-      segmentation           = segmentation
+      segmentation           = segmentation,
+      aggregations           = aggregations
     ),
     class = "NICHESObject"
   )
@@ -175,6 +177,33 @@ print.NICHESObject <- function(x, ...) {
   cat(sprintf("  LRM pairs    : %d  (%d valid)\n",
               length(x$LRM.list), n.lrms.valid))
   cat(sprintf("  Segmentation : %s\n", seg.status))
+  
+  if (!is.null(x$neighborhood.cell.list)) {
+    cat(sprintf(
+      "  Neighborhoods: %d cells  |  %d edges  (mode: %s, autocrine: %s)\n",
+      length(x$neighborhood.cell.list),
+      sum(lengths(x$neighborhood.edge.list)),
+      attr(x, "edge.filter.mode") %||% "unknown",
+      if (isTRUE(attr(x, "remove.autocrine"))) "removed" else "included"
+    ))
+  } else {
+    cat("  Neighborhoods: none\n")
+  }
+  
+  agg.names <- names(x$aggregations)
+  if (length(agg.names) == 0L) {
+    cat("  Aggregations : none\n")
+  } else {
+    cat("  Aggregations :\n")
+    for (nm in agg.names) {
+      sl <- x$aggregations[[nm]]
+      if (is.data.table(sl)) {
+        cat(sprintf("    $%-34s: %d rows\n", nm, nrow(sl)))
+      } else if (is.list(sl)) {
+        cat(sprintf("    $%-34s: %d result(s)\n", nm, length(sl)))
+      }
+    }
+  }
   cat("\n  Slot summary:\n")
   cat("    $cell.list     -- character vector of cell barcodes\n")
   cat("    $cell.data     -- (cell, gene, score, score.norm) [sparse]\n")
@@ -182,12 +211,15 @@ print.NICHESObject <- function(x, ...) {
   cat("    $edge.list     -- (edge, SendingCell, ReceivingCell)\n")
   cat("    $edge.data     -- (edge, LRM, score, score.norm) [sparse]\n")
   cat("    $edge.meta     -- per-edge metadata with Sending/Receiving/Joint cols\n")
-  cat("    $neighborhood.* -- reserved (NULL)\n")
+  cat("    $neighborhood.cell.list -- named list: cell -> neighbor barcodes\n")
+  cat("    $neighborhood.edge.list -- named list: cell -> edge IDs\n")
+  cat("    $neighborhood.meta      -- (cell, n.neighbors, n.edges) [keyed]\n")
   cat("    $gene.list     -- character vector of gene names\n")
   cat("    $gene.meta     -- per-gene metadata\n")
   cat("    $LRM.list      -- character vector of 'ligand|receptor' pairs\n")
   cat("    $LRM.meta      -- per-LRM metadata\n")
   cat("    $segmentation  -- sf object of cell polygons, or NULL\n")
+  cat("    $aggregations  -- named list of aggregation data.tables\n")
   cat("------------------------------------------------------------\n")
   invisible(x)
 }
@@ -195,7 +227,7 @@ print.NICHESObject <- function(x, ...) {
 
 ## SUMMARY METHOD ----
 
-#' Summarise a NICHESObject
+#' Summarize a NICHESObject
 #'
 #' Long-form summary of a \code{NICHESObject}. Reports cell counts,
 #' cell-type composition (when a \code{celltype} column is present in
@@ -290,7 +322,22 @@ summary.NICHESObject <- function(object, ...) {
   } else {
     cat("\n  Segmentation: none\n")
   }
-
+  
+  agg.names <- names(object$aggregations)
+  if (length(agg.names) == 0L) {
+    cat("\n  Aggregations: none\n")
+  } else {
+    cat(sprintf("\n  Aggregations: %d computed\n", length(agg.names)))
+    for (nm in agg.names) {
+      sl <- object$aggregations[[nm]]
+      if (is.data.table(sl)) {
+        cat(sprintf("    $%-34s: %d rows\n", nm, nrow(sl)))
+      } else if (is.list(sl)) {
+        cat(sprintf("    $%-34s: %d result(s)\n", nm, length(sl)))
+      }
+    }
+  }
+  
   cat("------------------------------------------------------------\n")
   invisible(object)
 }
@@ -300,7 +347,7 @@ summary.NICHESObject <- function(object, ...) {
 
 #' Dimensions of a NICHESObject
 #'
-#' Returns the four headline counts that characterise a \code{NICHESObject}:
+#' Returns the four headline counts that characterize a \code{NICHESObject}:
 #' the number of cells, genes, edges, and ligand--receptor (LRM) pairs.
 #' Provided so that \code{dim(obj)} works on a \code{NICHESObject} the same
 #' way it does on a matrix.
@@ -402,7 +449,8 @@ length.NICHESObject <- function(x) length(x$cell.list)
 #' Subset a NICHESObject to a Set of Cells
 #'
 #' Filters all cell-indexed slots (\code{$cell.list}, \code{$cell.data},
-#' \code{$cell.meta}) and all edge-indexed slots
+#' \code{$cell.meta}, the three neighborhood slots and every table in
+#' \code{$aggregations}) to the cells in \code{i}, and all edge-indexed slots
 #' (\code{$edge.list}, \code{$edge.data}, \code{$edge.meta}) to keep only
 #' edges where \strong{both} sending and receiving cells are in \code{i}.
 #' If \code{$segmentation} is populated, it is filtered to retain only rows
@@ -413,12 +461,30 @@ length.NICHESObject <- function(x) length(x$cell.list)
 #' silently dropped. If the intersection is empty the function errors rather
 #' than returning an unusable empty object.
 #'
+#' @section Neighborhoods and aggregations after subsetting:
+#' A retained cell keeps its neighborhood entries and aggregation rows
+#' unchanged, so they still describe its whole neighborhood in the full
+#' object, including neighbors outside \code{i}. Aggregate the full object
+#' first, then subset. Summing a cell's edges in \code{$edge.data} can give
+#' less than its aggregation row, because the edge slots hold only edges
+#' between retained cells; a \code{\link{export_to_TissuePlex}} export of the
+#' subset shows those edges only.
+#'
+#' Aggregations cannot be recomputed on a subset whose neighborhoods include
+#' removed edges: \code{\link{add_neighborhood_edge_agg}} and
+#' \code{\link{add_neighborhood_composition}} stop with an error. To analyze
+#' the subset as a separate tissue instead, call
+#' \code{add_neighborhoods(obj, overwrite = TRUE)} first. This rebuilds the
+#' neighborhoods from the retained edges and clears the carried-over
+#' aggregation tables.
+#'
 #' @param x   A \code{NICHESObject}.
 #' @param i   Character vector of cell barcodes to retain.
 #' @param ... Unused. Present for S3 method signature conformance.
 #'
 #' @return A new \code{NICHESObject} restricted to the retained cells and
-#'   their fully-internal edges. Gene and LRM slots are unchanged.
+#'   their fully-internal edges, with their neighborhood entries and
+#'   aggregation rows unchanged. Gene and LRM slots are unchanged.
 #'
 #' @seealso \code{\link{is_NICHESObject}} to validate the result.
 #'
@@ -479,6 +545,27 @@ length.NICHESObject <- function(x) length(x$cell.list)
     NULL
   }
 
+  # Filter neighborhood and aggregation slots by cell. Entries are kept
+  # unchanged, so they still describe the whole neighborhood in the full object
+  new.neighborhood.cell.list <- if (!is.null(x$neighborhood.cell.list)) {
+    x$neighborhood.cell.list[names(x$neighborhood.cell.list) %in% keep.cells]
+  } else {
+    NULL
+  }
+  new.neighborhood.edge.list <- if (!is.null(x$neighborhood.edge.list)) {
+    x$neighborhood.edge.list[names(x$neighborhood.edge.list) %in% keep.cells]
+  } else {
+    NULL
+  }
+  new.neighborhood.meta <- if (!is.null(x$neighborhood.meta)) {
+    x$neighborhood.meta[cell %in% keep.cells]
+  } else {
+    NULL
+  }
+  new.aggregations <- lapply(x$aggregations, function(agg) {
+    if ("cell" %in% colnames(agg)) agg[cell %in% keep.cells] else agg
+  })
+
   result <- .new_NICHESObject(
     cell.list              = new.cell.list,
     cell.data              = new.cell.data,
@@ -486,16 +573,19 @@ length.NICHESObject <- function(x) length(x$cell.list)
     edge.list              = new.edge.list,
     edge.data              = new.edge.data,
     edge.meta              = new.edge.meta,
-    neighborhood.cell.list = x$neighborhood.cell.list,
-    neighborhood.edge.list = x$neighborhood.edge.list,
-    neighborhood.meta      = x$neighborhood.meta,
+    neighborhood.cell.list = new.neighborhood.cell.list,
+    neighborhood.edge.list = new.neighborhood.edge.list,
+    neighborhood.meta      = new.neighborhood.meta,
     gene.list              = x$gene.list,
     gene.meta              = x$gene.meta,
     LRM.list               = x$LRM.list,
     LRM.meta               = x$LRM.meta,
-    segmentation           = new.segmentation
+    segmentation           = new.segmentation,
+    aggregations           = new.aggregations
   )
-  attr(result, "mode")       <- attr(x, "mode")
-  attr(result, "sample.col") <- attr(x, "sample.col")
+  attr(result, "mode")             <- attr(x, "mode")
+  attr(result, "sample.col")       <- attr(x, "sample.col")
+  attr(result, "edge.filter.mode") <- attr(x, "edge.filter.mode")
+  attr(result, "remove.autocrine") <- attr(x, "remove.autocrine")
   result
 }

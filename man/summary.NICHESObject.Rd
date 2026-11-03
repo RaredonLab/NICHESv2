@@ -2,7 +2,7 @@
 % Please edit documentation in R/NICHESObject_class.R
 \name{summary.NICHESObject}
 \alias{summary.NICHESObject}
-\title{Summarise a NICHESObject}
+\title{Summarize a NICHESObject}
 \usage{
 \method{summary}{NICHESObject}(object, ...)
 }

@@ -21,14 +21,9 @@
 #' \describe{
 #'   \item{\code{"spatial"}}{Edges defined by physical proximity using kNN or
 #'     radius in x/y space. Requires \code{x} and \code{y} in \code{meta.data}.}
-#'   \item{\code{"sampled"}}{NICHES v1-style type-stratified sampling. Requires
-#'     \code{cell.type.col}. Optional PCA-based neighbourhood smoothing via
-#'     \code{smooth = TRUE}.}
+#'   \item{\code{"nonspatial"}}{NICHES v1-style type-stratified sampling. Requires
+#'     \code{cell.type.col}.}
 #' }
-#'
-#' For pseudobulk (type-averaged) connectivity use
-#' \code{\link{compute_PseudoBulk_Connectivity}} -- it returns a plain
-#' \code{data.table}, not a \code{NICHESObject}.
 #'
 #' @section Pipeline overview:
 #' Internally, \code{create_NICHESObject()} chains the following steps:
@@ -38,12 +33,14 @@
 #'         \code{data.frame} is used directly.
 #'   \item Build the edge list -- \code{\link{create_Edgelist_Spatial}} for
 #'         \code{mode = "spatial"} or \code{\link{create_Edgelist_SamplingByType}}
-#'         for \code{mode = "sampled"}.
+#'         for \code{mode = "nonspatial"}.
 #'   \item Score every edge x LRM combination via
 #'         \code{\link{compute_CellToCell}}, sparsifying as it goes.
-#'   \item Assemble the 14-slot \code{NICHESObject} (cell, edge, gene, LRM,
-#'         and segmentation slots; neighborhood slots are populated later by
-#'         \code{\link{add_neighborhoods}}).
+#'   \item Assemble the 15-slot \code{NICHESObject} (cell, edge, gene, LRM,
+#'         segmentation, and aggregation slots).
+#'   \item Extract neighborhoods via \code{\link{add_neighborhoods}} using
+#'         \code{edge.filter.mode = "both_in_neighborhood"} and
+#'         \code{remove.autocrine = FALSE} (fixed by design).
 #' }
 #'
 #' Each step is also exported individually for users who need finer control.
@@ -64,71 +61,52 @@
 #' Outer iteration over samples is always sequential; the inner pipeline
 #' uses \code{n.cores} for parallelism, so socket clusters are never nested.
 #'
-#' @section PCA-based smoothing (sampled mode only):
-#' When \code{smooth = TRUE}, the count matrix is denoised before scoring by
-#' replacing each cell's expression with the mean of its \code{smooth.k}
-#' nearest neighbours in PC space (computed from \code{n.pcs} principal
-#' components via \code{irlba}). Smoothing reduces dropout-driven zeros in
-#' single-cell data but is approximate -- only the columns used for scoring
-#' are replaced; \code{$cell.data} continues to reflect the original raw
-#' counts. This branch is not exercised by the bundled tests; review results
-#' carefully before relying on it for downstream analysis.
-#'
 #' @param count.mtx   Gene x cell matrix (sparse \code{dgCMatrix} or dense).
 #'   Row names = gene symbols; column names = cell barcodes. Both name sets
 #'   must match \code{rownames(meta.data)} and the columns of
 #'   \code{LRM.db} respectively.
 #' @param meta.data   \code{data.frame} with row names = cell barcodes. Must
 #'   contain \code{x} and \code{y} columns when \code{mode = "spatial"}, and
-#'   the column named by \code{cell.type.col} when \code{mode = "sampled"}.
+#'   the column named by \code{cell.type.col} when \code{mode = "nonspatial"}.
 #' @param LRM.db      Either a character string naming a built-in database
-#'   (\code{"fantom5"} or \code{"omnipath"}) or a \code{data.frame} with at
+#'   (\code{"connectomedb2025"}, \code{"fantom5"} or \code{"omnipath"}) or a
+#'   \code{data.frame} with at
 #'   least the columns named by \code{ligand.col} and \code{receptor.col}.
 #'   See \code{\link{load_LRM_database}} for details and supported species.
 #' @param mode        Character. \code{"spatial"} (default, kNN/radius edges)
-#'   or \code{"sampled"} (type-stratified random sampling).
+#'   or \code{"nonspatial"} (type-stratified random sampling).
 #' @param species     Species for built-in LRM databases. One of
 #'   \code{"human"} (default), \code{"mouse"}, \code{"rat"}, or \code{"pig"}
-#'   (\code{"pig"} is FANTOM5 only). Silently ignored when \code{LRM.db} is
-#'   a \code{data.frame}.
+#'   (\code{"pig"} is not available from OmniPath). Silently ignored when
+#'   \code{LRM.db} is a \code{data.frame}.
 #' @param sample.col  Character or \code{NULL} (default). Name of a column
 #'   in \code{meta.data} identifying the biological sample of origin for
 #'   each cell. When supplied, the pipeline runs independently within each
 #'   sample and the per-sample objects are merged. See the Sample-aware
 #'   processing section above for the barcode-uniqueness requirement.
 #' @param cell.type.col Character or \code{NULL}. Column in \code{meta.data}
-#'   holding cell type labels. \strong{Required for \code{mode = "sampled"}};
+#'   holding cell type labels. \strong{Required for \code{mode = "nonspatial"}};
 #'   ignored otherwise.
 #' @param ligand.col  Character. Column name for ligands in \code{LRM.db}.
 #'   Default \code{"ligand"}.
 #' @param receptor.col Character. Column name for receptors in \code{LRM.db}.
 #'   Default \code{"receptor"}.
-#' @param k           Integer or \code{NULL}. Number of nearest neighbours
+#' @param k           Integer or \code{NULL}. Number of nearest neighbors
 #'   for kNN edges. \strong{Spatial mode only; supply exactly one of
 #'   \code{k} or \code{rad}.}
-#' @param rad         Numeric or \code{NULL}. Neighbourhood radius for
+#' @param rad         Numeric or \code{NULL}. Neighborhood radius for
 #'   fixed-radius edges (same units as the \code{x}/\code{y} columns).
 #'   \strong{Spatial mode only; supply exactly one of \code{k} or \code{rad}.}
 #'   Use \code{\link{Explore_Radius_Neighborhood}} to choose a sensible value.
 #' @param seed        Integer. Random seed for reproducible type-stratified
-#'   sampling. Default \code{42L}. Sampled mode only.
+#'   sampling. Default \code{42L}. Nonspatial mode only.
 #' @param max.cells   Integer or \code{NULL}. Per cell-type-pair edge cap.
-#'   Default \code{NULL} (no cap). Sampled mode only.
-#' @param smooth      Logical. Enable PCA-based neighbourhood smoothing of
-#'   the count matrix before scoring. Default \code{FALSE}. Sampled mode
-#'   only; see the PCA-based smoothing section above.
-#' @param smooth.k    Integer. Number of nearest neighbours used for
-#'   smoothing (cell + \code{smooth.k} neighbours are averaged). Default
-#'   \code{9L}. Used only when \code{smooth = TRUE}.
-#' @param n.pcs       Integer. Number of principal components for the
-#'   neighbour search underlying smoothing. Default \code{30L}, capped
-#'   internally at \code{min(n.pcs, ncells - 1, ngenes - 1)}. Used only
-#'   when \code{smooth = TRUE}.
+#'   Default \code{NULL} (no cap). Nonspatial mode only.
 #' @param method      Per-edge LR scoring method. \code{"product"} (default)
 #'   multiplies sender ligand expression by receiver receptor expression;
 #'   \code{"minimum"} takes the elementwise minimum. Both handle gene
 #'   complexes (underscore-joined symbols).
-#' @param normalize.method Edge-level normalisation for \code{score.norm}
+#' @param normalize.method Edge-level normalization for \code{score.norm}
 #'   in \code{$edge.data}. \code{"prop"} (default) scales each edge's
 #'   per-LRM scores to sum to 1 across LRMs; \code{"none"} leaves
 #'   \code{score.norm} equal to \code{score}.
@@ -141,32 +119,28 @@
 #' @param verbose     Logical. Print progress messages. Default \code{TRUE}.
 #'
 #' @return A \code{NICHESObject} with attribute \code{"mode"} set to either
-#'   \code{"spatial"} or \code{"sampled"}. When \code{sample.col} is
+#'   \code{"spatial"} or \code{"nonspatial"}. When \code{sample.col} is
 #'   provided, attribute \code{"sample.col"} is also set to the column name.
 #'   Slots \code{$cell.list}, \code{$cell.data}, \code{$cell.meta},
 #'   \code{$edge.list}, \code{$edge.data}, \code{$edge.meta},
 #'   \code{$gene.list}, \code{$gene.meta}, \code{$LRM.list}, and
-#'   \code{$LRM.meta} are populated. The neighborhood slots
-#'   (\code{$neighborhood.cell.list}, \code{$neighborhood.edge.list},
-#'   \code{$neighborhood.meta}) and \code{$segmentation} remain \code{NULL}
-#'   until \code{\link{add_neighborhoods}} and \code{\link{add_segmentation}}
-#'   are called.
+#'   \code{$LRM.meta} are always populated. The three neighborhood slots are
+#'   always populated and \code{attr(obj, "edge.filter.mode")} and
+#'   \code{attr(obj, "remove.autocrine")} are set on the object.
+#'   \code{$segmentation} always remains
+#'   \code{NULL} until \code{\link{add_segmentation}} is called.
 #'
 #' @seealso
 #'   \code{\link{NICHESv2_example}} for an example object produced by this
 #'     function;
 #'   \code{\link{merge_NICHESObjects}} for combining objects produced
 #'     independently;
-#'   \code{\link{compute_PseudoBulk_Connectivity}} for type-averaged
-#'     connectivity (returns a \code{data.table}, not a \code{NICHESObject});
 #'   \code{\link{compute_CellToCell}} for the underlying scoring engine;
 #'   \code{\link{create_Edgelist_Spatial}},
 #'   \code{\link{create_Edgelist_SamplingByType}} for the edge-list
 #'     constructors invoked internally;
 #'   \code{\link{load_LRM_database}} for the LR-database loader;
-#'   \code{\link{Aggregate_CellToCell_Edges}},
-#'   \code{\link{CellToCell_InSitu}} for downstream summarisation and
-#'     plotting.
+#'   \code{\link{aggregate_NICHESObject}} for downstream summarization.
 #'
 #' @examples
 #' \donttest{
@@ -187,19 +161,19 @@
 #' print(obj)
 #' attr(obj, "mode")           # "spatial"
 #'
-#' # ---- Sampled mode (NICHES v1-style type-stratified sampling) ----
+#' # ---- Nonspatial mode (NICHES v1-style type-stratified sampling) ----
 #' obj.sampled <- create_NICHESObject(
 #'   count.mtx     = NICHESv2_inputs$count.mtx,
 #'   meta.data     = NICHESv2_inputs$meta.data,
 #'   LRM.db        = NICHESv2_inputs$LRM.db,
-#'   mode          = "sampled",
+#'   mode          = "nonspatial",
 #'   cell.type.col = "celltype",
 #'   ligand.col    = "ligand",
 #'   receptor.col  = "receptor",
 #'   n.cores       = 1L,
 #'   verbose       = FALSE
 #' )
-#' attr(obj.sampled, "mode")   # "sampled"
+#' attr(obj.sampled, "mode")   # "nonspatial"
 #'
 #' # ---- Sample-aware processing (sample.col) ----
 #' # Synthesise a 'sample' column to demonstrate the split-and-merge path.
@@ -226,7 +200,7 @@
 create_NICHESObject <- function(count.mtx,
                                 meta.data,
                                 LRM.db,
-                                mode             = c("spatial", "sampled"),
+                                mode             = c("spatial", "nonspatial"),
                                 species          = "human",
                                 sample.col       = NULL,
                                 cell.type.col    = NULL,
@@ -236,15 +210,11 @@ create_NICHESObject <- function(count.mtx,
                                 rad              = NULL,
                                 seed             = 42L,
                                 max.cells        = NULL,
-                                smooth           = FALSE,
-                                smooth.k         = 9L,
-                                n.pcs            = 30L,
                                 method           = c("product", "minimum"),
                                 normalize.method = c("prop", "none"),
                                 gene.meta        = NULL,
                                 n.cores          = 1L,
                                 verbose          = TRUE) {
-
   ## Validate sample.col before anything else ----
   if (!is.null(sample.col)) {
     if (!is.character(sample.col) || length(sample.col) != 1L)
@@ -259,7 +229,7 @@ create_NICHESObject <- function(count.mtx,
 
   ## BRANCH: sample.col provided -> split, compute per sample, merge ----
   if (!is.null(sample.col)) {
-    return(.create_NICHESObject_by_sample(
+    obj <- .create_NICHESObject_by_sample(
       count.mtx        = count.mtx,
       meta.data        = meta.data,
       LRM.db           = LRM.db,
@@ -273,38 +243,47 @@ create_NICHESObject <- function(count.mtx,
       rad              = rad,
       seed             = seed,
       max.cells        = max.cells,
-      smooth           = smooth,
-      smooth.k         = smooth.k,
-      n.pcs            = n.pcs,
       method           = method,
       normalize.method = normalize.method,
       gene.meta        = gene.meta,
       n.cores          = n.cores,
       verbose          = verbose
-    ))
+    )
+  } else {
+    ## BRANCH: no sample.col -> original single-pass logic ----
+    obj <- .create_NICHESObject_single(
+      count.mtx        = count.mtx,
+      meta.data        = meta.data,
+      LRM.db           = LRM.db,
+      mode             = mode,
+      species          = species,
+      cell.type.col    = cell.type.col,
+      ligand.col       = ligand.col,
+      receptor.col     = receptor.col,
+      k                = k,
+      rad              = rad,
+      seed             = seed,
+      max.cells        = max.cells,
+      method           = method,
+      normalize.method = normalize.method,
+      gene.meta        = gene.meta,
+      n.cores          = n.cores,
+      verbose          = verbose
+    )
   }
-
-  ## BRANCH: no sample.col -> original single-pass logic ----
-  .create_NICHESObject_single(
-    count.mtx        = count.mtx,
-    meta.data        = meta.data,
-    LRM.db           = LRM.db,
-    mode             = mode,
-    species          = species,
-    cell.type.col    = cell.type.col,
-    ligand.col       = ligand.col,
-    receptor.col     = receptor.col,
-    k                = k,
-    rad              = rad,
-    seed             = seed,
-    max.cells        = max.cells,
-    smooth           = smooth,
-    smooth.k         = smooth.k,
-    n.pcs            = n.pcs,
-    method           = method,
-    normalize.method = normalize.method,
-    gene.meta        = gene.meta,
+  
+  ## Neighborhood extraction ----
+  # Always uses "both_in_neighborhood" with remove.autocrine = FALSE.
+  # These are fixed by design -- use add_neighborhoods() directly to
+  # experiment with other parameter combinations.
+  obj <- add_neighborhoods(
+    niches.obj       = obj,
+    edge.filter.mode = "both_in_neighborhood",
+    remove.autocrine = FALSE,
+    overwrite        = FALSE,
     n.cores          = n.cores,
     verbose          = verbose
   )
+  
+  obj
 }
