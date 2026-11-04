@@ -79,7 +79,6 @@ functions in NICHESv2 handle complexes automatically.
 
 \examples{
 # ConnectomeDB2025 is the default -- no db argument needed.
-\donttest{
 lrm.human <- load_LRM_database(species = "human")
 head(lrm.human)
 
@@ -96,7 +95,6 @@ my.db <- data.frame(
 lrm.user <- load_LRM_database(my.db,
                               ligand.col   = "Ligand",
                               receptor.col = "Receptor")
-}
 
 # OmniPath needs internet access, so this runs in interactive sessions only.
 if (interactive()) {

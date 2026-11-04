@@ -121,7 +121,6 @@ errors midway.
 }
 
 \examples{
-\donttest{
 data(NICHESv2_inputs)
 
 # Build a spatial kNN edge list (coord must have row names = barcodes)
@@ -150,7 +149,6 @@ head(result$lr.meta)         # one row per valid LRM pair
 # Spatial edge lists carry coordinates -- they propagate to $edges
 setdiff(c("x.from", "y.from", "x.to", "y.to"), colnames(result$edges))
 # character(0) -- all four coordinate columns are present
-}
 
 }
 \seealso{

@@ -38,7 +38,6 @@
 #'   Returned invisibly when \code{show.plot = TRUE}.
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_inputs)
 #'
 #' # Build a coord data.frame from the example metadata
@@ -53,7 +52,6 @@
 #'   show.plot = FALSE
 #' )
 #' head(radius.curve)
-#' }
 #'
 #' @export
 Explore_Radius_Neighborhood <- function(

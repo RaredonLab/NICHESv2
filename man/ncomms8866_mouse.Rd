@@ -29,11 +29,9 @@ Raredon et al. (2019). This is the table loaded when
 \code{load_LRM_database("fantom5", species = "mouse")} is called.
 }
 \examples{
-\donttest{
 db <- load_LRM_database("fantom5", species = "mouse")
 head(db)
 nrow(db)
-}
 }
 \seealso{
 \code{\link{load_LRM_database}} for the recommended user

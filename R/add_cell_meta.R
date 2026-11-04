@@ -45,7 +45,6 @@
 #'   \code{\link{aggregate_NICHESObject}} to recompute stale aggregations.
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_example)
 #'
 #' # Build a complete replacement metadata table
@@ -64,7 +63,6 @@
 #' # New column propagates to edges
 #' head(obj.updated$edge.meta[, c("SendingCell", "ReceivingCell",
 #'                                "Joint.region")])
-#' }
 #'
 #' @export
 #' @import data.table

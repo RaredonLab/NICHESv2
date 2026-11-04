@@ -105,12 +105,10 @@
 #'   \code{\link{aggregate_NICHESObject}}
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_example)
 #'
 #' obj <- add_neighborhood_edge_agg(NICHESv2_example, n.cores = 1L)
 #' head(obj$aggregations$neighborhood.edge.agg)
-#' }
 #'
 #' @export
 add_neighborhood_edge_agg <- function(

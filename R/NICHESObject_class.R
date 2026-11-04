@@ -126,7 +126,6 @@ is_NICHESObject <- function(x) inherits(x, "NICHESObject")
 #'   \code{\link{dim.NICHESObject}}, \code{\link{is_NICHESObject}}.
 #'
 #' @examples
-#' \donttest{
 #' # Build a tiny NICHESObject for demonstration
 #' set.seed(1L)
 #' count.mtx <- Matrix::sparseMatrix(
@@ -152,7 +151,6 @@ is_NICHESObject <- function(x) inherits(x, "NICHESObject")
 #'
 #' print(obj)
 #' obj            # implicit print
-#' }
 #'
 #' @export
 print.NICHESObject <- function(x, ...) {
@@ -247,7 +245,6 @@ print.NICHESObject <- function(x, ...) {
 #' @seealso \code{\link{print.NICHESObject}}, \code{\link{dim.NICHESObject}}.
 #'
 #' @examples
-#' \donttest{
 #' set.seed(1L)
 #' count.mtx <- Matrix::sparseMatrix(
 #'   i = sample(6L, 30L, replace = TRUE),
@@ -272,7 +269,6 @@ print.NICHESObject <- function(x, ...) {
 #' )
 #'
 #' summary(obj)
-#' }
 #'
 #' @export
 summary.NICHESObject <- function(object, ...) {
@@ -361,7 +357,6 @@ summary.NICHESObject <- function(object, ...) {
 #'   \code{\link{summary.NICHESObject}} for a fuller breakdown.
 #'
 #' @examples
-#' \donttest{
 #' set.seed(1L)
 #' count.mtx <- Matrix::sparseMatrix(
 #'   i = sample(6L, 30L, replace = TRUE),
@@ -385,7 +380,6 @@ summary.NICHESObject <- function(object, ...) {
 #' )
 #'
 #' dim(obj)
-#' }
 #'
 #' @export
 dim.NICHESObject <- function(x) {
@@ -414,7 +408,6 @@ dim.NICHESObject <- function(x) {
 #'   counts together.
 #'
 #' @examples
-#' \donttest{
 #' set.seed(1L)
 #' count.mtx <- Matrix::sparseMatrix(
 #'   i = sample(6L, 30L, replace = TRUE),
@@ -438,7 +431,6 @@ dim.NICHESObject <- function(x) {
 #' )
 #'
 #' length(obj)   # 8
-#' }
 #'
 #' @export
 length.NICHESObject <- function(x) length(x$cell.list)
@@ -489,7 +481,6 @@ length.NICHESObject <- function(x) length(x$cell.list)
 #' @seealso \code{\link{is_NICHESObject}} to validate the result.
 #'
 #' @examples
-#' \donttest{
 #' set.seed(1L)
 #' count.mtx <- Matrix::sparseMatrix(
 #'   i = sample(6L, 30L, replace = TRUE),
@@ -515,7 +506,6 @@ length.NICHESObject <- function(x) length(x$cell.list)
 #' # Subset to the first four cells; only fully-internal edges are kept
 #' sub <- obj[paste0("Cell", 1:4)]
 #' dim(sub)
-#' }
 #'
 #' @export
 `[.NICHESObject` <- function(x, i, ...) {

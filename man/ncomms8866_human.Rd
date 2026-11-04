@@ -28,11 +28,9 @@ al., 2015), filtered and formatted for direct use by
 \code{load_LRM_database("fantom5", species = "human")} is called.
 }
 \examples{
-\donttest{
 db <- load_LRM_database("fantom5", species = "human")
 head(db)
 nrow(db)
-}
 }
 \seealso{
 \code{\link{load_LRM_database}} for the recommended user

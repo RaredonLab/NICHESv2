@@ -20,7 +20,6 @@ Provided so that \code{dim(obj)} works on a \code{NICHESObject} the same
 way it does on a matrix.
 }
 \examples{
-\donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -44,7 +43,6 @@ obj <- create_NICHESObject(
 )
 
 dim(obj)
-}
 
 }
 \seealso{

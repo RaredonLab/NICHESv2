@@ -29,7 +29,6 @@
 #'   set on the object.
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_example)
 #'
 #' # Default neighborhood: edges where BOTH endpoints lie in the same
@@ -43,7 +42,6 @@
 #' first.cell <- names(obj.nb$neighborhood.cell.list)[1]
 #' obj.nb$neighborhood.cell.list[[first.cell]]
 #' obj.nb$neighborhood.edge.list[[first.cell]]
-#' }
 #'
 #' @export
 add_neighborhoods <- function(niches.obj,

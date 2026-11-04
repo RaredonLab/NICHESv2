@@ -164,7 +164,6 @@ uses \code{n.cores} for parallelism, so socket clusters are never nested.
 }
 
 \examples{
-\donttest{
 data(NICHESv2_inputs)
 
 # ---- Basic spatial mode (kNN edges) ----
@@ -215,7 +214,6 @@ obj.split <- create_NICHESObject(
   verbose      = FALSE
 )
 attr(obj.split, "sample.col")   # "sample"
-}
 
 }
 \seealso{

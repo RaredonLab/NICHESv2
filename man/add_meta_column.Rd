@@ -50,7 +50,6 @@ If \code{col.name} already exists in \code{$cell.meta}, a message is
 emitted and the column is overwritten.
 }
 \examples{
-\donttest{
 data(NICHESv2_example)
 
 # Add a new numeric column
@@ -72,7 +71,6 @@ new.types <- setNames(
 obj.updated <- add_meta_column(NICHESv2_example,
                                col.name   = "celltype",
                                col.values = new.types)
-}
 
 }
 \seealso{

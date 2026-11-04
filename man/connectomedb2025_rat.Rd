@@ -23,11 +23,9 @@ within the package. This is the table loaded when
 \code{load_LRM_database("connectomedb2025", species = "rat")} is called.
 }
 \examples{
-\donttest{
 db <- load_LRM_database("connectomedb2025", species = "rat")
 head(db)
 nrow(db)
-}
 }
 \seealso{
 \code{\link{load_LRM_database}} for the recommended user
