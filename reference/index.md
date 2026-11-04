@@ -82,6 +82,8 @@
 
 ## Example data
 
+- [`download_NICHESv2_data()`](https://raredonlab.github.io/NICHESv2/reference/download_NICHESv2_data.md)
+  : Download a Public Tutorial Dataset
 - [`NICHESv2_inputs`](https://raredonlab.github.io/NICHESv2/reference/NICHESv2_inputs.md)
   : Example NICHESv2 inputs (raw triple)
 - [`NICHESv2_example`](https://raredonlab.github.io/NICHESv2/reference/NICHESv2_example.md)

@@ -10,7 +10,7 @@ reproduce the paper’s figures, which used a separate dataset.
 
 ``` r
 
-install.packages(c("remotes", "SeuratObject", "arrow"))
+install.packages(c("remotes", "arrow"))
 remotes::install_github("RaredonLab/NICHESv2", ref = "main")
 ```
 
@@ -37,17 +37,17 @@ You should see 80 cells, 50 genes, 354 edges and 15 LRMs.
 
 ## 3. Get the test data
 
-Both datasets come from
-[SeuratData](https://github.com/satijalab/seurat-data). They download
-once, and together take about 560 MB. SeuratData also installs the
-Seurat package, so this step can take a while. NICHESv2 itself doesn’t
-need Seurat.
+Both datasets are attached to a
+[release](https://github.com/RaredonLab/NICHESv2/releases/tag/data-v1)
+of the NICHESv2 repository, and
+[`download_NICHESv2_data()`](https://raredonlab.github.io/NICHESv2/reference/download_NICHESv2_data.md)
+fetches them. Each tutorial calls it for you. The downloads are about 14
+MB and 11 MB, happen once, and need no other package. To fetch both now:
 
 ``` r
 
-remotes::install_github("satijalab/seurat-data")
-SeuratData::InstallData("stxBrain")
-SeuratData::InstallData("ifnb")
+invisible(download_NICHESv2_data("stxBrain"))
+invisible(download_NICHESv2_data("ifnb"))
 ```
 
 ## 4. Run the tutorials
@@ -73,6 +73,10 @@ non-spatial tutorial stores 605,973.
 
 ## 5. Explore further
 
+- [Starting from a Seurat
+  object](https://raredonlab.github.io/NICHESv2/articles/seurat-objects.md)
+  shows how the tutorial inputs were made from Seurat objects. It needs
+  SeuratData and Seurat.
 - [Input
   formats](https://raredonlab.github.io/NICHESv2/articles/input-formats.md)
   shows how to use your own data.
@@ -88,8 +92,9 @@ non-spatial tutorial stores 605,973.
 
 ## If something goes wrong
 
-- **A download fails:** the data are served by the Satija Lab. Try again
-  later.
+- **A download fails:** check your internet connection and try again.
+  The files are listed on the [release
+  page](https://github.com/RaredonLab/NICHESv2/releases/tag/data-v1).
 - **A step runs out of memory:** close other programs. The non-spatial
   tutorial needs about 4 GB.
 - **A step feels slow:** raise `n.cores` if your computer has more

@@ -29,6 +29,9 @@ First public release.
   doesn’t need Python.
 - [`export_to_TissuePlex()`](https://raredonlab.github.io/NICHESv2/reference/export_to_TissuePlex.md)
   writes edges to a Parquet file for interactive viewing.
+- [`download_NICHESv2_data()`](https://raredonlab.github.io/NICHESv2/reference/download_NICHESv2_data.md)
+  downloads the two public datasets used in the website tutorials: a 10x
+  Visium mouse brain section and interferon-beta stimulated PBMCs.
 
 ### Changes for users of the 0.0.9000 development version
 

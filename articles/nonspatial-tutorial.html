@@ -36,6 +36,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
 <li><a class="dropdown-item" href="../articles/spatial-tutorial.html">Spatial: mouse brain</a></li>
     <li><a class="dropdown-item" href="../articles/nonspatial-tutorial.html">Non-spatial: stimulated PBMCs</a></li>
+    <li><a class="dropdown-item" href="../articles/seurat-objects.html">Starting from a Seurat object</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
@@ -90,36 +91,16 @@ and needs about 4 GB of memory.</p>
 <div class="section level2">
 <h2 id="get-the-data">Get the data<a class="anchor" aria-label="anchor" href="#get-the-data"></a>
 </h2>
-<p>The dataset comes from <a href="https://github.com/satijalab/seurat-data" class="external-link">SeuratData</a>, which
-isn’t on CRAN. Run this once; the download is about 413 MB. SeuratData
-also installs the Seurat package, so the first install can take a
-while.</p>
+<p><code><a href="../reference/download_NICHESv2_data.html">download_NICHESv2_data()</a></code> fetches the dataset from a
+NICHESv2 release on GitHub, so you don’t need any other package. The
+download is about 11 MB and happens once; later calls read the saved
+copy.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"remotes"</span>, <span class="st">"SeuratObject"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"satijalab/seurat-data"</span><span class="op">)</span></span>
-<span><span class="fu">SeuratData</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.org/seurat/reference/InstallData.html" class="external-link">InstallData</a></span><span class="op">(</span><span class="st">"ifnb"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://raredonlab.github.io/NICHESv2/">NICHESv2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.github.io/seurat-object/" class="external-link">SeuratObject</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://www.satijalab.org/seurat" class="external-link">SeuratData</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"ifnb"</span><span class="op">)</span></span></code></pre></div>
-<p>SeuratData objects keep the Seurat version they were saved with.
-<code><a href="../reference/extract_NICHESInputs_Seurat.html">extract_NICHESInputs_Seurat()</a></code> reads both V4 and V5 objects,
-so you don’t need to update them first.</p>
-</div>
-<div class="section level2">
-<h2 id="extract-the-inputs">Extract the inputs<a class="anchor" aria-label="anchor" href="#extract-the-inputs"></a>
-</h2>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_NICHESInputs_Seurat.html">extract_NICHESInputs_Seurat</a></span><span class="op">(</span></span>
-<span>  seurat.obj <span class="op">=</span> <span class="va">ifnb</span>,</span>
-<span>  assay      <span class="op">=</span> <span class="st">"RNA"</span>,</span>
-<span>  layer      <span class="op">=</span> <span class="st">"counts"</span>,</span>
-<span>  verbose    <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
+<span><span class="va">inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/download_NICHESv2_data.html">download_NICHESv2_data</a></span><span class="op">(</span><span class="st">"ifnb"</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">inputs</span><span class="op">$</span><span class="va">count.mtx</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 14053 13999</span></span>
 <span></span>
@@ -127,8 +108,12 @@ so you don’t need to update them first.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; CTRL STIM </span></span>
 <span><span class="co">#&gt; 6548 7451</span></span></code></pre></div>
-<p>Two metadata columns matter here: <code>stim</code> holds the
-condition, and <code>seurat_annotations</code> holds 13 cell types.</p>
+<p><code>inputs</code> holds the raw counts as a sparse genes x cells
+matrix, and the cell metadata. Two metadata columns matter here:
+<code>stim</code> holds the condition, and
+<code>seurat_annotations</code> holds 13 cell types. To prepare the same
+inputs from a Seurat object, see <a href="seurat-objects.html">Starting
+from a Seurat object</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="build-the-nichesobject">Build the NICHESObject<a class="anchor" aria-label="anchor" href="#build-the-nichesobject"></a>
@@ -139,7 +124,7 @@ condition, so a <code>CTRL</code> cell is never paired with a
 donors or conditions. <code>cell.type.col</code> is required in this
 mode, and the sampling is repeatable through <code>seed</code>, which
 defaults to 42.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/create_NICHESObject.html">create_NICHESObject</a></span><span class="op">(</span></span>
 <span>  count.mtx     <span class="op">=</span> <span class="va">inputs</span><span class="op">$</span><span class="va">count.mtx</span>,</span>
 <span>  meta.data     <span class="op">=</span> <span class="va">inputs</span><span class="op">$</span><span class="va">meta.data</span>,</span>
@@ -156,7 +141,7 @@ defaults to 42.</p>
 <span><span class="co">#&gt; cells genes edges  LRMs </span></span>
 <span><span class="co">#&gt; 13999 14053 87957  1047</span></span></code></pre></div>
 <p>Every edge stays within one condition:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">obj</span><span class="op">$</span><span class="va">edge.meta</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>edges <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">Sending.stim</span>, <span class="va">Receiving.stim</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
 <table class="table">
 <thead><tr class="header">
@@ -185,19 +170,19 @@ defaults to 42.</p>
 cells on every edge, so it joins directly onto the scores. The two
 conditions have different numbers of edges, so this divides each total
 by that number.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">edge.info</span> <span class="op">&lt;-</span> <span class="va">obj</span><span class="op">$</span><span class="va">edge.meta</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span></span>
 <span>  <span class="va">edge</span>,</span>
 <span>  stim     <span class="op">=</span> <span class="va">Sending.stim</span>,</span>
 <span>  sender   <span class="op">=</span> <span class="va">Sending.seurat_annotations</span>,</span>
 <span>  receiver <span class="op">=</span> <span class="va">Receiving.seurat_annotations</span></span>
 <span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://edzer.github.io/sp/reference/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">obj</span><span class="op">$</span><span class="va">edge.data</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">edge</span>, <span class="va">LRM</span>, <span class="va">score</span><span class="op">)</span><span class="op">]</span>, <span class="va">edge.info</span>, by <span class="op">=</span> <span class="st">"edge"</span><span class="op">)</span></span>
+<span><span class="va">scores</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">obj</span><span class="op">$</span><span class="va">edge.data</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">edge</span>, <span class="va">LRM</span>, <span class="va">score</span><span class="op">)</span><span class="op">]</span>, <span class="va">edge.info</span>, by <span class="op">=</span> <span class="st">"edge"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">n.edges</span> <span class="op">&lt;-</span> <span class="va">edge.info</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>n.edges <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">stim</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">by.condition</span> <span class="op">&lt;-</span> <span class="va">scores</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">score</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">LRM</span>, <span class="va">stim</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">by.condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://edzer.github.io/sp/reference/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">by.condition</span>, <span class="va">n.edges</span>, by <span class="op">=</span> <span class="st">"stim"</span><span class="op">)</span></span>
+<span><span class="va">by.condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">by.condition</span>, <span class="va">n.edges</span>, by <span class="op">=</span> <span class="st">"stim"</span><span class="op">)</span></span>
 <span><span class="va">by.condition</span><span class="op">[</span>, <span class="va">mean.per.edge</span> <span class="op">:=</span> <span class="va">total</span> <span class="op">/</span> <span class="va">n.edges</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">wide</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/dcast.data.table.html" class="external-link">dcast</a></span><span class="op">(</span><span class="va">by.condition</span>, <span class="va">LRM</span> <span class="op">~</span> <span class="va">stim</span>, value.var <span class="op">=</span> <span class="st">"mean.per.edge"</span>, fill <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
@@ -254,11 +239,11 @@ sequencing depth.</p>
 <p>CXCL10 is a classic interferon-induced chemokine, and CXCR3 is its
 receptor. This finds the cell-type pairs that carry the strongest
 <code>CXCL10|CXCR3</code> signal after stimulation.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cxcl10</span> <span class="op">&lt;-</span> <span class="va">scores</span><span class="op">[</span><span class="va">LRM</span> <span class="op">==</span> <span class="st">"CXCL10|CXCR3"</span> <span class="op">&amp;</span> <span class="va">stim</span> <span class="op">==</span> <span class="st">"STIM"</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">pair.edges</span> <span class="op">&lt;-</span> <span class="va">edge.info</span><span class="op">[</span><span class="va">stim</span> <span class="op">==</span> <span class="st">"STIM"</span>, <span class="fu">.</span><span class="op">(</span>n.edges <span class="op">=</span> <span class="va">.N</span><span class="op">)</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">sender</span>, <span class="va">receiver</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">by.pair</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://edzer.github.io/sp/reference/merge.html" class="external-link">merge</a></span><span class="op">(</span></span>
+<span><span class="va">by.pair</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span></span>
 <span>  <span class="va">cxcl10</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">score</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">sender</span>, <span class="va">receiver</span><span class="op">)</span><span class="op">]</span>,</span>
 <span>  <span class="va">pair.edges</span>,</span>
 <span>  by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sender"</span>, <span class="st">"receiver"</span><span class="op">)</span></span>
@@ -299,7 +284,12 @@ to spatial data.</li>
 <p>The data are from Kang HM, Subramaniam M, Targ S, et al. Multiplexed
 droplet single-cell RNA-sequencing using natural genetic variation.
 <em>Nat Biotechnol</em>. 2018;36(1):89-94 (GEO: GSE96583). Cell-type
-labels are from the Satija Lab.</p>
+labels are from the Satija Lab. NICHESv2 hosts a copy taken from the
+<code>ifnb</code> object in the SeuratData package
+<code>ifnb.SeuratData</code>, under its <a href="https://creativecommons.org/licenses/by/4.0/" class="external-link">CC BY 4.0</a>
+license. The copy keeps the raw counts and cell metadata unchanged. The
+<code>PROVENANCE.md</code> file that comes with the download gives the
+details.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

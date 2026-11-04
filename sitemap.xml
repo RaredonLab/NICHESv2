@@ -8,6 +8,7 @@
 <url><loc>https://raredonlab.github.io/NICHESv2/articles/input-formats.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/articles/niches-object.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/articles/nonspatial-tutorial.html</loc></url>
+<url><loc>https://raredonlab.github.io/NICHESv2/articles/seurat-objects.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/articles/spatial-tutorial.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/articles/tissueplex-export.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/authors.html</loc></url>
@@ -34,6 +35,7 @@
 <url><loc>https://raredonlab.github.io/NICHESv2/reference/create_Edgelist_Spatial.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/reference/create_NICHESObject.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/reference/dim.NICHESObject.html</loc></url>
+<url><loc>https://raredonlab.github.io/NICHESv2/reference/download_NICHESv2_data.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/reference/export_to_TissuePlex.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/reference/extract_NICHESInputs_AnnData.html</loc></url>
 <url><loc>https://raredonlab.github.io/NICHESv2/reference/extract_NICHESInputs_Seurat.html</loc></url>

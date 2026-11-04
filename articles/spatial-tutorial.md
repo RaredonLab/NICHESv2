@@ -9,59 +9,27 @@ With `n.cores = 2`, the slowest step takes about 4 minutes.
 
 ## Get the data
 
-The dataset comes from
-[SeuratData](https://github.com/satijalab/seurat-data), which isn’t on
-CRAN. Run this once; the download is about 143 MB. SeuratData also
-installs the Seurat package, so the first install can take a while.
-
-``` r
-
-install.packages(c("remotes", "SeuratObject"))
-remotes::install_github("satijalab/seurat-data")
-SeuratData::InstallData("stxBrain")
-```
-
-Then load it. `stxBrain` holds four sections, and we use `anterior1`.
+[`download_NICHESv2_data()`](https://raredonlab.github.io/NICHESv2/reference/download_NICHESv2_data.md)
+fetches the dataset from a NICHESv2 release on GitHub, so you don’t need
+any other package. The download is about 14 MB and happens once; later
+calls read the saved copy.
 
 ``` r
 
 library(NICHESv2)
 library(data.table)
 library(ggplot2)
-library(SeuratObject)
-library(SeuratData)
 
-data("anterior1")
-```
-
-SeuratData objects keep the Seurat version they were saved with.
-[`extract_NICHESInputs_Seurat()`](https://raredonlab.github.io/NICHESv2/reference/extract_NICHESInputs_Seurat.md)
-reads both V4 and V5 objects, so you don’t need to update them first.
-
-## Extract the inputs
-
-``` r
-
-inputs <- extract_NICHESInputs_Seurat(
-  seurat.obj = anterior1,
-  assay      = "Spatial",
-  layer      = "counts",
-  verbose    = FALSE
-)
+inputs <- download_NICHESv2_data("stxBrain", verbose = FALSE)
 dim(inputs$count.mtx)
 #> [1] 31053  2696
 ```
 
-Spatial coordinates sit in the image part of the Seurat object, so add
-them to the metadata as `x` and `y`. Matching by barcode keeps every
-spot aligned.
-
-``` r
-
-coords <- GetTissueCoordinates(anterior1)
-inputs$meta.data$x <- coords[rownames(inputs$meta.data), "x"]
-inputs$meta.data$y <- coords[rownames(inputs$meta.data), "y"]
-```
+`inputs` holds the raw counts as a sparse genes x spots matrix, and the
+spot metadata, which already has each spot’s coordinates in `x` and `y`.
+To prepare the same inputs from a Seurat object, see [Starting from a
+Seurat
+object](https://raredonlab.github.io/NICHESv2/articles/seurat-objects.md).
 
 ## Choose a neighborhood
 
@@ -270,4 +238,8 @@ shows what to do with that file.
 
 The data are from 10x Genomics, “Mouse Brain Serial Section 1
 (Sagittal-Anterior)”, Space Ranger 1.0.0, licensed under [CC BY
-4.0](https://creativecommons.org/licenses/by/4.0/).
+4.0](https://creativecommons.org/licenses/by/4.0/). NICHESv2 hosts a
+copy taken from the `anterior1` object in the SeuratData package
+`stxBrain.SeuratData`. The copy keeps the raw counts and spot metadata
+unchanged, and adds the spot coordinates. The `PROVENANCE.md` file that
+comes with the download gives the details.

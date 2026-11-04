@@ -83,7 +83,7 @@ obj.nb <- add_neighborhoods(NICHESv2_example, overwrite = TRUE)
 #>   Edge lookup indices built
 #> Step 4/4: Extracting neighborhoods [mode: both_in_neighborhood]...
 #>   Running in serial mode...
-#>   Complete: 0.0 seconds (44384 cells/sec)
+#>   Complete: 0.0 seconds (43112 cells/sec)
 #>   Avg neighbors/cell: 4.4
 #>   Avg edges/cell: 17.1
 

@@ -11,6 +11,8 @@
   brain](https://raredonlab.github.io/NICHESv2/articles/spatial-tutorial.md):
 - [Non-spatial tutorial: stimulated
   PBMCs](https://raredonlab.github.io/NICHESv2/articles/nonspatial-tutorial.md):
+- [Starting from a Seurat
+  object](https://raredonlab.github.io/NICHESv2/articles/seurat-objects.md):
 
 ### Guides
 
