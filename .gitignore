@@ -55,3 +55,6 @@ docs
 # Local Claude Code settings and OmniPath download logs
 .claude/settings.local.json
 omnipathr-log/
+
+# Tutorial data built by data-raw/build_tutorial_data.R; uploaded to a GitHub release
+data-raw/tutorial-data/

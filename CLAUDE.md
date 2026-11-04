@@ -110,6 +110,7 @@ Custom data frames are also accepted; must have `ligand` and `receptor` columns 
 
 - `extract_NICHESInputs_Seurat()` — supports Seurat V4 and V5; detects assay class automatically; **spatial coordinates must be extracted manually** and added to the returned metadata before calling `create_NICHESObject()`
 - `extract_NICHESInputs_AnnData()` — reads `.h5ad` via `rhdf5` only; no Python required
+- `download_NICHESv2_data()` — downloads the two public tutorial datasets (`"stxBrain"`, `"ifnb"`) from the GitHub release `data-v1`, checks their MD5 sums and caches them in `tools::R_user_dir("NICHESv2", "cache")`. On a failed download or a wrong sum it returns `NULL` with a message instead of an error, as CRAN asks of internet resources. `data-raw/build_tutorial_data.R` builds the release files; rebuilding them changes the MD5 sums in `.niches_datasets()`. The `NICHESv2.data.url` option points the function at another folder, for tests and local site builds.
 
 ## Repository layout notes
 
@@ -119,7 +120,7 @@ Custom data frames are also accepted; must have `ligand` and `receptor` columns 
 - `data-raw/` — scripts that build the bundled data files; excluded from package build
 - `tests/testthat/` — one test file per source file; `helper-testutils.R` provides shared fixtures
 - `vignettes/` — one vignette, `NICHESv2.Rmd`, which runs on bundled data; `vignettes/articles/` holds the website pages and is excluded from the package build
-- `.github/workflows/` — `R-CMD-check.yaml` runs the checks; `pkgdown.yaml` builds the website and publishes it from `main`, removing this file first because pkgdown turns top-level Markdown files into pages
+- `.github/workflows/` — `R-CMD-check.yaml` runs the checks; `pkgdown.yaml` builds the website and publishes it from `main`, removing this file first because pkgdown turns top-level Markdown files into pages. Only the Seurat page uses SeuratData; its install steps may fail without stopping the build
 - `demo-scripts/` — standalone R scripts demonstrating real-dataset usage (not part of the package build)
 - `working-scripts-MSBR/` and `working-scripts-NW/` — exploratory and prototyping scripts; not part of the package
 - `package management/` — design documents

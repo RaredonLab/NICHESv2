@@ -1,0 +1,115 @@
+---
+title: "Starting from a Seurat object"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Starting from a Seurat object}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>", message = FALSE,
+  render = function(x, ...) {
+    if (data.table::is.data.table(x) && !data.table::shouldPrint(x)) return(invisible(""))
+    if (is.data.frame(x)) x <- knitr::kable(x, digits = 3, format.args = list(big.mark = ","))
+    knitr::knit_print(x, ...)
+  }
+)
+# The code runs only when SeuratData and both datasets are installed, so the
+# rest of the website still builds if they are unavailable.
+has.seuratdata <- requireNamespace("SeuratObject", quietly = TRUE) &&
+  requireNamespace("SeuratData", quietly = TRUE) &&
+  all(c("stxBrain.SeuratData", "ifnb.SeuratData") %in%
+        rownames(utils::installed.packages()))
+knitr::opts_chunk$set(eval = has.seuratdata)
+```
+
+```{r notice, echo = FALSE, results = "asis", eval = !has.seuratdata}
+cat("> **Note:** this copy of the page was built without SeuratData, so the code",
+    "below shows no output.\n")
+```
+
+Most single-cell data in R lives in Seurat objects. This page shows how
+`extract_NICHESInputs_Seurat()` turns two real Seurat objects into NICHESv2
+inputs. They are the same two datasets the tutorials use, and these are the steps
+that made the tutorial inputs.
+
+The objects come from [SeuratData](https://github.com/satijalab/seurat-data),
+which the Satija Lab maintains. The tutorials don't need it, because they
+download the finished inputs with `download_NICHESv2_data()`.
+
+## Install SeuratData
+
+SeuratData isn't on CRAN. Run this once; the downloads are about 143 MB for
+`stxBrain` and 413 MB for `ifnb`. SeuratData also installs the Seurat package, so
+the first install can take a while.
+
+```{r install, eval = FALSE}
+install.packages(c("remotes", "SeuratObject"))
+remotes::install_github("satijalab/seurat-data")
+SeuratData::InstallData(c("stxBrain", "ifnb"))
+```
+
+```{r load}
+library(NICHESv2)
+library(SeuratObject)
+library(SeuratData)
+```
+
+SeuratData objects keep the Seurat version they were saved with.
+`extract_NICHESInputs_Seurat()` reads both V4 and V5 objects, so you don't need
+to update them first. The spatial object below is V5 and the non-spatial one is
+V4.
+
+## A spatial object: Visium mouse brain
+
+`stxBrain` holds four sections, and the spatial tutorial uses `anterior1`.
+
+```{r spatial}
+data("anterior1")
+
+spatial <- extract_NICHESInputs_Seurat(
+  seurat.obj = anterior1,
+  assay      = "Spatial",
+  layer      = "counts",
+  verbose    = FALSE
+)
+dim(spatial$count.mtx)
+```
+
+Spatial coordinates sit in the image part of the Seurat object, so add them to
+the metadata as `x` and `y`. Matching by barcode keeps every spot aligned.
+
+```{r coords}
+coords <- GetTissueCoordinates(anterior1)
+spatial$meta.data$x <- coords[rownames(spatial$meta.data), "x"]
+spatial$meta.data$y <- coords[rownames(spatial$meta.data), "y"]
+head(spatial$meta.data[, c("x", "y")], 3)
+```
+
+## A non-spatial object: stimulated PBMCs
+
+```{r nonspatial}
+data("ifnb")
+
+nonspatial <- extract_NICHESInputs_Seurat(
+  seurat.obj = ifnb,
+  assay      = "RNA",
+  layer      = "counts",
+  verbose    = FALSE
+)
+dim(nonspatial$count.mtx)
+table(nonspatial$meta.data$stim)
+```
+
+No coordinates are needed here, because non-spatial mode pairs cells by sampling
+within cell types.
+
+## Next steps
+
+`spatial` and `nonspatial` hold the same inputs that `download_NICHESv2_data()`
+returns. Pass either to `create_NICHESObject()` and continue with the
+[spatial tutorial](spatial-tutorial.html) or the
+[non-spatial tutorial](nonspatial-tutorial.html). For other Seurat options, such
+as choosing a layer, see [Input formats](input-formats.html).
