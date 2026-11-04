@@ -143,7 +143,6 @@
 #'   \code{\link{aggregate_NICHESObject}} for downstream summarization.
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_inputs)
 #'
 #' # ---- Basic spatial mode (kNN edges) ----
@@ -194,7 +193,6 @@
 #'   verbose      = FALSE
 #' )
 #' attr(obj.split, "sample.col")   # "sample"
-#' }
 #'
 #' @export
 create_NICHESObject <- function(count.mtx,

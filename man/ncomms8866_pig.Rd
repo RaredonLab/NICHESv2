@@ -31,11 +31,9 @@ Note: pig is supported by ConnectomeDB2025 and FANTOM5; OmniPath does
 not provide pig ligand-receptor data.
 }
 \examples{
-\donttest{
 db <- load_LRM_database("fantom5", species = "pig")
 head(db)
 nrow(db)
-}
 }
 \seealso{
 \code{\link{load_LRM_database}} for the recommended user
