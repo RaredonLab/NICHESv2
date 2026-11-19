@@ -9,11 +9,13 @@ Authors@R: c(
     person("Micha Sam Brickman", "Raredon",
            role  = c("aut", "cph")))
 Description: Computes ligand-receptor (LR) signaling scores between pairs of
-    cells in spatial and non-spatial single-cell transcriptomics data. Results
-    are held in a memory-efficient, sparse long-format S3 class with per-cell
-    neighborhood aggregation for downstream analysis. Supports single-gene and
-    multi-gene complex ligands and receptors. Built-in loaders are provided for
-    the ConnectomeDB2025 (default), FANTOM5, and OmniPath LR databases.
+    cells in spatial and non-spatial single-cell transcriptomics data, extending
+    the NICHES method of Raredon et al. (2023) <doi:10.1093/bioinformatics/btac775>.
+    Results are held in a memory-efficient, sparse long-format S3 class with
+    per-cell neighborhood aggregation for downstream analysis. Supports
+    single-gene and multi-gene complex ligands and receptors. Built-in loaders
+    are provided for the ConnectomeDB2025 (default), FANTOM5, and OmniPath LR
+    databases.
 License: AGPL-3
 URL: https://raredonlab.github.io/NICHESv2/,
     https://github.com/RaredonLab/NICHESv2
