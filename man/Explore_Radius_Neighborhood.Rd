@@ -64,7 +64,6 @@ distance lists, so the kd-tree is built only once regardless of how many
 radius steps are requested.
 }
 \examples{
-\donttest{
 data(NICHESv2_inputs)
 
 # Build a coord data.frame from the example metadata
@@ -79,6 +78,5 @@ radius.curve <- Explore_Radius_Neighborhood(
   show.plot = FALSE
 )
 head(radius.curve)
-}
 
 }

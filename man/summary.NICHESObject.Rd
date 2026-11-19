@@ -27,7 +27,6 @@ three neighborhood slots are populated, and segmentation status.
 Use \code{\link{print.NICHESObject}} for a shorter one-screen overview.
 }
 \examples{
-\donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -52,7 +51,6 @@ obj <- create_NICHESObject(
 )
 
 summary(obj)
-}
 
 }
 \seealso{

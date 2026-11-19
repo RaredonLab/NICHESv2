@@ -153,7 +153,6 @@
 #'   \code{\link{load_LRM_database}} for the LR-database loader.
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_inputs)
 #'
 #' # Build a spatial kNN edge list (coord must have row names = barcodes)
@@ -182,7 +181,6 @@
 #' # Spatial edge lists carry coordinates -- they propagate to $edges
 #' setdiff(c("x.from", "y.from", "x.to", "y.to"), colnames(result$edges))
 #' # character(0) -- all four coordinate columns are present
-#' }
 #'
 #' @export
 compute_CellToCell <- function(count.mtx,

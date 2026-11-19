@@ -18,7 +18,6 @@ Returns the number of cells in a \code{NICHESObject}, identical to
 the way most users expect for a per-cell collection.
 }
 \examples{
-\donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -42,7 +41,6 @@ obj <- create_NICHESObject(
 )
 
 length(obj)   # 8
-}
 
 }
 \seealso{

@@ -77,7 +77,6 @@ standard workflow.
 }
 
 \examples{
-\donttest{
 data(NICHESv2_example)
 
 # Edge aggregation only
@@ -90,7 +89,6 @@ obj <- aggregate_NICHESObject(
   cell.type.col = "celltype",
   n.cores       = 1L
 )
-}
 
 }
 \seealso{

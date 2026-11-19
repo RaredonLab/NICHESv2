@@ -53,7 +53,6 @@ aggregation tables.
 }
 
 \examples{
-\donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -79,7 +78,6 @@ obj <- create_NICHESObject(
 # Subset to the first four cells; only fully-internal edges are kept
 sub <- obj[paste0("Cell", 1:4)]
 dim(sub)
-}
 
 }
 \seealso{

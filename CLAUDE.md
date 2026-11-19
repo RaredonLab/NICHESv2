@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Package overview
 
-NICHESv2 is an R package for spatial cell-to-cell ligand-receptor communication analysis. It computes LR signaling scores between pairs of cells in spatial and non-spatial single-cell transcriptomics data and organizes results in a memory-efficient S3 object (`NICHESObject`). Version 1.0.0 is being prepared for CRAN, alongside the methods paper. `working-scripts-NW/v1_facts_sheet.md` holds the verified facts that all documents copy.
+NICHESv2 is an R package for spatial cell-to-cell ligand-receptor communication analysis. It computes LR signaling scores between pairs of cells in spatial and non-spatial single-cell transcriptomics data and organizes results in a memory-efficient S3 object (`NICHESObject`). Version 1.0.0 is being prepared for CRAN, alongside the methods paper. A facts sheet kept outside the repository holds the verified facts that all documents copy.
 
 ## Development commands
 
@@ -121,6 +121,3 @@ Custom data frames are also accepted; must have `ligand` and `receptor` columns 
 - `tests/testthat/` — one test file per source file; `helper-testutils.R` provides shared fixtures
 - `vignettes/` — one vignette, `NICHESv2.Rmd`, which runs on bundled data; `vignettes/articles/` holds the website pages and is excluded from the package build
 - `.github/workflows/` — `R-CMD-check.yaml` runs the checks; `pkgdown.yaml` builds the website and publishes it from `main`, removing this file first because pkgdown turns top-level Markdown files into pages. Only the Seurat page uses SeuratData; its install steps may fail without stopping the build
-- `demo-scripts/` — standalone R scripts demonstrating real-dataset usage (not part of the package build)
-- `working-scripts-MSBR/` and `working-scripts-NW/` — exploratory and prototyping scripts; not part of the package
-- `package management/` — design documents

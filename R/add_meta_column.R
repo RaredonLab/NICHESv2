@@ -47,7 +47,6 @@
 #'   \code{\link{aggregate_NICHESObject}} to recompute stale aggregations.
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_example)
 #'
 #' # Add a new numeric column
@@ -69,7 +68,6 @@
 #' obj.updated <- add_meta_column(NICHESv2_example,
 #'                                col.name   = "celltype",
 #'                                col.values = new.types)
-#' }
 #'
 #' @export
 #' @import data.table

@@ -22,7 +22,6 @@ segmentation status, and a slot legend. Use \code{\link{summary.NICHESObject}}
 for a longer breakdown including cell-type composition and signal density.
 }
 \examples{
-\donttest{
 # Build a tiny NICHESObject for demonstration
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
@@ -48,7 +47,6 @@ obj <- create_NICHESObject(
 
 print(obj)
 obj            # implicit print
-}
 
 }
 \seealso{

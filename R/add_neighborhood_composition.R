@@ -76,7 +76,6 @@
 #'   \code{\link{aggregate_NICHESObject}}
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_example)
 #'
 #' obj <- add_neighborhood_composition(
@@ -92,7 +91,6 @@
 #'   include.self  = FALSE,
 #'   normalize     = FALSE
 #' )
-#' }
 #'
 #' @export
 add_neighborhood_composition <- function(

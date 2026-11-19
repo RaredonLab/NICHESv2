@@ -74,7 +74,6 @@
 #'   \code{\link{add_neighborhood_composition}}
 #'
 #' @examples
-#' \donttest{
 #' data(NICHESv2_example)
 #'
 #' # Edge aggregation only
@@ -87,7 +86,6 @@
 #'   cell.type.col = "celltype",
 #'   n.cores       = 1L
 #' )
-#' }
 #'
 #' @export
 aggregate_NICHESObject <- function(

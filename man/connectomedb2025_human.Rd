@@ -25,11 +25,9 @@ and also when \code{load_LRM_database()} is called with no arguments
 (the package default).
 }
 \examples{
-\donttest{
 db <- load_LRM_database("connectomedb2025", species = "human")
 head(db)
 nrow(db)
-}
 }
 \seealso{
 \code{\link{load_LRM_database}} for the recommended user

@@ -29,11 +29,9 @@ the source table from which the four species-specific variants
 \code{\link{ncomms8866_rat}}, \code{\link{ncomms8866_pig}}) are derived.
 }
 \examples{
-\donttest{
 db <- load_LRM_database("fantom5", species = "human")
 head(db)
 nrow(db)
-}
 }
 \seealso{
 \code{\link{load_LRM_database}} for the recommended user

@@ -40,7 +40,6 @@ Extra rows (cells not in \code{$cell.list}) are silently dropped with a
 message when \code{verbose = TRUE}.
 }
 \examples{
-\donttest{
 data(NICHESv2_example)
 
 # Build a complete replacement metadata table
@@ -59,7 +58,6 @@ obj.updated <- add_cell_meta(NICHESv2_example, new.meta)
 # New column propagates to edges
 head(obj.updated$edge.meta[, c("SendingCell", "ReceivingCell",
                                "Joint.region")])
-}
 
 }
 \seealso{

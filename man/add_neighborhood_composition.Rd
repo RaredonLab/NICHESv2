@@ -77,7 +77,6 @@ regardless of how many directed edges connect them.
 }
 
 \examples{
-\donttest{
 data(NICHESv2_example)
 
 obj <- add_neighborhood_composition(
@@ -93,7 +92,6 @@ obj2 <- add_neighborhood_composition(
   include.self  = FALSE,
   normalize     = FALSE
 )
-}
 
 }
 \seealso{

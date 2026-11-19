@@ -56,7 +56,6 @@ instead of raw counts.
 }
 
 \examples{
-\donttest{
 data(NICHESv2_inputs)
 data(NICHESv2_example)
 
@@ -64,7 +63,6 @@ data(NICHESv2_example)
 # NICHESv2_example. Attach it as the provenance count column.
 obj <- add_cell_rawcounts(NICHESv2_example, NICHESv2_inputs$count.mtx)
 head(obj$cell.data[, c("cell", "gene", "score", "score.norm", "count")])
-}
 
 }
 \seealso{

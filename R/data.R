@@ -164,11 +164,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("fantom5", species = "human")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -203,11 +201,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("fantom5", species = "human")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -243,11 +239,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("fantom5", species = "mouse")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -283,11 +277,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("fantom5", species = "rat")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -325,11 +317,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("fantom5", species = "pig")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -375,11 +365,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("connectomedb2025", species = "human")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -409,11 +397,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("connectomedb2025", species = "mouse")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -443,11 +429,9 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("connectomedb2025", species = "rat")
 #' head(db)
 #' nrow(db)
-#' }
 NULL
 
 
@@ -479,9 +463,7 @@ NULL
 #' @keywords datasets
 #'
 #' @examples
-#' \donttest{
 #' db <- load_LRM_database("connectomedb2025", species = "pig")
 #' head(db)
 #' nrow(db)
-#' }
 NULL

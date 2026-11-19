@@ -51,7 +51,6 @@ recompute; any stale neighborhood-dependent aggregation slots
 \code{$aggregations$neighborhood.composition}) are cleared automatically.
 }
 \examples{
-\donttest{
 data(NICHESv2_example)
 
 # Default neighborhood: edges where BOTH endpoints lie in the same
@@ -65,6 +64,5 @@ head(obj.nb$neighborhood.meta)          # n.neighbors and n.edges per cell
 first.cell <- names(obj.nb$neighborhood.cell.list)[1]
 obj.nb$neighborhood.cell.list[[first.cell]]
 obj.nb$neighborhood.edge.list[[first.cell]]
-}
 
 }
