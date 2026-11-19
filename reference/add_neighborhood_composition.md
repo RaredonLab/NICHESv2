@@ -95,7 +95,6 @@ counted exactly once regardless of how many directed edges connect them.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_example)
 
 obj <- add_neighborhood_composition(
@@ -132,5 +131,4 @@ obj2 <- add_neighborhood_composition(
 )
 #> [add_neighborhood_composition] Computing composition across 80 cells | 3 cell types ...
 #> [add_neighborhood_composition] Done. 80 cells | 3 cell types | columns: count.
-# }
 ```

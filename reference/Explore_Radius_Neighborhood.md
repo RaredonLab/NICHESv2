@@ -96,7 +96,6 @@ regardless of how many radius steps are requested.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_inputs)
 
 # Build a coord data.frame from the example metadata
@@ -119,5 +118,4 @@ head(radius.curve)
 #> 4: 0.02850753          0.525    0.8711261                0
 #> 5: 0.03361737          0.675    0.9246963                0
 #> 6: 0.03872721          0.775    0.9933322                1
-# }
 ```

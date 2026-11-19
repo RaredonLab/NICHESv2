@@ -71,7 +71,6 @@ to recompute stale aggregations.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_example)
 
 # Add a new numeric column
@@ -103,5 +102,4 @@ obj.updated <- add_meta_column(NICHESv2_example,
                                col.name   = "celltype",
                                col.values = new.types)
 #> [add_meta_column] Column "celltype" already exists in $cell.meta and will be overwritten.
-# }
 ```

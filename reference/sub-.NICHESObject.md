@@ -71,7 +71,6 @@ to validate the result.
 ## Examples
 
 ``` r
-# \donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -102,5 +101,4 @@ sub <- obj[paste0("Cell", 1:4)]
 dim(sub)
 #> cells genes edges  LRMs 
 #>     4     6     6     2 
-# }
 ```

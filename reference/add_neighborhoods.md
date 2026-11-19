@@ -68,7 +68,6 @@ aggregation slots (`$aggregations$neighborhood.edge.agg` and
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_example)
 
 # Default neighborhood: edges where BOTH endpoints lie in the same
@@ -83,7 +82,7 @@ obj.nb <- add_neighborhoods(NICHESv2_example, overwrite = TRUE)
 #>   Edge lookup indices built
 #> Step 4/4: Extracting neighborhoods [mode: both_in_neighborhood]...
 #>   Running in serial mode...
-#>   Complete: 0.0 seconds (43112 cells/sec)
+#>   Complete: 0.0 seconds (68409 cells/sec)
 #>   Avg neighbors/cell: 4.4
 #>   Avg edges/cell: 17.1
 
@@ -113,5 +112,4 @@ obj.nb$neighborhood.edge.list[[first.cell]]
 #> [21] "Cell_4|Cell_10"  "Cell_4|Cell_14"  "Cell_4|Cell_25"  "Cell_4|Cell_4"  
 #> [25] "Cell_4|Cell_6"   "Cell_6|Cell_10"  "Cell_6|Cell_14"  "Cell_6|Cell_25" 
 #> [29] "Cell_6|Cell_4"   "Cell_6|Cell_6"  
-# }
 ```

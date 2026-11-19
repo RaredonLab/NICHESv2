@@ -33,7 +33,6 @@ for a fuller breakdown.
 ## Examples
 
 ``` r
-# \donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -62,5 +61,4 @@ obj <- create_NICHESObject(
 dim(obj)
 #> cells genes edges  LRMs 
 #>     8     6    26     2 
-# }
 ```

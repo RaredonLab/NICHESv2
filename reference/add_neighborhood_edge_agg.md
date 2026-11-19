@@ -132,7 +132,6 @@ Score columns (all three methods always produced, for each category):
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_example)
 
 obj <- add_neighborhood_edge_agg(NICHESv2_example, n.cores = 1L)
@@ -197,5 +196,4 @@ head(obj$aggregations$neighborhood.edge.agg)
 #> 4:               6.0                NA
 #> 5:              48.0                NA
 #> 6:              17.5                NA
-# }
 ```

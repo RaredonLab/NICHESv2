@@ -36,7 +36,6 @@ for the recommended user interface;
 ## Examples
 
 ``` r
-# \donttest{
 db <- load_LRM_database("connectomedb2025", species = "pig")
 #> [load_LRM_database] Loading ConnectomeDB2025 (pig) from bundled package data ...
 #> [load_LRM_database] ConnectomeDB2025 (pig): 3358 unique LR pairs loaded.
@@ -57,5 +56,4 @@ head(db)
 #> 6     cell membrane
 nrow(db)
 #> [1] 3358
-# }
 ```

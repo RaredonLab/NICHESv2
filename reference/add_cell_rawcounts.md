@@ -70,7 +70,6 @@ for obtaining a count matrix from Seurat or AnnData objects.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_inputs)
 data(NICHESv2_example)
 
@@ -87,5 +86,4 @@ head(obj$cell.data[, c("cell", "gene", "score", "score.norm", "count")])
 #> 4: Cell_1 Gene25     5 0.07575758     5
 #> 5: Cell_1 Gene33     6 0.09090909     6
 #> 6: Cell_1  Gene4     8 0.12121212     8
-# }
 ```

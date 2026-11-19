@@ -40,7 +40,6 @@ for the recommended user interface;
 ## Examples
 
 ``` r
-# \donttest{
 db <- load_LRM_database("fantom5", species = "rat")
 #> [load_LRM_database] Loading FANTOM5 (rat) from bundled package data ...
 #> [load_LRM_database] FANTOM5 (rat): 2557 unique LR pairs loaded.
@@ -54,5 +53,4 @@ head(db)
 #> 6 Adam10      Axl
 nrow(db)
 #> [1] 2557
-# }
 ```

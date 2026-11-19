@@ -96,7 +96,6 @@ workflow.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_example)
 
 # Edge aggregation only
@@ -126,5 +125,4 @@ obj <- aggregate_NICHESObject(
 #> [add_neighborhood_composition] Computing composition across 80 cells | 3 cell types ...
 #> [add_neighborhood_composition] Done. 80 cells | 3 cell types | columns: count + prop.
 #> [aggregate_NICHESObject] Pipeline complete. Slots populated: neighborhood.edge.agg, neighborhood.composition.
-# }
 ```

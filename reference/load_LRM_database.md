@@ -91,7 +91,6 @@ functions in NICHESv2 handle complexes automatically.
 
 ``` r
 # ConnectomeDB2025 is the default -- no db argument needed.
-# \donttest{
 lrm.human <- load_LRM_database(species = "human")
 #> [load_LRM_database] Loading ConnectomeDB2025 (human) from bundled package data ...
 #> [load_LRM_database] ConnectomeDB2025 (human): 3550 unique LR pairs loaded.
@@ -129,7 +128,6 @@ lrm.user <- load_LRM_database(my.db,
                               ligand.col   = "Ligand",
                               receptor.col = "Receptor")
 #> [load_LRM_database] Custom table: 3 LR pairs loaded.
-# }
 
 # OmniPath needs internet access, so this runs in interactive sessions only.
 if (interactive()) {

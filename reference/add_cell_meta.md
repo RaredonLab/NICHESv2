@@ -58,7 +58,6 @@ to recompute stale aggregations.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_example)
 
 # Build a complete replacement metadata table
@@ -85,5 +84,4 @@ head(obj.updated$edge.meta[, c("SendingCell", "ReceivingCell",
 #> 4:     Cell_10       Cell_25    edge|core
 #> 5:     Cell_10        Cell_4    edge|core
 #> 6:     Cell_10        Cell_6    edge|edge
-# }
 ```

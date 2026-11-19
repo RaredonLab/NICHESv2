@@ -43,7 +43,6 @@ for a shorter one-screen overview.
 ## Examples
 
 ``` r
-# \donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -93,5 +92,4 @@ summary(obj)
 #> 
 #>   Aggregations: none
 #> ------------------------------------------------------------
-# }
 ```

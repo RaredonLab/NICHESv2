@@ -227,7 +227,6 @@ for downstream summarization.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_inputs)
 
 # ---- Basic spatial mode (kNN edges) ----
@@ -319,5 +318,4 @@ obj.split <- create_NICHESObject(
 #> [compute_CellToCell] Done. 80 non-zero edge signals.
 attr(obj.split, "sample.col")   # "sample"
 #> [1] "sample"
-# }
 ```

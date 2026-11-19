@@ -146,7 +146,6 @@ for the LR-database loader.
 ## Examples
 
 ``` r
-# \donttest{
 data(NICHESv2_inputs)
 
 # Build a spatial kNN edge list (coord must have row names = barcodes)
@@ -174,10 +173,10 @@ result <- compute_CellToCell(
 str(result, max.level = 1)   # $edges and $lr.meta
 #> List of 2
 #>  $ edges  :Classes ‘data.table’ and 'data.frame':    190 obs. of  10 variables:
-#>   ..- attr(*, ".internal.selfref")=<pointer: 0x561c81605a30> 
+#>   ..- attr(*, ".internal.selfref")=<pointer: 0x61a10df37550> 
 #>   ..- attr(*, "sorted")= chr [1:3] "from" "to" "LRM"
 #>  $ lr.meta:Classes ‘data.table’ and 'data.frame':    15 obs. of  4 variables:
-#>   ..- attr(*, ".internal.selfref")=<pointer: 0x561c81605a30> 
+#>   ..- attr(*, ".internal.selfref")=<pointer: 0x61a10df37550> 
 #>   ..- attr(*, "sorted")= chr [1:2] "ligand" "receptor"
 head(result$edges)           # one row per non-zero (edge, LRM)
 #> Key: <from, to, LRM>
@@ -212,5 +211,4 @@ head(result$lr.meta)         # one row per valid LRM pair
 setdiff(c("x.from", "y.from", "x.to", "y.to"), colnames(result$edges))
 #> character(0)
 # character(0) -- all four coordinate columns are present
-# }
 ```

@@ -29,7 +29,6 @@ for cell, gene, edge, and LRM counts together.
 ## Examples
 
 ``` r
-# \donttest{
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
   i = sample(6L, 30L, replace = TRUE),
@@ -57,5 +56,4 @@ obj <- create_NICHESObject(
 
 length(obj)   # 8
 #> [1] 8
-# }
 ```

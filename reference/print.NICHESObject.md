@@ -38,7 +38,6 @@ printing to the console.
 ## Examples
 
 ``` r
-# \donttest{
 # Build a tiny NICHESObject for demonstration
 set.seed(1L)
 count.mtx <- Matrix::sparseMatrix(
@@ -119,5 +118,4 @@ obj            # implicit print
 #>     $segmentation  -- sf object of cell polygons, or NULL
 #>     $aggregations  -- named list of aggregation data.tables
 #> ------------------------------------------------------------
-# }
 ```
