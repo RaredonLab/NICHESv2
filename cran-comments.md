@@ -1,3 +1,11 @@
+## Resubmission
+
+This is a resubmission. In response to the review:
+
+- Software names in the Description field of DESCRIPTION are now in single
+  quotes: 'NICHES', 'ConnectomeDB2025', 'FANTOM5' and 'OmniPath'. The Title
+  names no software.
+
 ## Submission
 
 This is the first submission of NICHESv2, version 1.0.0.
@@ -18,11 +26,10 @@ This is the first submission of NICHESv2, version 1.0.0.
 
   New submission
 
-  Possibly misspelled words in DESCRIPTION: ConnectomeDB, FANTOM, OmniPath,
-  Raredon, et, al, Ligand, ligand, ligands, transcriptomics
+  Possibly misspelled words in DESCRIPTION: Raredon, et, al, Ligand, ligand,
+  ligands, transcriptomics
 
-  These are spelled correctly. ConnectomeDB, FANTOM and OmniPath are the names
-  of ligand-receptor databases, Raredon et al. is the cited method paper, and
+  These are spelled correctly. Raredon et al. is the cited method paper, and
   the others are standard biology terms.
 
 On some win-builder runs (R-devel, and one of two R-release runs of the same
