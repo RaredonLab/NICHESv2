@@ -69,5 +69,5 @@ if (requireNamespace("arrow", quietly = TRUE)) {
   export_to_TissuePlex(NICHESv2_example, output.path = out.file)
   unlink(out.file)
 }
-#> Wrote 403 rows | 141 scored edges (15 LRMs) | 213 unscored edges -> /tmp/Rtmp9YNA2l/file225e65fe269e.parquet
+#> Wrote 403 rows | 141 scored edges (15 LRMs) | 213 unscored edges -> /tmp/Rtmpu0RS91/file24614d175443.parquet
 ```
